@@ -11,6 +11,7 @@ import { logger } from "hono/logger";
 import { promises as fs } from "fs";
 import path from "path";
 import vm from "vm";
+import { DICTIONARY_SEED_WORDS } from "@/lib/dictionarySeed";
 
 const app = new Hono().basePath("/api");
 
@@ -131,6 +132,7 @@ async function translateHtml(html: string, lang: string): Promise<string> {
 const translationCache = new Map<string, string>();
 const exampleCache = new Map<string, string[]>();
 let bembaDictionaryCache: Array<{ word: string; html: string; bemba: string; englishExample: string; bembaExample: string }> | null = null;
+let allLanguagesBaseWordsCache: string[] | null = null;
 
 function escapeHtml(value: string) {
   return value
@@ -173,6 +175,31 @@ async function getBembaDictionaryEntries() {
     bembaExample: extractBembaExampleFromHtml(html),
   }));
   return bembaDictionaryCache;
+}
+
+async function getAllLanguagesBaseWords() {
+  if (allLanguagesBaseWordsCache) return allLanguagesBaseWordsCache;
+
+  const entries = await getBembaDictionaryEntries();
+  const seen = new Set<string>();
+  const combined: string[] = [];
+
+  for (const word of DICTIONARY_SEED_WORDS) {
+    const normalized = String(word).trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    combined.push(String(word).trim());
+  }
+
+  for (const entry of entries) {
+    const normalized = entry.word.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    combined.push(entry.word.trim());
+  }
+
+  allLanguagesBaseWordsCache = combined;
+  return allLanguagesBaseWordsCache;
 }
 
 async function translateTextBetween(text: string, from: string, to: string): Promise<string> {
@@ -425,7 +452,6 @@ app.get("/dictionary/languages", async (c) => {
 });
 
 app.get("/dictionary/search", async (c) => {
-  const { DICTIONARY_SEED_WORDS } = await import("@/lib/dictionarySeed");
   const { getDictionaryLanguageLabel, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE } = await import("@/lib/dictionaryLanguages");
   const q = (c.req.query("q") ?? "").trim();
   const from = c.req.query("from")?.trim() || DEFAULT_SOURCE_LANGUAGE;
@@ -433,7 +459,8 @@ app.get("/dictionary/search", async (c) => {
   if (!q) return c.json({ results: [] });
 
   const englishQuery = (from === "en" ? q : await translateTextBetween(q, from, "en")).toLowerCase();
-  const scored = DICTIONARY_SEED_WORDS
+  const baseWords = await getAllLanguagesBaseWords();
+  const scored = baseWords
     .map((word) => {
       const lower = word.toLowerCase();
       let rank = Number.POSITIVE_INFINITY;
@@ -462,12 +489,12 @@ app.get("/dictionary/search", async (c) => {
 });
 
 app.get("/dictionary/word-of-the-day", async (c) => {
-  const { DICTIONARY_SEED_WORDS } = await import("@/lib/dictionarySeed");
   const { getDictionaryLanguageLabel, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE } = await import("@/lib/dictionaryLanguages");
   const from = c.req.query("from")?.trim() || DEFAULT_SOURCE_LANGUAGE;
   const to = c.req.query("to")?.trim() || DEFAULT_TARGET_LANGUAGE;
-  const dayIndex = Math.floor(Date.now() / 86400000) % DICTIONARY_SEED_WORDS.length;
-  const baseWord = DICTIONARY_SEED_WORDS[dayIndex];
+  const baseWords = await getAllLanguagesBaseWords();
+  const dayIndex = Math.floor(Date.now() / 86400000) % baseWords.length;
+  const baseWord = baseWords[dayIndex];
   const entry = await buildDictionaryEntry(baseWord, from, to, getDictionaryLanguageLabel(from), getDictionaryLanguageLabel(to), true);
   return c.json(entry);
 });
@@ -496,12 +523,12 @@ app.get("/dictionary/examples", async (c) => {
 });
 
 app.get("/dictionary/quiz", async (c) => {
-  const { DICTIONARY_SEED_WORDS } = await import("@/lib/dictionarySeed");
   const { DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE } = await import("@/lib/dictionaryLanguages");
   const from = c.req.query("from")?.trim() || DEFAULT_SOURCE_LANGUAGE;
   const to = c.req.query("to")?.trim() || DEFAULT_TARGET_LANGUAGE;
 
-  const picked = [...DICTIONARY_SEED_WORDS].sort(() => Math.random() - 0.5).slice(0, 20);
+  const baseWords = await getAllLanguagesBaseWords();
+  const picked = [...baseWords].sort(() => Math.random() - 0.5).slice(0, 20);
   const translated = await Promise.all(
     picked.map(async (baseWord) => ({
       baseWord,
@@ -524,15 +551,15 @@ app.get("/dictionary/quiz", async (c) => {
 });
 
 app.get("/dictionary/words", async (c) => {
-  const { DICTIONARY_SEED_WORDS } = await import("@/lib/dictionarySeed");
   const { getDictionaryLanguageLabel, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE } = await import("@/lib/dictionaryLanguages");
   const page = parseInt(c.req.query("page") ?? "0");
   const from = c.req.query("from")?.trim() || DEFAULT_SOURCE_LANGUAGE;
   const to = c.req.query("to")?.trim() || DEFAULT_TARGET_LANGUAGE;
   const PAGE_SIZE = 20;
-  const slice = DICTIONARY_SEED_WORDS.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const baseWords = await getAllLanguagesBaseWords();
+  const slice = baseWords.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const words = await Promise.all(slice.map((baseWord) => buildDictionaryEntry(baseWord, from, to, getDictionaryLanguageLabel(from), getDictionaryLanguageLabel(to), false)));
-  return c.json({ words, total: DICTIONARY_SEED_WORDS.length, pages: Math.ceil(DICTIONARY_SEED_WORDS.length / PAGE_SIZE) });
+  return c.json({ words, total: baseWords.length, pages: Math.ceil(baseWords.length / PAGE_SIZE) });
 });
 
 app.get("/bemba-dictionary/search", async (c) => {

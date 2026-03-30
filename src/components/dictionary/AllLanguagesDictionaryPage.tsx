@@ -30,6 +30,16 @@ function renderHtml(html: string) {
     .replace(/class=in_bemba/g, 'style="margin-top:4px;color:rgba(255,255,255,0.6)"');
 }
 
+function InlineTranslationPair({ source, target }: { source: string; target: string }) {
+  return (
+    <div className="text-lg font-semibold text-white sm:text-xl">
+      <span className="capitalize text-white">{source}</span>
+      <span className="px-2 text-white/45">:</span>
+      <span className="capitalize text-cyan-300">{target}</span>
+    </div>
+  );
+}
+
 function speak(text: string) {
   if ("speechSynthesis" in window) {
     const u = new SpeechSynthesisUtterance(text);
@@ -188,7 +198,7 @@ function ExamplePanel({
 }) {
   return (
     <div className="mt-4 rounded border border-white/10 bg-black/10 p-4">
-      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-cyan-300">
+      <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-white/45">
         <i className={`fas ${loading ? "fa-spinner fa-spin" : "fa-sparkles"}`} />
         AI-generated examples
       </div>
@@ -383,6 +393,7 @@ export default function DictionaryPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selected, setSelected] = useState<DictEntry | null>(null);
   const [searching, setSearching] = useState(false);
+  const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [sourceLang, setSourceLang] = useState(DEFAULT_SOURCE_LANGUAGE);
   const [targetLang, setTargetLang] = useState(DEFAULT_TARGET_LANGUAGE);
   const [generatedExamples, setGeneratedExamples] = useState<GeneratedExample[]>([]);
@@ -449,6 +460,7 @@ export default function DictionaryPage() {
     setHistoryCursor(-1);
     setRandomEntry(null);
     setGeneratedExamples([]);
+    setSearchSubmitted(false);
     fetch(`/api/dictionary/word-of-the-day?from=${encodeURIComponent(sourceLang)}&to=${encodeURIComponent(targetLang)}`).then(r => r.json()).then(d => setWotd(d));
     loadWordListPage(0, sourceLang, targetLang);
   }, [sourceLang, targetLang]);
@@ -475,7 +487,12 @@ export default function DictionaryPage() {
 
   // ── Translate search
   const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) { setSuggestions([]); setShowSuggestions(false); return; }
+    if (!q.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSearchSubmitted(false);
+      return;
+    }
     setSearching(true);
     const res = await fetch(`/api/dictionary/search?q=${encodeURIComponent(q)}&from=${encodeURIComponent(sourceLang)}&to=${encodeURIComponent(targetLang)}`);
     const data = await res.json();
@@ -485,7 +502,14 @@ export default function DictionaryPage() {
   }, [sourceLang, targetLang]);
 
   const handleSearchSubmit = () => {
+    if (!search.trim()) {
+      setSearchSubmitted(false);
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
     setSelected(null);
+    setSearchSubmitted(true);
     void doSearch(search);
   };
 
@@ -493,6 +517,7 @@ export default function DictionaryPage() {
     setSelected(entry);
     setSearch("");
     setShowSuggestions(false);
+    setSearchSubmitted(false);
     setCurrentEntry(entry);
     setEntryHistory((prev) => {
       const next = [...prev.slice(0, historyCursor + 1), entry];
@@ -834,11 +859,19 @@ export default function DictionaryPage() {
             }}
           />
           <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearch(value);
+                  if (!value.trim()) {
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                    setSearchSubmitted(false);
+                  }
+                }}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -918,21 +951,16 @@ export default function DictionaryPage() {
           {/* Selected word detail */}
           {selected ? (
             <div>
-              <button onClick={() => { setSelected(null); setSearch(""); setSuggestions([]); }} className="text-xs text-cyan-400 mb-3 hover:underline">
+              <button onClick={() => { setSelected(null); setSearch(""); setSuggestions([]); setSearchSubmitted(false); }} className="text-xs text-cyan-400 mb-3 hover:underline">
                 <i className="fas fa-arrow-left mr-1" />Back to list
               </button>
               <div className="p-4 rounded" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)" }}>
                 <div className="flex items-start justify-between mb-2">
-                  <span className="text-xl font-bold text-white capitalize">{selected.word}</span>
+                  <InlineTranslationPair source={selected.word} target={selected.bemba} />
                   <button onClick={() => speak(selected.bemba)} className="text-white/50 hover:text-cyan-400 transition-colors" title="Pronounce">
                     <i className="fas fa-volume-up" />
                   </button>
                 </div>
-                <div
-                  className="text-sm leading-relaxed"
-                  style={{ color: "rgba(255,255,255,0.85)", lineHeight: "26px", fontSize: "16px" }}
-                  dangerouslySetInnerHTML={{ __html: renderHtml(selected.html) }}
-                />
                 <ExamplePanel
                   sourceLabel={getDictionaryLanguageLabel(sourceLang)}
                   targetLabel={getDictionaryLanguageLabel(targetLang)}
@@ -943,23 +971,20 @@ export default function DictionaryPage() {
             </div>
           ) : (
             <>
-              {search && suggestions.length === 0 && !searching && (
-                <p className="text-white/40 text-sm text-center py-4">No results for &quot;{search}&quot;</p>
+              {searchSubmitted && searching && (
+                <div className="rounded border border-white/10 p-4 text-center text-white/55" style={{ background: "rgba(0,0,0,0.14)" }}>
+                  <i className="fas fa-spinner fa-spin mr-2 text-cyan-400" />
+                  Translating..
+                </div>
               )}
-
               {/* Word list */}
-              {!search && (
+              {!searchSubmitted && (
                 <>
                   <div className="rounded border border-white/10 p-4" style={{ background: "rgba(0,0,0,0.14)" }}>
                     {currentEntry ? (
                       <div>
                         <div className="rounded px-4 py-4" style={{ background: "rgba(255,255,255,0.03)" }}>
-                          <div className="text-lg font-semibold capitalize text-white">{currentEntry.word}</div>
-                          <div
-                            className="mt-2 text-sm leading-relaxed"
-                            style={{ color: "rgba(255,255,255,0.85)", lineHeight: "28px", fontSize: "16px" }}
-                            dangerouslySetInnerHTML={{ __html: renderHtml(currentEntry.html) }}
-                          />
+                          <InlineTranslationPair source={currentEntry.word} target={currentEntry.bemba} />
                           <ExamplePanel
                             sourceLabel={getDictionaryLanguageLabel(sourceLang)}
                             targetLabel={getDictionaryLanguageLabel(targetLang)}
