@@ -1,0 +1,68 @@
+<title>locationByIp() | getting user location by ip address</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to get the user's location through the ip address  by using a locationById() function">
+<!--location by ip address-->
+<div id="tutorial-wrapper">
+<section id="locationById()">
+<h2>locationByIp() | getting user location by ip address</h2>
+<div class="code-description">
+You can get the user location through an ip address just by using <em>locationById()</em> function. This function takes  two parameter which are the <em>ip address</em> and an optional <em>element selector</em> where the results will show: <em>locationByIp(ip, selector)</em>. This will print the user's district, province, country and continent. This function <em>locationById()</em> will get the user's location without their consent as it does not ask users to either allow or block the web browser to access the location.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"ip-location-results"</span>&gt;</span>The location will show here!<span class="tag">&lt;/div&gt;</span><br>
+
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"ip_address"</span> <span class="attr">placeholder</span>=<span class="attr_val">"Enter ip address"</span> &gt;</div>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">locationByIp(</span>getValue('#ip_address'),'#ip-location-results'<span class="func">)</span>"</span>&gt;</span><br>Get location<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="ip-location-results" class="hide-text">
+The location will show here!</div>
+<input id="ip-address"  placeholder="Enter ip address..">
+<div class="code-btn">
+<button onclick="setHTML('#ip-location-results','Getting data, please wait..'); locationByIp(getValue('#ip-address'),'#ip-location-results');">Get location</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the  button "Get location" was clicked, the function <em>locationById()</em> was fired which had the <em>getValue()</em> function as its first argument which was used to retrieve the ip address from the input element with an id of <em>#ip-address</em>, then the second argument was the element selector called <em>#ip-location-result</em> which was used  to show the  results.Then the  function went directly into retriving the user's latitude and longitudes without even asking about their consent. Then the  latitudes and longitudes were sent to some external APIs that helped to get the location. <em>locationById()</em> function only gets the district, province, country and continent of the user which you can later split into single strings using the javascript <em>split()</em> function where you have to separate them by comma (<b>,</b>)<br>
+For example: <em>locationById(ip_address).split(',')</em>.please don't include the second argument (selector) when spliting the strings.
+<br>
+<b>Note:</b> the results of the user's location especially the district and province/state may be incorrect due to the kind of the device of the user or due to the geographical area tracking issues or wrong api address. However, the country and the continent will always be 100% correct.<br>
+<b>Importance:</b> This  function <em>locationById()</em> can be used in tracking the user's location just by using their ip address. This can also be used to track the location of users who refuse to allow an access to their locations especially cyber criminals such as black hat hackers. It can also be used to customise and personalise the experience and content of each user depending on their location such as adverts.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('myLocation()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/myLocation.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button onclick="$('#topics-span').html('copyText()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/copyText.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

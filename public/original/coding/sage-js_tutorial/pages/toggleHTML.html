@@ -1,0 +1,66 @@
+<title>toggleHTML() | Toggling html content of the element</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to toggle html content onto html element using toggleHTML() function">
+<!--toggle html onto  the  elements-->
+<div id="tutorial-wrapper">
+<section>
+<h2>toggleHTML() | Toggling html content of the element</h2>
+<div class="code-description">
+You can  easily toggle between new and existing innerHTML content of an element just by using <em>toggleHTML()</em> function. This function checks if the given html content (text) exists and if yes, it  gets removed  else it gets added and removes the existing content. This function  has three parameters which is the element <em>selector</em>, <em>old content</em> and <em>new content</em> : <em>toggleHTML(selector, old_text, new_text)</em>.<br>
+The <em>selector</em> is the element which will have its innerHTML content toggled, <em>old_content</em> is the existing content (text) in the element and <em>new_content</em> is the new text that will be toggled (added or removed) in the element.<br>
+The following example shows how we can use the <em>toggleHTML()</em> function to toggle some text.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"toggle-html"</span>&gt;</span>How are you?<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">toggleHTML(</span>'#toggle-html','new-class'<span class="func">)</span>"</span>&gt;</span><br>Toggle content<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div  id="toggle-html" class="new-class" style="text-align: center; padding: 10px; color: white;">
+How are you?</div>
+<div class="code-btn">
+<button onclick="toggleHTML('#toggle-html','How are you?','Am ok thanks!')">Toggle content</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>toggle-html</em> is selected and then the new text "<b>Am ok thanks!</b>" is checked if it is the existing  innerHTML of the selected element and if yes, it gets removed  else it gets added by replacing the old content (existing content).
+</div>
+</div>
+</section>
+
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('setHTML()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/setHTML.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('appendHTML()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/appendHTML.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

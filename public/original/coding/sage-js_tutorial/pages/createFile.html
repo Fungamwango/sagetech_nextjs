@@ -1,0 +1,79 @@
+<title>createFile() | Creating a file in a web browser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to create a file using the  createFile() function">
+<!--createFile()-->
+<div id="tutorial-wrapper">
+<section id="createFile()">
+<h2>createFile() | Creating a file in a web browser</h2>
+<div class="code-description">
+You can  create either a txt or an html file just by using <em>createFile()</em> function. This function has four  paramenters which are: <em>link_id</em>, <em>filename</em>,<em>data</em>  and an optional  <em>file_type</em>: <em>createFile(link_id, filename, data, file_type)</em>.<br>
+The <em>link_id</em> is the id name of an anchor tag <em>&lt;a&gt;</em> which is used to download the created  file, <em>filename</em> is the name of the file to be created, <em>data</em> is the file content which is text and <em>file_type</em> is an optional parameter that specifies the type of the file to be created and it can only be either a <b>txt</b> or <b>html</b>. By default, the file_type is <em>txt</em>.
+<br>
+The following example shows how <em>createFile()</em> function can be used to create  a simple html file.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;a <span class="attr">id</span>=<span class="attr_val">"file_link"</span>&gt;</span> Download file<span class="tag">&lt;/a&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+<!--
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#every-results',number) }<span class="func">)</span>"</span>&gt;</span><br>Incremant number<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>-->
+
+
+<div class="tag">&lt;script&gt;</div>
+<span class="attr">var</span> <span class="func">data</span>="Hello this is a dummy html file created using sage.js creatFile() function";<br><br>
+<span class="func">createFile(</span>'file_link', 'webfile', <span class="func">data</span>, 'html'<span class="func">)</span>
+<div class="tag">&lt;/script&gt;</div>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<div  id="every-results" class="hide-text">
+The number will increment by 1 every second</div>-->
+<a id="file_link" class="hide-text">Download file</a>
+<!--<input id="text-value" value="Hello world..">-->
+<!--<div class="code-btn">
+<button onclick="var number=0; setHTML('#every-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#every-results',number) })">Incremant number</button>
+</div>-->
+</div>
+</div>
+<script>
+var data="Hello this is a dummy html file created using sage.js creatFile() function";
+
+createFile('file_link', 'webfile', data, 'html')
+
+</script>
+<div  class="code-description">
+<div class="example-explained">The <em>createFile()</em>  function got  called  when the web page had finished loading.  It had  four arguments which were passed in its parenthesis: <em>createFile('file_link', 'webfile', data, 'html')</em>. <em>file_link</em> is the the id name of an anchor element <em>&lt;a&gt;</em> which is used to generate the file downloading link, <em>webfile</em> is the name of the file. You can name it anything, <em>data</em> is the content of the file which should be text. We had stored the text in the variable called <em>data</em> and this is why we could not wrap it in single quotes as it's a variable. The last argument is an optional file type which in our case was <b>html</b>. Remember by default the file_type is <b>txt</b> but we wanted to create a web file so we used html instead.<br>
+<b>Note:</b> You must only use  an anchor element <em>&lt;a&gt;</em> to create the downloading link of the file<br>
+<b>Importance:</b> You know  it's not possible to create a file using javascript, but sage.js makes it just possible for any programmer to generate one and save it on their own system. Therefore the importance and usefulness of this <em>createFile()</em> function is endless and unimaginable.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button onclick="$('#topics-span').html('dragDrop()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/dragDrop.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('random()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/random.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

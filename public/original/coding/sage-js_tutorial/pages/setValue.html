@@ -1,0 +1,53 @@
+<title>setValue() | Setting the input/textarea value</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to set values in the input ot textarea using setValue() function">
+<!--setting the input value-->
+<div id="tutorial-wrapper">
+<section>
+<h2>setValue() | Setting the input/textarea value</h2>
+
+<div class="code-description">
+You can easily set the value of the input or textarea by using the <em>setValue()</em> function which sets whatever value is passed in its parenthesis. This function accepts two parameters: the input selector and the value to be set: <em>setValue(selector, value)</em>.Selector is the element which will receive the values while value is any string or number that you wanna set and it can even be a variable. The following example shows how we can use the <em>setValue()</em> function to set the value of the input element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"set-value"</span> &gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">setValue(</span>'#set-value' , 'Hello world' <span class="func">)</span>"</span>&gt;</span><br>Set value<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<input id="set-value" readonly>
+<div class="code-btn">
+<button onclick="setValue('#set-value','Hello world')">Set value</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>set-value</em> which is the input element was selected and then the text <q>Hello world</q> was set as its value.
+Here we used the id as the input element selector which is prefixed with an <em>hash-tag (#set-value)</em>.
+</div>
+</div>
+</section>	
+<div class="pagination-btn-wrapper">
+<div><button   onclick="$('#topics-span').html('getValue()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/getValue.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button onclick="$('#topic-name').val('values'); $('#topics-span').html('getHTML()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/getHTML.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>	
+</div>

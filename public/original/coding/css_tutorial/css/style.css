@@ -1,0 +1,46 @@
+#css-tutorial-wrapper{background-color: rgb(245, 245, 255);
+    position: relative;}
+
+
+#scroll-up{position: fixed;
+            z-index:1;
+            right:5px;
+         bottom: 10px;
+        cursor:pointer;
+        background:rgba(0, 44, 55, 0.8);
+    padding:3px 4px;
+color:white; 
+border-radius: 2px;
+}
+
+
+#css-tutorial-wrapper li::after{
+        content: '';
+        display: block;
+        background-color:rgba(255,255,255,0.1);
+       height:2px;}
+
+#css-tutorial-wrapper li:hover{ background-color: rgb(6 ,80, 56); 
+         padding:10px 10px; }
+
+#css-tutorial-wrapper fieldset{padding:2px;
+                              line-height: 24.5px;
+                            word-spacing: 1.9px;}
+
+#css-tutorial-wrapper p{padding:10px;}
+
+	      
+
+
+#css-tutorial-wrapper  fieldset legend h4{background:#034;
+                          color:#fff;
+                        padding: 5px;
+                       border-radius: 2px;}
+
+#css-tutorial-wrapper table, td{ border-collapse: collapse; padding: 5px;}
+  
+#css-tutorial-wrapper .attribute{color:skyblue;}
+
+#css-tutorial-wrapper .element{color:skyblue;}
+       
+

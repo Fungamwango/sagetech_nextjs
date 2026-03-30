@@ -1,0 +1,64 @@
+<title>countDown() | making a simple count down</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to make  a simple count down using countDown() function">
+<!--countDown()-->
+<div id="tutorial-wrapper">
+<section id="countDown()">
+<h2>countDown() | making a simple count down</h2>
+<div class="code-description">
+You can easily create a count down system just by using <em>countDown()</em> function. This function has four paramenter which is the element <em>selector</em>, <em>start</em>, <em>stop</em> and <em>callback function</em>: <em>countDown(selector, start, stop, callback)</em>.The <em>selector</em> is the element where the count down will show, <em>start</em> is the number where the count down will start from, <em>stop</em> is the number where the count down will stop and <em>callback</em> is the function that will run when count down has stopped. The <em>callback</em> is optional.<br> The following example shows how the <em>countDown()</em> function can be used to create a simple count down.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"count-down-results"</span>&gt;</span>Lets count down from 5<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">countDown(</span>'#count-down-results', 5, 2,  function(){ alert('The count down has finished') }<span class="func">)</span>"</span>&gt;</span><br>Start count down<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="count-down-results" class="hide-text">
+Lets count down from 5</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="setHTML('#count-down-results','Loading..'); countDown('#count-down-results', 5,0,function(){alert('The count down has finished')})">Start count down</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "start count down" was clicked, the function <em>countDown()</em> was called with an element selector  called <em>#count-down-results</em>, start=<b>5</b>, stop=<b>0</b> and an optional callback function which  was used to alert user. The counting down started at <b>5</b> and stopped at <b>0</b> and then function was executed to alert the user that the count down has finished.<br>
+<!--<b>Note:</b>  <br>-->
+<b>Importance:</b> This function <em>countDown()</em> will help you to create a very nice counting down system where you can allow users to set their own starting and ending points and then execute some functions when it stops.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button   onclick="$('#topics-span').html('clock()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/clock.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button   onclick="$('#topics-span').html('after()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/after.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

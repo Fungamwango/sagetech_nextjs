@@ -1,0 +1,65 @@
+<title>myLocation() | getting your current location</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to get the user's current location by using a myLocation() function">
+<!--my location-->
+<div id="tutorial-wrapper">
+<section id="myLocation()">
+<h2>myLocation() | getting your current location</h2>
+<div class="code-description">
+You can get your current location using <em>myLocation()</em> function. This function has only one optional parameter which is the <em>element selector</em> where the results will show: <em>myLocation(selector)</em>. This will print your district, province, country and continent. You must  allow the web browser to access your location and have internet connection else this will not work.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"location-result"</span>&gt;</span>Your location will show here<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">myLocation(</span>'#location-result'<span class="func">)</span>"</span>&gt;</span><br>Get my location<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="location-results" class="hide-text">
+Your location will show here!</div>
+
+<div class="code-btn">
+<button onclick="setHTML('#location-results','Getting data, please wait..'); myLocation('#location-results');">Get my location</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the  button "Get my location" was clicked, the function <em>myLocation()</em> was called which had the element selector called <em>#location-result</em> as its argument where the results was shown.Then the function checked if the browser allows the API to access the user's location. If it does not, the user was asked to either allow or block  accessing their location. If the user allows the web browser  to access their location, then the longitude and latitudes values will be retrieved and sent to some external  APIs that will help to get the current location of the user. <em>myLocation()</em> function only gets the district, province, country and continent of the user which you can later split into single strings using the javascript <em>split()</em> function where you have to separate them by comma (<b>,</b>)<br>
+For example: <em>myLocation().split(',')</em>.
+<br>
+<b>Note:</b> the results of your location especially the district and province/state may be incorrect due to the kind of the device you are using or due to the geographical area tracking issues. However, the country and the continent will always be 100% correct.<br>
+<b>Importance:</b> This  function <em>myLocation()</em> can be used to get the current location of the user which can then be used to customise and personalise the experience and content of each user depending on their  location.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('filePreview()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/filePreview.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button onclick="$('#topics-span').html('locationById()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/locationById.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

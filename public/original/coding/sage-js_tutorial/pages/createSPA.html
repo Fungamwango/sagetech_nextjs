@@ -1,0 +1,89 @@
+<title>createSPA() | Creating a single page app (SPA)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to create a single page application (SPA) just by using createSPA() function">
+<!--createSPA(links_selector,result,active_class=null,loader)-->
+<div id="tutorial-wrapper">
+<section id="createSPA()">
+<h2>createSPA() | Creating a single page app (SPA)</h2>
+<div class="code-description">
+Sage.js has made it very possible for programmers to create a single page application with  no challenges at all. The single page application (SPA) is the web app that only has one page where all the other pages are loaded. An SPA makes a website faster  and prevents the web browser from loading each time the user requests the data.<br>
+However, The most challenge that programmers have faced to create an <em>SPA</em> is the ability to implement the page links  back and forth navigation system. Users love to use the back button on their devices to navigate back and forth on a website, However this ability becomes very difficult to implement as the programmer is forced to understand the window's complicated history api system. Sage.js looked at this problem and provided the solution.<br><br>
+Now You can easily create a single page application just by using <em>createSPA()</em> function. This function has four  parameters which is the  <em>links_selector</em>, <em>results</em> and the last two  optional arguments which are the <em>active_class</em> and <em>loader</em>:<br> <em>createSPA(links_selector, result, active_class, loader)</em>.<br> The <em>links_selector</em> is the class name of the navigation links and must be written withot a <b>.</b> dot prefix, <em>result</em> is the id or class name of the element where the results will be loaded , <em>active_link</em> is an optional parameter which is the name of the class which will be added on the active link. This class should contain some CSS styling such as a color which can be added to an active link and the last paramenter is <em>loader</em> which is optional and its used to provide some text that will be shown when the browser is waiting  for the page to loaded. By default, the <em>loader</em> has a '<b>Loading..</b>' text, however you can change it to anything and you can even include an image<br><br>
+<b>Note</b>:All the links url must be added in a <b>data-url</b> attribute eg: <em>&lt;li data-url="page1.html"&gt; link 1 &lt;/li&gt;</em>.<br> We recommend using <em>&lt;li&gt;</em> as the link element.
+The following example shows how we can create a single page application using <em>createSPA()</em> function.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.active_link</span>{<span class="css">color: aqua;</span><br>
+<span class="css">border: 1px solid teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<!--links-->
+<div class="tag">&lt;ul&gt;</div>
+<span class="tag">&lt;li <span class="attr">class</span>=<span class="attr_val">"link"</span>  <span class="attr">data-url</span>=<span class="attr_val">"data1.html"</span>&gt;</span> Link 1<span class="tag">&lt;/li&gt;</span><br>
+
+<span class="tag">&lt;li <span class="attr">class</span>=<span class="attr_val">"link"</span>  <span class="attr">data-url</span>=<span class="attr_val">"data2.html"</span>&gt;</span>Link 2<span class="tag">&lt;/li&gt;</span><br>
+
+<span class="tag">&lt;li <span class="attr">class</span>=<span class="attr_val">"link"</span>  <span class="attr">data-url</span>=<span class="attr_val">"data3.html"</span>&gt;</span>Link 3<span class="tag">&lt;/li&gt;</span><br>
+
+<div class="tag">&lt;/ul&gt;</div>
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"spa-results"</span>&gt;</span>The results will show here<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+<!--<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#every-results',number) }<span class="func">)</span>"</span>&gt;</span><br>Incremant number<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>-->
+
+
+
+<div class="tag">&lt;script&gt;</div>
+<span class="func">createSPA(</span>'links', '#spa-results','active_link'<span class="func">)</span>
+<div class="tag">&lt;/script&gt;</div>
+
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+
+<ul  id="spa-links-wrapper">
+<li data-url='sage-js_tutorial/data/data1.html' class="link">Link 1</li>
+<li data-url='sage-js_tutorial/data/data2.html' class="link">Link 2</li>
+<li data-url='sage-js_tutorial/data/data3.html' class="link">Link 3</li>	
+</ul>
+<div  id="spa-results" class="hide-text">
+The results will show here!</div>
+<!--<input id="text-value" value="Hello world..">-->
+<!--<div class="code-btn">
+<button onclick="var number=0; setHTML('#every-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#every-results',number) })">Incremant number</button>
+</div>-->
+<script>
+createSPA('link','#spa-results','active_link');
+</script>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> The <em>  createSPA()</em> was called when the page has finished loading which had three arguments, we ignored the fourth <em>loader</em> parameter as it's set by default: <em>createSPA('link', '#spa-results', 'active_link')</em> <br> <em>link</em> is the class name of the links element (<em>&lt;li&gt;</em>). <em>#spa-results</em> is id name of  the element where the results will be loaded (shown) and the <em>active_link</em> is the  style class name which will add an <em>aqua</em> color to any clicked link. This class must be written without a dot (<b>.</b>) prefix.<br><br>
+<b>Note:</b> You must only use the class name as the links selector which should be applied to all the links. If you want to set the loading text in the fourh <em>loader</em> parameter, you must not ignore the <em>active_link</em> parameter, you can even pass a <b>null</b> value. <br><br>
+<!--<b>Importance:</b> This function <em>createSPA()</em> has saved programmers from an headache of trying to understand the complicated window's history api and it has enabled them to create a single page application with ease.-->
+</div>
+</div>
+</section>
+
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('random()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/random.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  style="background:rgba(0, 0, 0, 0.2); border: none;">Next</button></div>
+</div>
+</div>

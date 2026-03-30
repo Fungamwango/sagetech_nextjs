@@ -1,0 +1,67 @@
+<title>copyText() | copying the text</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to  copy text from input elements using copyText() function">
+<!--copying the text-->
+<div id="tutorial-wrapper">
+<section id="copyText()">
+<h2>copyText() | copying the text</h2>
+<div class="code-description">
+You can easily copy the text in the web browser  just by using <em>copyText()</em> function. This function takes only one required paramenter which is the <em>text input selector</em> where the text will be copied from: <em>copy('input_selector')</em>.The input selector can either  be a <em>textarea or input</em> element where their value  attributes should have text to  be copied.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+<!--
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"ip-location-results"</span>&gt;</span>Paste the text here!<span class="tag">&lt;/div&gt;</span><br>-->
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">copyText(</span>'#text-value'<span class="func">)</span>"</span>&gt;</span><br>Copy text<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"ip_address"</span> <span class="attr">placeholder</span>=<span class="attr_val">paste here..</span> &gt;</div>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<div  id="ip-location-results" class="hide-text">
+The location will show here!</div>-->
+<input id="text-value" value="Hello world..">
+<div class="code-btn">
+<button onclick="copyText('#text-value')">Copy text</button>
+</div>
+<input  placeholder="paste here..">
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "Copy text" was clicked, the function <em>copyText()</em> was called with an id selector  called <em>#text-value</em>  which selected the input element and retrived its value. Then  the text were selected behind the scene using the javascript function  called <em>select()</em>. Then another javascript function called  <em>execCommand()</em>,  was used to execute a command on a selected element and in our case it is to copy the text therefore, it executed a "<b>copy</b>" command like this: <em>document.execCommand('copy')</em>.<br>
+<b>Note:</b> This function uses the javascript experimental  function called execCommand('copy') which is on the testing mode and it therefore might not work on all the web browsers<br>
+<b>Importance:</b> This  function <em>copyText()</em> will help both the developer and an end user to execute a copy command on the text in the browser with ease.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button onclick="$('#topics-span').html('locationById()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/locationById.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('clock()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/clock.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

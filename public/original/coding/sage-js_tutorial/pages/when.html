@@ -1,0 +1,78 @@
+<title>when() | Event handling using when()</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to use the when() function to handle events">
+<!--simplified html selector-->
+<div id="tutorial-wrapper">
+<section id="when()">
+<h2>when() | Event handling using when()</h2>
+
+<div class="code-description">
+You can simply select any valid html element by tag name, id,class,attribute or by using any valid css selecting format and add the event listener such as <em>click</em> event and append a function that should be excuted when that event is fired just by using the <em>when()</em> function.This function has two required parameters which are: the <em>element selector</em> and an <em>object</em> with an event as a property and function as the value.<br>
+<em>when(selector, {event:function(){} })</em> <br>
+<em>selector</em> is the element selector such as an id or class name and this is where an event will be fired from, <em>object</em> has a pair of an event and function separated by a full colon, the event is the "thing" that will be done on a selected elements such as a  click, focus, blur, mouseover and many more. The function is the action that should be done when an event is fired. For example  when a button is clicked, some functions must be executed.<br>
+You can chain as many event listeners such as "click, keyup, blur, focus etc" to a selected element separated by a comma in the same way object's data is separated.<br>
+The following example shows how we can use the <em>when()</em> function to excute some function when an event is fired.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+<!--
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"set-html"</span>&gt;</span>new content will appear here!<span class="tag">&lt;/div&gt;</span><br>-->
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span  class="tag">&lt;button <span class="attr">id</span>=<span class="attr_val">"btn"</span> &gt;</span>click me<span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;script&gt;</span><br>
+<span class="func">when(</span>'#btn', <span class="tag">{</span><span class="attr_val"> click</span>: <span class="attr">function(){</span><br>
+alert('You have clicked the button!')<br><span class="attr"> }</span> <span class="tag"> }</span><span class="func">)</span><br>
+<span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<!--<div class="hide-text" id="set-html">
+new content will appear here!</div>-->
+<div class="code-btn">
+<button id="btn">Click me</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<script>
+when('#btn', {click:function(){
+alert('You have clicked the button!');
+} })
+
+</script>
+
+<b>Example explained:</b> When the button with the an id name of <em>#btn</em> is clicked using the <em>click</em> event listener, The function was executed which had a javascript  alert function which says "You have clicked the button!";<br><br>
+<b>Note</b>: You can add as many event listeners as possible to the selected element like this:<br>
+<em>when('#btn', {click: function(){some codes here..},<br>
+     mouseover:function(){some codes here..},<br>
+      focus: function(){some codes here..}
+})
+</em><br>
+This has added three event listeners to a button which  means that different functions will be executed when the button is clicked, when it gets focus and
+when the mouse hovers over it.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('setAttr()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/setAttr.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button   onclick="$('#topics-span').html('when()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/E.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>

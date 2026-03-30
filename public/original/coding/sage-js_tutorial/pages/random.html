@@ -1,0 +1,64 @@
+<title>random() | Randomising  numbers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to randomise the numerical data such as numbers or arrays using the random() function">
+<!--random()-->
+<div id="tutorial-wrapper">
+<section id="random()">
+<h2>random() | Randomising  numbers</h2>
+<div class="code-description">
+You can randomise numbers  just by using <em>random()</em> function. This function has two required parameters which is the <em>from</em>  and  the <em>to</em> parameter: <em>random(from, to)</em>.The <em>from</em> is the number where the randomising should start from. The <em>to</em> is the number where the randomising should reach. Therefore the <em>from</em> and <em>to</em> actually forms the random range limits.<br>
+The following example shows how the <em>random()</em> function can be used to randomise a number from 1 to 20.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"random-results"</span>&gt;</span>The random number will run from 1 to 20<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br> setHTML('#random-results', <span class="func">random(</span>1, 20<span class="func">))</span>"</span>&gt;</span><br>Click to Randomise<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="random-results" class="hide-text">The random number will run from 1 to 20</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="setHTML('#random-results', random(1,20))">Click to Randomise</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "Click to Randomise" was clicked, the function <em>  random()</em> was called with  two arguments: <em>random(1, 20)</em> which formed the 1 to 20 random range. Then it was wrapped into the <em>setHTML()</em> function in order to print the results in the inner html of the element with an id name of <em>#random-results</em><br>
+<!--<b>Note:</b> This function  <em>random()</em> is the copy of javascript <em>setInterval()</em> function which can also be used to achieve the same results in a slightly different way--><br>
+<b>Importance:</b> This function <em>random()</em> can be used to randomise numbers or an indexed data such as arrays which can later be used to achieve so many things in programming.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button onclick="$('#topics-span').html('createFile()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/createFile.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('createSPA()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/createSPA.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

@@ -1,0 +1,59 @@
+<title>getHTML() | Getting the innerHTML content</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to get the html content from  elements using getHTML() function">
+
+<!--getting the html content-->
+<div id="tutorial-wrapper">
+<section>
+<h2>getHTML() | Getting the innerHTML content</h2>
+<div class="code-description">
+The inner content of the html elements  can be gotten by using <em>getHTML()</em> function which gets all content from the selected element. You can then store the returned content in the variable if you want.The following example shows how we can use the <em>geHTML()</em> function to get the the inner content from the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"get-html"</span>&gt;</span>Am the html content!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">alert( getHTML</span>('#get-html') <span class="func">)</span>"</span>&gt;</span><br>Get html<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<div class="hide-text" id="get-html">Am the html content!</div>
+<div class="code-btn">
+<button onclick="alert(getHTML('#get-html'))">Get html</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>get-html</em> was selected, then its html content was gotten and printed out using the javascript <em>alert()</em> function.
+Here we used the id as the input element selector which is prefixed with an <em>hash-tag (#get-html)</em>.You can also store the returned value in a variable a later use for example: <em>var html=getHTML('#get-html')</em>
+</div>
+</div>
+</section>	
+<div class="pagination-btn-wrapper">
+<div><button   onclick="$('#topics-span').html('setValue()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/setValue.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('setHTML()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/setHTML.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>	
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

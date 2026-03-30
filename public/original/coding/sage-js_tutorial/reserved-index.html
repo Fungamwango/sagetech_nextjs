@@ -1,0 +1,1989 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>sage js tutorial (version 1.0)</title>
+<script type="text/javascript" src="sage.js"></script>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<!--
+<header>
+<ul>
+<li class="active_link">Home</li>
+<div id="table-of-content-wrapper">
+<div>Documentation</div>
+<ul id="topics-list">
+<li>intro</li>
+<li>hide()</li>
+<li>show()</li>
+<li>toggle()</li>
+<li>html</li>
+<li>value</li>
+<li>attribute</li>
+<li>Events</li>
+<li>Selector</li>
+<li>CSS</li>
+<li>Class</li>
+<li>Slideshow()</li>
+<li>loadData()</li>
+<li>sendData()</li>
+<li>filePreview()</li>
+<li>myLocation()</li>
+<li>locationByIp()</li>
+<li>copyText()</li>
+<li>clock()</li>
+<li>copyText()</li>
+<li>countDown()</li>
+<li>after()</li>
+<li>every()</li>
+<li>stop()</li>
+<li>dragDrop()</li>
+<li>createFile()</li>
+<li>guese()</li>
+<li>random()</li>
+<li>createSPA()</li>
+</ul>
+</div>
+<li>Download</li>
+</ul>
+</header>
+-->
+<div id="tutorial-wrapper">
+<div id="scroll-up" onclick="E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});"><i class="fa fa-chevron-up"></i></div>
+
+<section id="intro">
+<h2>Sage.js  Introduction</h2>
+<div  class="code-description">
+Sage.js is a javascript library created by <a href="myfblink">chanda fungamwango mark</a>. In addition to everything that jquery can do, Sage.js comes with its own unique features which includes the following:
+<h3> What you can do with sage.js:</h3>
+<ul>
+<li>You can create an advanced single page application (SPA) using <em>createSPA()</em> function</li>
+<li>You can drag and drop element using <em>dragDrop()</em> function</li>
+<li>You can preview files such as images on upload <em>filePreview()</em> function</li>
+<li>You can get the location of the user just by using <em>myLocation()</em> function</li>
+<li>You can get the location of the  user through an ip address using  <em>locationById()</em> function</li>
+<li>You can create files in both txt and html formats using <em>createFile()</em> function</li>
+<li>You can toggle html content using <em>toggleHTML()</em> function</li>
+<li>You can  make a simple clock using <em>clock()</em> function</li>
+<li>You can randomise numerical data using <em>random()</em> function</li>
+<li>You can create a count down system using <em>countDown()</em> function</li>
+<li>You can  slide show elements such as images using <em>slideShow()</em> function</li>
+<li>You can  load data from the server using <em>loadData()</em> function</li>
+<li>You can  send data to the server using <em>sendData()</em> function</li>
+<li>You can copy text using <em>copyText()</em> function</li>
+<li>You can  set and get CSS  using <em>setStyle()</em> and <em>getStyle()</em> functions</li>
+<li>You can  set and get the input value  using <em>setValue()</em> and <em>getValue()</em> functions</li>
+
+<li>You can  set and get element's attributes  using <em>setAttr()</em> and <em>getAttr()</em> functions</li>
+
+<li>You can  set and get the inner content of the element  using <em>setHTML()</em> and <em>getHTML()</em> functions</li>
+
+<li>You can  append and prepend  content on an element  using <em>appendHTML()</em> and <em>prependHTML()</em> functions</li>
+
+<li>You can  add, remove and toggle a class onto an element  using <em>addClass()</em> and <em>removeClass()</em> and <em>toggleClass()</em> functions</li>
+
+<li>Sage.js can do much more than what has been highlighted, just start learning and find out!</li>
+
+</ul>
+
+</div>
+
+</section>
+
+<section>
+<h2>hide() | hiding HTML</h2>
+
+<div  class="code-description">
+Hiding html elements or content very easy, all you need to do is to call the function called <em>hide()</em> which accepts a parameter which can be an element tag name, id, class or other selector.The following example shows how we can hide the html content when a button is clicked.
+
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">hide</span>=<span class="attr_val">"hide-text"</span>&gt;</span>Hide me please<span class="tag">&lt;/div&gt;</span><br>
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">hide</span>('#hide-text')"</span>&gt;</span><br>Click to hide<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div class="hide-text" id="hide-text">Hide me please</div>
+<div class="code-btn">
+<button onclick="hide('#hide-text')">Click to hide</button>
+</div>
+</div>
+</div>
+
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button was clicked using the <em>onclick</em> event listener, the  element with an id name of <em>hide-text</em> was selected and then it was hidden (the display was set to none).
+Here we used the id as the element selector which is prefixed with a <em>#</em> hashtag, however, you can use any valid html element selector such as  class name, attributs or all the css selectors.
+</div>
+
+</div>
+</section>
+
+<!--showing the hidden elements-->
+<section>
+<h2>show() | Showing hidden HTML</h2>
+
+<div  class="code-description">
+Showing hidden html elements or content is very easy, all you need to do is to call the function called <em>show()</em> which accepts a parameter which can be an element tag name, id, class or other selector.The following example shows how we can  show hidden html content when a button is clicked.
+<div></div>
+
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"show-text"</span>&gt;</span>Am now showing!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">show</span>('#show-text')"</span>&gt;</span><br>Click to show<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div class="hide-text" id="show-text" style="display:none;">Am now showing!</div>
+<div class="code-btn">
+<button onclick="show('#show-text')">Click to show</button>
+</div>
+</div>
+</div>
+
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button was clicked using the <em>onclick</em> event listener, the  element with an id name of <em>show-text</em> was selected and then it was shown (the display was set to block).
+Here we used the id as the element selector which is prefixed with an <em>hash-tag (#show-text)</em>, however, you can use any other valid html element selector such as id or all the css selectors.
+</div>
+</div>
+</section>	
+
+
+<!--toggling the html elements-->
+<section>
+<h2>toggle() | Toggling HTML elements</h2>
+
+<div class="code-description">
+Toggle() is used to switch between hidden and visible html elements or content. If the element is hidden, using <em>toggle()</em> will show them and if the elements are visible, when the <em>toggle()</em> is used, they will be hidden.The following example shows how we can use <em>toggle()</em> function to either  show or hide html elements when a button is clicked.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"toggle-text"</span>&gt;</span>Toggle me please!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">toggle</span>('#toggle-text')"</span>&gt;</span><br>Click to toggle<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div class="hide-text" id="toggle-text">Toggle me please!</div>
+<div class="code-btn">
+<button onclick="toggle('#toggle-text')">Click to toggle</button>
+</div>
+</div>
+</div>
+
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button was clicked using the <em>onclick</em> event listener, the  element with an id name of <em>toggle-text</em> was selected, it checked if it's display is equal to block and if it's true, it was hidden else it was shown.
+Here we used the id as the element selector which is prefixed with an <em>hash-tag (#toggle-text)</em>, however, you can use any other valid html element selector such as id or all the css selectors.
+</div>
+</div>
+</section>	
+
+
+<!--getting the input value-->
+<section>
+<h2>getValue() | Getting the input/textarea value</h2>
+
+<div class="code-description">
+The value entered by the user in the inputs or textarea can be gotten by using <em>getValue()</em> function which gets whatever value from the inputs. You can then store the returned value in the variable if you want.The following example shows how we can use the <em>getValue()</em> function to get the value from the input element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"get-value"</span> <span class="attr">placeholder</span>=<span class="attr_val">"Enter your name"</span>&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">alert( getValue</span>('#get-value') <span class="func">)</span>"</span>&gt;</span><br>Get value<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<input id="get-value" placeholder="Enter your name..">
+<div class="code-btn">
+<button onclick="alert(getValue('#get-value'))">Get value</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>get-value</em> was selected, then its value was gotten and printed out using the javascript <em>alert()</em> function.
+Here we used the id as the input element selector which is prefixed with an <em>hash-tag (#get-value)</em>.You can also store the returned value in a variable a later use for example: <em>var value=getValue('#get-value')</em>
+</div>
+</div>
+</section>	
+
+
+<!--setting the input value-->
+<section>
+<h2>setValue() | Setting the input/textarea value</h2>
+
+<div class="code-description">
+You can easily set the value of the input or textarea by using the <em>setValue()</em> function which sets whatever value is passed in its parenthesis. This function accepts two parameters: the input selector and the value to be set: <em>setValue(selector, value)</em>.Selector is the element which will receive the values while value is any string or number that you wanna set and it can even be a variable. The following example shows how we can use the <em>setValue()</em> function to set the value of the input element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"set-value"</span> &gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">setValue(</span>'#set-value' , 'Hello world' <span class="func">)</span>"</span>&gt;</span><br>Set value<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<input id="set-value" >
+<div class="code-btn">
+<button onclick="setValue('#set-value','Hello world')">Set value</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>set-value</em> which is the input element was selected and then the text <q>Hello world</q> was set as its value.
+Here we used the id as the input element selector which is prefixed with an <em>hash-tag (#set-value)</em>.
+</div>
+</div>
+</section>	
+
+
+<!--getting the html content-->
+<section>
+<h2>getHTML() | Getting the innerHTML content</h2>
+
+<div class="code-description">
+The inner content of the html elements  can be gotten by using <em>getHTML()</em> function which gets all content from the selected element. You can then store the returned content in the variable if you want.The following example shows how we can use the <em>geHTML()</em> function to get the the inner content from the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"get-html"</span>&gt;</span>Am the html content!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">alert( getHTML</span>('#get-html') <span class="func">)</span>"</span>&gt;</span><br>Get html<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<div class="hide-text" id="get-html">Am the html content!</div>
+<div class="code-btn">
+<button onclick="alert(getHTML('#get-html'))">Get html</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>get-html</em> was selected, then its html content was gotten and printed out using the javascript <em>alert()</em> function.
+Here we used the id as the input element selector which is prefixed with an <em>hash-tag (#get-html)</em>.You can also store the returned value in a variable a later use for example: <em>var html=getHTML('#get-html')</em>
+</div>
+</div>
+</section>	
+
+
+<!--setting the html content-->
+<section>
+<h2>setHTML() | Setting the innerHTML content</h2>
+
+<div class="code-description">
+The inner content of the html elements  can be set by using <em>setHTML()</em> function which removes all the existing content in the selected element and updates it with the new given/set values. This function however accepts two parameters which is the element selector and html value: <em>setHTML(selector, content)</em>.The following example shows how we can use the <em>setHTML()</em> function to set  the inner html content.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"set-html"</span>&gt;</span>new content will appear here!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">setHTML(</span>'#set-html' ,'hello am a new content!' <span class="func">)</span>"</span>&gt;</span><br>set html<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<div class="hide-text" id="set-html">
+new content will appear here!</div>
+<div class="code-btn">
+<button onclick="setHTML('#set-html','hello am a new content!')">Set html</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>set-html</em> which was selected and then the text <q>hello am a new content!</q> was set as its new content. you can include any valid html tags or styling in the new content and it will be updated with no problems. for example <em>setHTML('#set-html', '&lt;p&gt; new paragraph&lt;/p&gt;')</em> this  will create a new paragraph in the selected element.
+</div>
+</div>
+</section>
+
+
+
+<!--appending the html content-->
+<section>
+<h2>appendHTML() | appending the innerHTML content</h2>
+<div class="code-description">
+The inner content of the html elements  can be appended by using <em>appendHTML()</em> function which concatenates the new content onto the selected element.This does not affect the existing content in the selected element as it just only adds the new content.This function accepts two parameters which is the element selector and html value: <em>appendHTML(selector, content)</em>.The following example shows how we can use the <em>appendHTML()</em> function to add new content to the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"append-html"</span>&gt;</span>Append some content here!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">appendHTML(</span>'#append-html' ,'&lt;br&gt; I have been appended!' <span class="func">)</span>"</span>&gt;</span><br>append html<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<div class="hide-text" id="append-html">
+Append some content here!</div>
+<div class="code-btn">
+<button onclick="appendHTML('#append-html','<br>I have been appended!')">Append html</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>append-html</em> is selected and then the text <q>I have been appended!</q> was added to the existing content. you can include any valid html tags or styling in the appended content and it will be updated with no problems. for example <em>appendHTML('#append-html', '&lt;p&gt; new paragraph&lt;/p&gt;')</em> this  will create a new paragraph in the selected element.In  the example we added the <em>&lt;br&gt;</em> break tag to set the content on the new line.
+</div>
+</div>
+</section>
+
+
+<!--prepending the html content-->
+<section>
+<h2>prependHTML() |prepending the innerHTML content</h2>
+<div class="code-description">
+The new html content can be added before the existing content in the selected element by using <em>prependHTML()</em> function which inserts the new content onto the selected element before the existing content.This does not affect the existing content in the selected element as it just only adds the new content. <em>pre</em> means "Before"  therefore the new content is inserted at the begining of the selected element.This function accepts two parameters which is the element selector and html value: <em>prependHTML(selector, content)</em>.The following example shows how we can use the <em>prependHTML()</em> function to insert new content at the begining of the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"prepend-html"</span>&gt;</span>prepend some content here!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">appendHTML(</span>'#prepend-html' ,' I have been prepended!&lt;br&gt;' <span class="func">)</span>"</span>&gt;</span><br>prepend html<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<div class="hide-text" id="prepend-html">
+Prepend some content here!</div>
+
+<div class="code-btn">
+<button onclick="prependHTML('#prepend-html',' I have been prepended!<br>')">Prepend html</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>append-html</em> is selected and then the text <q>I have been prepended!</q> was added to the existing content at the begining of the element. you can include any valid html tags or styling in the prepended content and it will be updated with no problems. for example <em>prependHTML('#prepend-html', '&lt;p&gt; new paragraph&lt;/p&gt;')</em> this  will create a new paragraph in the selected element.In  the example we added the <em>&lt;br&gt;</em> break tag to set the content on the new line.
+</div>
+</div>
+</section>
+
+
+
+<!--toggle html onto  the  elements-->
+<section>
+<h2>toggleHTML() | Toggling html content of the element</h2>
+<div class="code-description">
+You can  easily toggle between new and existing innerHTML content of an element just by using <em>toggleHTML()</em> function. This function checks if the given html content (text) exists and if yes, it  gets removed  else it gets added and removes the existing content. This function  has three parameters which is the element <em>selector</em>, <em>old content</em> and <em>new content</em> : <em>toggleHTML(selector, old_text, new_text)</em>.<br>
+The <em>selector</em> is the element which will have its innerHTML content toggled, <em>old_content</em> is the existing content (text) in the element and <em>new_content</em> is the new text that will be toggled (added or removed) in the element.<br>
+The following example shows how we can use the <em>toggleHTML()</em> function to toggle some text.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"toggle-html"</span>&gt;</span>How are you?<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">toggleHTML(</span>'#toggle-html','new-class'<span class="func">)</span>"</span>&gt;</span><br>Toggle content<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div  id="toggle-html" class="new-class" style="text-align: center; padding: 10px; color: white;">
+How are you?</div>
+<div class="code-btn">
+<button onclick="toggleHTML('#toggle-html','How are you?','Am ok thanks!')">Toggle content</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>toggle-html</em> is selected and then the new text "<b>Am ok thanks!</b>" is checked if it is the existing  innerHTML of the selected element and if yes, it gets removed  else it gets added by replacing the old content (existing content).
+</div>
+</div>
+</section>
+
+
+
+
+
+<!--getting the attribute value-->
+<section>
+<h2>getAttr() | Getting the attribute value</h2>
+
+<div class="code-description">
+The value of the attribute be can gotten by using <em>getAttr()</em> function which gets the given value of the attribute from the element. You can then store the returned value in the variable if you want.This function takes two parameters which are: <em>selector</em> and <em>attibute name</em> where "Selector"  is the element where the targeted attribute is located while the "Attribute name" is actually name of  the attribute where you want to get the value from : <em>getAttr(selector, attribute name)</em>.The following example shows how we can use the <em>getAttr()</em> function to get the value from any targeted attribute.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"get-attr"</span> <span class="attr">placeholder</span>=<span class="attr_val">"Enter your name"</span>&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">alert( getAttr</span>('#get-attr', 'placeholder') <span class="func">)</span>"</span>&gt;</span><br>Get attribute<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<input id="get-attr" placeholder="Enter your name..">
+<div class="code-btn">
+<button onclick="alert(getAttr('#get-attr','placeholder'))">Get attribute</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>get-attr</em> was selected, then its attribute name was retrived according to the name which  was  set. In our example, the attribute name we set was the <em>placeholder</em> then its value ("Enter your name..") was gotten and printed out using the javascript <em>alert()</em> function.
+</div>
+</div>
+</section>	
+
+
+<!--setting the html attribute-->
+<section>
+<h2>setAttr() | Setting the Element's attribute</h2>
+
+<div class="code-description">
+Attribute is the value that adds more information and capabilities to the element . You can easly set a new attribute or modify the exsiting attribute using the <em>setAttr()</em> function. This function accepts two parameters which is the element selector and the attribute object: <em>setAttr(selector, {name:value})</em>. The attribute object takes the  <em>"name:value"</em> pair where "name" is the name of the attribute such as "href" and value is the value of the attribute's name such "www.web.com". You need to be familiar with objects to work well with this function. You can add as many attributes as you want separated by a comma. The following example shows how we can use the <em>setAttr()</em> function to set or modify the  element's attributes.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"set-attr"</span> &gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">setAttr(</span>'#set-attr' ,{'placeholder':'Am disabled' , 'disabled':true}<span class="func">)</span>"</span>&gt;</span><br>set html<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<input id="set-attr">
+<!--<div class="hide-text" id="set-html">
+new content will appear here!</div>-->
+<div class="code-btn">
+<button onclick="setAttr('#set-attr',{'placeholder':'Am disabled','disabled':true})">Set attribute</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>set-attr</em> is selected which is an input element and then the attributes defined in the through the object were added.The attributes which were added is the <em>placeholder</em> with a value of <em>"Am disabled"</em> and <em>disabled</em> with a value of <em>true</em>.Here we have just set two attributes however, there is no limit to how many attributes you can set as illustrated earier. <b>Note:</b> you can only set the attributes which are supported by the selected element as some will fail.
+</div>
+</div>
+</section>
+
+<!--simplified html selector-->
+<section>
+<h2>E() | HTML selector using E()</h2>
+
+<div class="code-description">
+You can simply select any valid html element by tag name, id,class,attribute or by using any valid css selecting format using the <em>E()</em> function which stands for "Element".This function replaces the use of long html query selectors such as: <em>document.getElementById()</em>,
+<em>document.getElementsByTagName()</em>,
+<em>document.getElementsByClassName()</em> and many more.The following example shows how we can use the <em>E()</em> function to select the any html element and apply some function.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"set-html"</span>&gt;</span>new content will appear here!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span  class="tag">&lt;button <span class="attr">id</span>=<span class="attr_val">"BTN"</span> &gt;</span>click me<span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;script&gt;</span><br>
+<span class="func">E('#BTN')</span>.addEventListener('click', function(){
+alert('You have clicked the button!')}<br>
+<span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<!--<div class="hide-text" id="set-html">
+new content will appear here!</div>-->
+<div class="code-btn">
+<button id="BTN">Click me</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<script>
+E('#BTN').addEventListener('click', function(){
+alert('You have clicked the button!')
+})
+
+</script>
+
+<b>Example explained:</b> The button with an id called <b>btn</b> was selected <em>E('#BTN')</em> and an event listener was set using the javascript  function called <em>addEventListener()</em> which accepts two parameters: an <em>event</em> and a <em>function</em>. Then the click event was set which should is fired when a button is clicked. lastly we added some codes in the function which should be executed when the button is clicked and in our cas we just added an alert() function with some text "You have clicked the button!";
+</div>
+</div>
+</section>
+
+<!--simplified html selector-->
+<section id="when()">
+<h2>when() | Event handling using when()</h2>
+
+<div class="code-description">
+You can simply select any valid html element by tag name, id,class,attribute or by using any valid css selecting format and add the event listener such as <em>click</em> event and append a function that should be excuted when that event is fired just by using the <em>when()</em> function.This function has two required parameters which are: the <em>element selector</em> and an <em>object</em> with an event as a property and function as the value.<br>
+<em>when(selector, {event:function(){} })</em> <br>
+<em>selector</em> is the element selector such as an id or class name and this is where an event will be fired from, <em>object</em> has a pair of an event and function separated by a full colon, the event is the "thing" that will be done on a selected elements such as a  click, focus, blur, mouseover and many more. The function is the action that should be done when an event is fired. For example  when a button is clicked, some functions must be executed.<br>
+You can chain as many event listeners such as "click, keyup, blur, focus etc" to a selected element separated by a comma in the same way object's data is separated.<br>
+The following example shows how we can use the <em>when()</em> function to excute some function when an event is fired.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+<!--
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"set-html"</span>&gt;</span>new content will appear here!<span class="tag">&lt;/div&gt;</span><br>-->
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span  class="tag">&lt;button <span class="attr">id</span>=<span class="attr_val">"btn"</span> &gt;</span>click me<span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;script&gt;</span><br>
+<span class="func">when(</span>'#btn', <span class="tag">{</span><span class="attr_val"> click</span>: <span class="attr">function(){</span><br>
+alert('You have clicked the button!')<br><span class="attr"> }</span> <span class="tag"> }</span><span class="func">)</span><br>
+<span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<!--<div class="hide-text" id="set-html">
+new content will appear here!</div>-->
+<div class="code-btn">
+<button id="btn">Click me</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<script>
+when('#btn', {click:function(){
+alert('You have clicked the button!')
+} })
+
+</script>
+
+<b>Example explained:</b> When the button with the an id name of <em>#btn</em> is clicked using the <em>click</em> event listener, The function was executed which had a javascript  alert function which says "You have clicked the button!";<br><br>
+<b>Note</b>: You can add as many event listeners as possible to the selected element like this:<br>
+<em>when('#btn', {click: function(){some codes here..},<br>
+     mouseover:function(){some codes here..},<br>
+      focus: function(){some codes here..}
+})
+</em><br>
+This has added three event listeners to a button which  means that different functions will be executed when the button is clicked, when it gets focus and
+when the mouse hovers over it.
+</div>
+</div>
+</section>
+
+
+<!--getting style property value-->
+<section>
+<h2>getStyle() |Getting the style property value</h2>
+
+<div class="code-description">
+The style property value such as the color value can be gotten by using <em>getStyle()</em> function which gets the value of the given CSS property name such as color. You can then store the returned value in the variable if you want.This function takes two parameters which are: <em>element selector</em> and <em>property name</em> where "element selector"  is the element where the targeted style property is located while the "property name" is actually name of  the style where you want to get the value from: <em>getStyle(selector, property name)</em>.The following example shows how we can use the <em>getStyle()</em> function to get the value from any targetedn element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"style"</span>&gt;</span>What is the value of my background color? click to find out!<span class="tag">&lt;/div&gt;</span><br>
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">alert( getStyle</span>('#get-style', 'background-color') <span class="func">)</span>"</span>&gt;</span><br>Get style value<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-attr" placeholder="Enter your name..">-->
+<div class="hide-text" id="get-style" style="background-color: green; color: white;">
+What is the value of my background color? click to find out!</div>
+<div class="code-btn">
+<button onclick="alert(getStyle('#get-style','background-color'))">Get style value</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>get-style</em> was selected, then its style property was retrived according to the name which  was  set.In our example, the property name we set was the <em>background-color</em> then its value (green) was gotten and printed out using the javascript <em>alert()</em> function.
+</div>
+</div>
+</section>	
+
+<!--styling the html page-->
+<section>
+<h2>setStyle() | Styling the HTML(CSS)</h2>
+<div class="code-description">
+ You can easly set a new style or modify the exsiting styles to the html elements using the <em>setStyle()</em> function. This function accepts two parameters which is the element selector and the styles object: <em>setStyle(selector, {property:value})</em>. The styles object takes the  <em>"property:value"</em> pair where "property" is the name of the style  such as "color" and "value" is its value such as "red".eg:<em>setStyle(selector, {'color':'red'})</em>. You need to be familiar with objects to work well with this function. You can add as many style as you want separated by a comma(,) and not a semi-colon(;) and as you do in typical styling. The following example shows how we can use the <em>setStyle()</em> function to set or modify the  element's a style.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"style"</span>&gt;</span>Style me up!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">setStyle(</span>'#style' ,{'background':'green' , 'color':'white'}<span class="func">)</span>"</span>&gt;</span><br>Click to style<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div class="hide-text" id="style">
+Style me up!</div>
+<div class="code-btn">
+<button onclick="setStyle('#style',{'background':'green','color':'white'})">Click to style</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>style</em> is selected and then the styles defined  through the object were added.The styles which were made is the <em>background-color</em> with a value of <em>"green"</em> and  text <em>color</em> with a value of <em>white</em>.Here we have just set two style however, there is no limit to how many styles you can set as illustrated earier. <b>Note:</b> you should not terminate the styling using a semi-colon, in short, it's not needed at all. All the properties and their values should be enclosed in single qoutes (' ') unless they are variables.
+</div>
+</div>
+</section>
+
+
+<!--adding a class to elements-->
+<section>
+<h2>addClass() | Adding Classes to The Elements</h2>
+<div class="code-description">
+A class is an element's attribute that can be used as its element selector and can also be used to apply some functions.You can add classes to the elements by using the <em>addClass()</em> function. This function accepts two parameters which is the element selector and the class name to be added: <em>addClass(selector, class name)</em>. Multiple class names can be added separated by a comma (<b>,</b>)   eg:<em>addClass('#add-class', 'new-class,another-class')</em>. The following example shows how we can use the <em>addClass()</em> function to add classes to the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"add-class"</span>&gt;</span>Give me another class please!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">addClass(</span>'#add-class','new-class'<span class="func">)</span>"</span>&gt;</span><br>Click to style<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div class="hide-text" id="add-class" style="color: white;">
+Give me another class please!</div>
+<div class="code-btn">
+<button onclick="addClass('#add-class','new-class')">Add class</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>add-class</em> is selected and then the class name which is set in the function is added to it. This new-class which has been added has some predefined styles and therefore the element inherits those styles and changes the backgroud-color to teal.Here we have just added one class name however, there is no limit to how many classes you can add just separate them with a comma.<b>Note:</b> Class names should be added without a dot(<b>.</b>) prefix.
+</div>
+</div>
+</section>
+
+<!--removing class a class to elements-->
+<section>
+<h2>removeClass() | Removing Classes From The Elements</h2>
+<div class="code-description">
+You can remove existing classes from the selected element by using the <em>removeClass()</em> function. This function takes two parameters which is the element selector and the class name to be removed: <em>removeClass(selector, class name)</em>. Multiple class names can be removed separated by a space.The following example shows how we can use the <em>removeClass()</em> function to remove classes from the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"remove-class"</span>&gt;</span>Remove a class from me please!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">removeClass(</span>'#remove-class','old-class'<span class="func">)</span>"</span>&gt;</span><br>Click to remove<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div  id="remove-class" class="new-class">
+Remove a class from me please!</div>
+<div class="code-btn">
+<button onclick="removeClass('#remove-class','new-class')">Remove class</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>remove-class</em> is selected and then the class name which is set in the function is removed from it. This "new-class" which has been removed has some predefined styles and they were also removed leaving the element with the default background color.Here we have just removed one class however, there is no limit to how many classes you can remove just separate them with a comma.
+</div>
+</div>
+</section>
+
+<!--toggling class onto  the  elements-->
+<section>
+<h2>toggleClass() | Toggling Classes onto The Elements</h2>
+<div class="code-description">
+You can  either add or remove existing classes from the selected element by using the <em>toggleClass()</em> function. This function checks if the given class exists and if yes, it gets removed  else it gets added. This function accepts two parameters which is the element selector and the class name to be removed or added (toggled): <em>toggleClass(selector, class name)</em>. Multiple class names can be toggled just  separate them with a comma.The following example shows how we can use the <em>toggleClass()</em> function to toggle classes.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"toggle-class"</span>&gt;</span>Toggle a class from me please!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">toggleClass(</span>'#toggle-class','new-class'<span class="func">)</span>"</span>&gt;</span><br>Click to toggle<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div  id="toggle-class" class="new-class">
+Toggle a class from me please!</div>
+<div class="code-btn">
+<button onclick="toggleClass('#toggle-class','new-class')">Toggle class</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>toggle-class</em> is selected and then the class name which is set in the function is checked if it's existing and yes it was existing as the result it was removed else  it was added. This "new-class" which has been toggle (removed or added) has some predefined styles which also getting toggled.Here we have just toggled one class however, there is no limit to how many classes you can toggle just separate them with a comma.
+</div>
+</div>
+</section>
+
+
+
+<!--slide showing the elements-->
+<section>
+<h2>slideShow() | Automatic element slide show</h2>
+<div class="code-description">
+You can make your  own image or other content automatic slide show using the <em>slideShow()</em> function .This function accepts three  attributes which is  the <em>selector</em>,<em>duration (in miliseconds)</em> and an optional <em>random</em> bolean value. The <em>selector</em> must only be a class name of the elements, <em>duration</em> must only be in miliseconds (1000ms=1sec) and the third parameter is the bolean which accepts a true or false value. when true is set, you will get a randomised slide show and when a false value is set, you will get a normal slide show: <em>slideShow('class_name', duration, randomise)</em>.
+You need to add the same class name to all the elements which you want slide else it will not work.The following example shows how we can use the <em>slideShow()</em> to auto slide the images.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<div class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"img-wrapper"</span>&gt;
+</div>
+<div class="tag">&lt;img <span class="attr">class</span>=<span class="attr_val">"slide"</span> <span class="attr">src</span>=<span class="attr_val">"photos/pic-1"</span>/&gt;
+</div>
+
+<div class="tag">&lt;img <span class="attr">class</span>=<span class="attr_val">"slide"</span> <span class="attr">src</span>=<span class="attr_val">"photos/pic-2"</span>/&gt;
+</div>
+
+<div class="tag">&lt;img <span class="attr">class</span>=<span class="attr_val">"slide"</span> <span class="attr">src</span>=<span class="attr_val">"photos/pic-3"</span>/&gt;
+</div>
+
+<div class="tag">&lt;/div&gt;</div>
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">slideShow(</span>'.slide',1000, false<span class="func">)</span>"</span>&gt;</span><br>Click to slide<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<!--<div  id="toggle-class" class="new-class">
+Toggle a class from me please!</div>-->
+<div class="code-btn">
+<button onclick="slideShow('.img-wrapper',1000, false)">Click to slide</button>
+</div>
+<div class="img-wrapper">
+<img src="sage-js_tutorial/photos/pic-1.jpg">
+</div>
+<div class="img-wrapper">
+<img src="sage-js_tutorial/photos/pic-2.jpg">
+</div>
+<div class="img-wrapper">
+<img src="sage-js_tutorial/photos/pic-3.jpg">
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, all the  elements with a class name of <em>slide</em> were selected and then they were put in an array so that they are only called by their index values (0,1,2 etc). Then the duration was set which was just 1 second (1000ms) and randomising was set to false so that the slide goes normal. You can set any duration value in miliseconds but remember that the higher the duration, the slower the slideshow and vise verse.You can try to randomise the slideshow by setting the third parameter to true.<b>Note:</b>
+Always use the class name as the element's selector.
+</div>
+</div>
+</section>
+
+
+<!--loading data-->
+<section>
+<h2>loadData() | Loading Data From the Server/File</h2>
+<div class="code-description">
+You can load new data from the server or any file without reloading the page just by using <em>loadData()</em> function. This function takes two required parameters which is the <em>selector</em> and <em>URL</em> and one optional parameter which is the <em>interval</em>: <em>loadData(selector, url, interval)</em>.The <em>selector</em> is the element where the data is going to be loaded (innerHTML) while the <em>URL</em> is the pathname of the file which you want to load, the third optional parameter is  the <em>interval</em> which is used to load the data every after the specified duration in miliseconds (1000ms=1sec). When you set the duration, the <em>loadData()</em>  will be checking for any new information from the file and load the results in the selected element. Only use intervals when you want to make some real time updates such as live web text editor.You can leave the <em>interval</em> parameter empty if you want. The following example shows how we can use the <em> loadData()</em> function to load new information.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"load-data"</span>&gt;</span>New data will loaded here!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">loadData(</span>'#load-data', 'data.txt'<span class="func">)</span>"</span>&gt;</span><br>Load data<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div  id="load-data" class="hide-text">
+New data will loaded here!</div>
+<div class="code-btn">
+<button onclick="loadData('#load-data','data.txt')">Load data</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the function <em>loadData()</em> was called  which had two argurments: the element selector and the URL. We ignored the last interval parameter. Then the file <em>(data.txt)</em> whose path was specified in the URL was loaded and got inserted into the selected element through the id name. <em>loadData()</em> hides and solves all the complications of using Ajax.
+This function can be used to perform some server side functions such as: getting live updates, making live text editors and more.
+</div>
+</div>
+</section>
+
+
+
+<!--sending data-->
+<section>
+<h2>sendData() | Sending  Data to the Server</h2>
+<div class="code-description">
+You can send new data to the server without reloading the page just by using <em>sendData()</em> function. This function takes four parameters which is the <em>selector</em> , <em>URL</em> ,<em>data</em> and an optional <em> timer(count-down)</em>: <em>sendData(selector , url , {data} , timer)</em>.The <em>selector</em> is the element where the  response is going to show (innerHTML) if successful while the <em>URL</em> is the pathname of the server-side file such as php files which will receive and process the data, <em>data</em> is the object of values made in a "<em>name:value"</em> pair. The last parameter is <em>timer(count-down)</em> which can be used to send the request after the specified time in miliseconds (1000ms=1sec) elapses. For example, when the timer is set to 2000, it means that the request will be sent after 2 seconds, in short, it will wait for 2 seconds and then sends the request. <em>sendData(selector, 'file.php', {name:'mark'} ,2000)</em>.This function uses <em>POST</em> method to send  and  process data.Therefore, to get the value of the name from the data, we can use  the <em>PHP</em> global variable <em>$_POST['name']</em> which takes the name as the index and print its value.The following example shows how we can use the <em> sendData()</em> function to send data to the server.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"send-data"</span>&gt;</span>The response will show here!<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"name"</span> <span class="attr">placeholder</span>=<span class="attr_val">"Enter your name"</span> &gt;</div>
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"pass"</span> <span class="attr">placeholder</span>=<span class="attr_val">"Enter your password"</span> &gt;</div>
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">sendData(</span>'#send-data', 'data.php',{ ,name:getValue('#name'), pass:getValue('#pass')}<span class="func">)</span>"</span>&gt;</span><br>Send data<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+Data getting processed using php in (data.php)<br>
+<div class="tag">&lt;?php<br>
+<span class="css">echo </span>"Hello, your name is".<span  class="func">$_POST['name'].</span>"<br><br>
+and password is ".<span class="func">$_POST['pass'];</span><br>
+?&gt;</div>
+
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="send-data" class="hide-text">
+The response will show here!</div>
+<form onsubmit="event.preventDefault()">
+<input id="name"  required placeholder="Enter your name..">
+<input id="pass" required type="password"  placeholder="Enter your password..">
+
+<div class="code-btn">
+<button id="send-btn" onclick="var data=sendData('#send-data','data.php',{name:getValue('#name'),pass:getValue('#pass')})">Send data</button>
+</div>
+</form>
+
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the function <em>sendData()</em> was called  which had three argurments: the element selector ,the URL and data object. We ignored the last timer parameter. Then the file <em>(data.php)</em> whose path was specified in the URL was set and this is the file that received and processed the data. Then we set the data in the object as a <em>name:value</em> pair: The name can be written without any single quotes while its value should be enclosed in single quotes unless it's a variable.We then retrived the values from the input elements using the <em>getValue()</em> functions. and the last parameter was ignored which is the timer  which sends the request after the specified period of time measured in miliseconds(1000ms=1sec). The element with an id of  <em>send-data</em> was used to get the response from the server. <b>Importance</b>: this function <em>sendData()</em> can be used to both send and receive the data from the server in real time without reloading the page. Besides, it can also be used to send requests to the server after a specific period of time using timer parameter. 
+</div>
+</div>
+</section>
+
+<!--file  preview-->
+<section>
+<h2>filePreview() | Previewing the file on upload</h2>
+<div class="code-description">
+You can preview files such as pictures, videos and songs before uploading them to the server just by using <em>filePreview()</em> function. This function takes three parameters which is the <em>file_input_id</em> , <em>target_id</em>  and an optional <em>index</em>: <em>filePreview(file_input_id , target_id ,index)</em>.The <em>file_input_id</em> is the id  of the input element which will receive the files. The id  name of the  <em>file_input_id</em> should be set without an hashtag (#) in single quotes. <em>target_id</em> is the id of the media element such as <em>img, video or audio</em> elements where the preview is going to take place.Target id should be set without an hashtag in single quotes.in short target elements should support the <em>src</em> attribute in order for the preview to be successful.<br> Only use <em>img, audio and video</em> as the target elements. The last parameter which is the <em>index</em> is not required unless you  have idea on how to loop through the selected files in case you have selected multiple files. By default, this function only shows a preview for only one file  with an index of 0. Therefore, if you have selected more than one file, only the first file will have the preview. However, you can preview all the selected files using the <em> E('#your-file-id').files.length</em> which will give you the number of all the selected files and then you can loop them and just update the index parameter in the function. This function can simply be  used in this way:<em>filePreview('file-id','target-id')</em> You can just ignore the last <em>index</em> parameter.The following example shows how we can use the <em> filePreview()</em> function to  preview an image to be uploaded.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+<!--
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"send-data"</span>&gt;</span>The response will show here!<span class="tag">&lt;/div&gt;</span><br>-->
+
+<div class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"img-wrapper"</span>&gt;
+</div>
+<div class="tag">&lt;img <span class="attr">id</span>=<span class="attr_val">"image"</span> <span class="attr">style</span>=<span class="attr_val">"display:none"</span>/&gt;
+</div>
+<div class="tag">&lt;/div&gt;</div>
+
+
+<div class="tag">&lt;input  <span class="attr">type</span>=<span class="attr_val">"file"</span> <span class="attr">id</span>=<span class="attr_val">"file"</span> <span class="attr">onchange</span>=<span class="attr_val">"<span class="func">filePreview(</span>'file', 'image'<span class="func">); </span> <span class="func">show(</span>'#image'<span class="func">); </span>"</span> &gt;</div>
+<!--
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">sendData(</span>'#send-data', 'data.php',{ ,name:getValue('#name'), pass:getValue('#pass')}<span class="func">)</span>"</span>&gt;</span><br>Send data<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+-->
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<div  id="send-data" class="hide-text">
+The response will show here!</div>-->
+<div class="img-wrapper">
+The preview will show here!
+<img id="image" style="display:none;">
+</div>
+<input type="file" accept="image/*" id="file" onchange="filePreview('file','image'); show('#image');">
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the file input button "choose file" was clicked, the file dialog showed and we selected the desired picture, then the <em>onchange</em> event listener was  used to detect if the input has received any values. Then we selected the file input's id <em>"file"</em> and set it as the first parameter of the function and we also set the target_id which was the image (img)  element's id called <em>"image"</em>. As you can see, both element's id were set in single qoutes without hashtags(#).The image (img) element was initially hidden and so  we showed it by using the <em>show('#image')</em> function so that we get the preview.<br>
+<b>Importance:</b> This  function <em>filePreview()</em> can be used to allow your website users to see or preview the files they are uploading before sending them to the server for a permanent storage. With this function, users can play a song, watch a video and see pictures before uploading them to the server.
+</div>
+</div>
+</section>
+
+<!--my location-->
+<section id="myLocation()">
+<h2>myLocation() | getting your current location</h2>
+<div class="code-description">
+You can get your current location using <em>myLocation()</em> function. This function has only one optional parameter which is the <em>element selector</em> where the results will show: <em>myLocation(selector)</em>. This will print your district, province, country and continent. You must  allow the web browser to access your location and have internet connection else this will not work.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"location-result"</span>&gt;</span>Your location will show here<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">myLocation(</span>'#location-result'<span class="func">)</span>"</span>&gt;</span><br>Get my location<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="location-results" class="hide-text">
+Your location will show here!</div>
+
+<div class="code-btn">
+<button onclick="setHTML('#location-results','Getting data, please wait..'); myLocation('#location-results');">Get my location</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the  button "Get my location" was clicked, the function <em>myLocation()</em> was called which had the element selector called <em>#location-result</em> as its argument where the results was shown.Then the function checked if the browser allows the API to access the user's location. If it does not, the user was asked to either allow or block  accessing their location. If the user allows the web browser  to access their location, then the longitude and latitudes values will be retrieved and sent to some external  APIs that will help to get the current location of the user. <em>myLocation()</em> function only gets the district, province, country and continent of the user which you can later split into single strings using the javascript <em>split()</em> function where you have to separate them by comma (<b>,</b>)<br>
+For example: <em>myLocation().split(',')</em>.
+<br>
+<b>Note:</b> the results of your location especially the district and province/state may be incorrect due to the kind of the device you are using or due to the geographical area tracking issues. However, the country and the continent will always be 100% correct.<br>
+<b>Importance:</b> This  function <em>myLocation()</em> can be used to get the current location of the user which can then be used to customise and personalise the experience and content of each user depending on their  location.
+</div>
+</div>
+</section>
+
+<!--location by ip address-->
+<section id="locationByIdn()">
+<h2>locationByIp() | getting user location by ip address</h2>
+<div class="code-description">
+You can get the user location through an ip address just by using <em>locationById()</em> function. This function takes  two parameter which are the <em>ip address</em> and an optional <em>element selector</em> where the results will show: <em>locationByIp(ip, selector)</em>. This will print the user's district, province, country and continent. This function <em>locationById()</em> will get the user's location without their consent as it does not ask users to either allow or block the web browser to access the location.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"ip-location-results"</span>&gt;</span>The location will show here!<span class="tag">&lt;/div&gt;</span><br>
+
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"ip_address"</span> <span class="attr">placeholder</span>=<span class="attr_val">"Enter ip address"</span> &gt;</div>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">locationByIp(</span>getValue('#ip_address'),'#ip-location-results'<span class="func">)</span>"</span>&gt;</span><br>Get location<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="ip-location-results" class="hide-text">
+The location will show here!</div>
+<input id="ip-address"  placeholder="Enter ip address..">
+<div class="code-btn">
+<button onclick="setHTML('#ip-location-results','Getting data, please wait..'); locationByIp(getValue('#ip-address'),'#ip-location-results');">Get location</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the  button "Get location" was clicked, the function <em>locationById()</em> was fired which had the <em>getValue()</em> function as its first argument which was used to retrieve the ip address from the input element with an id of <em>#ip-address</em>, then the second argument was the element selector called <em>#ip-location-result</em> which was used  to show the  results.Then the  function went directly into retriving the user's latitude and longitudes without even asking about their consent. Then the  latitudes and longitudes were sent to some external APIs that helped to get the location. <em>locationById()</em> function only gets the district, province, country and continent of the user which you can later split into single strings using the javascript <em>split()</em> function where you have to separate them by comma (<b>,</b>)<br>
+For example: <em>locationById(ip_address).split(',')</em>.please don't include the second argument (selector) when spliting the strings.
+<br>
+<b>Note:</b> the results of the user's location especially the district and province/state may be incorrect due to the kind of the device of the user or due to the geographical area tracking issues or wrong api address. However, the country and the continent will always be 100% correct.<br>
+<b>Importance:</b> This  function <em>locationById()</em> can be used in tracking the user's location just by using their ip address. This can also be used to track the location of users who refuse to allow an access to their locations especially cyber criminals such as black hat hackers. It can also be used to customise and personalise the experience and content of each user depending on their location such as adverts.
+</div>
+</div>
+</section>
+
+
+<!--copying the text-->
+<section id="copyText()">
+<h2>copyText() | copying the text</h2>
+<div class="code-description">
+You can easily copy the text in the web browser  just by using <em>copyText()</em> function. This function takes only one required paramenter which is the <em>text input selector</em> where the text will be copied from: <em>copy('input_selector')</em>.The input selector can either  be a <em>textarea or input</em> element where their value  attributes should have text to  be copied.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+<!--
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"ip-location-results"</span>&gt;</span>Paste the text here!<span class="tag">&lt;/div&gt;</span><br>-->
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">copyText(</span>'#text-value'<span class="func">)</span>"</span>&gt;</span><br>Copy text<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"ip_address"</span> <span class="attr">placeholder</span>=<span class="attr_val">paste here..</span> &gt;</div>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<div  id="ip-location-results" class="hide-text">
+The location will show here!</div>-->
+<input id="text-value" value="Hello world..">
+<div class="code-btn">
+<button onclick="copyText('#text-value')">Copy text</button>
+</div>
+<input  placeholder="paste here..">
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "Copy text" was clicked, the function <em>copyText()</em> was called with an id selector  called <em>#text-value</em>  which selected the input element and retrived its value. Then  the text were selected behind the scene using the javascript function  called <em>select()</em>. Then another javascript function called  <em>execCommand()</em>,  was used to execute a command on a selected element and in our case it is to copy the text therefore, it executed a "<b>copy</b>" command like this: <em>document.execCommand('copy')</em>.<br>
+<b>Note:</b> This function uses the javascript experimental  function called execCommand('copy') which is on the testing mode and it therefore might not work on all the web browsers<br>
+<b>Importance:</b> This  function <em>copyText()</em> will help both the developer and an end user to execute a copy command on the text in the browser with ease.
+</div>
+</div>
+</section>
+
+
+
+<!--clock-->
+<section id="clock()">
+<h2>clock() | making a simple digital clock</h2>
+<div class="code-description">
+You can easily create a simple digital clock using the <em>clock()</em> function. This function takes only one required paramenter which is the element <em>selector</em> where the results will show: <em>clock('selector')</em>.The function will print hours, minutes and seconds. This function gets the  time settings of the device's system. Therefore, to set the clock to any time, just set the  device's time to anything and it will take the effects. 
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"clock-results"</span>&gt;</span>The clock will show here<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">clock(</span>'#clock-results'<span class="func">)</span>"</span>&gt;</span><br>Start the clock<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="clock-results" class="hide-text">
+The clock will show here!</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="setHTML('#clock-results','Loading clock..'); clock('#clock-results')">Start clock</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "start clock" was clicked, the function <em>clock()</em> was called with an element selector  called <em>#clock-results</em>  which was used to print/show the clock data in the browser.<br>
+<b>Note:</b> To change the clock time settings, just change the time of your device's system <br>
+<b>Importance:</b> This function <em>clock()</em> will help you to create a very basic clock that may be used for so many things.
+</div>
+</div>
+</section>
+
+<!--countDown()-->
+<section id="countDown()">
+<h2>countDown() | making a simple count down</h2>
+<div class="code-description">
+You can easily create a count down system just by using <em>countDown()</em> function. This function has four paramenter which is the element <em>selector</em>, <em>start</em>, <em>stop</em> and <em>callback function</em>: <em>countDown(selector, start, stop, callback)</em>.The <em>selector</em> is the element where the count down will show, <em>start</em> is the number where the count down will start from, <em>stop</em> is the number where the count down will stop and <em>callback</em> is the function that will run when count down has stopped. The <em>callback</em> is optional.<br> The following example shows how the <em>countDown()</em> function can be used to create a simple count down.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"count-down-results"</span>&gt;</span>Lets count down from 5<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">countDown(</span>'#count-down-results', 5, 2,  function(){ alert('The count down has finished') }<span class="func">)</span>"</span>&gt;</span><br>Start count down<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="count-down-results" class="hide-text">
+Lets count down from 5</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="setHTML('#count-down-results','Loading..'); countDown('#count-down-results', 5,0,function(){alert('The count down has finished')})">Start count down</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "start count down" was clicked, the function <em>countDown()</em> was called with an element selector  called <em>#count-down-results</em>, start=<b>5</b>, stop=<b>0</b> and an optional callback function which  was used to alert user. The counting down started at <b>5</b> and stopped at <b>0</b> and then function was executed to alert the user that the count down has finished.<br>
+<!--<b>Note:</b>  <br>-->
+<b>Importance:</b> This function <em>countDown()</em> will help you to create a very nice counting down system where you can allow users to set their own starting and ending points and then execute some functions when it stops.
+</div>
+</div>
+</section>
+
+
+<!--after()-->
+<section id="after()">
+<h2>after() | calling a function "after" some time</h2>
+<div class="code-description">
+You can call or execute some functions after a specified time has elapsed just by using <em>after()</em> function. This function has two required paramenters which is the  <em>duration</em>  and  the <em>function</em> to execute: <em>after(duration, function)</em>.The <em>duration</em> should be in miliseconds. note (1000ms==1second). The <em>function</em> if not Anonymous, should be written without parenthesis '()'.<br>
+The following example shows how the <em>after()</em> function can be used to execute some functions after a given duration.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"after-results"</span>&gt;</span>The results will show here after 3 seconds<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">after(</span>3000, function(){ setHTML('#after-results','Hello, i have been executed after 3 seconds') }<span class="func">)</span>"</span>&gt;</span><br>call a function<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="after-results" class="hide-text">
+The results will show here after 3 seconds</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="setHTML('#after-results','waiting for 3 seconds...'); after(3000,function(){ setHTML('#after-results','Hello, i have been executed after 3 seconds') })">Call a function</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "Call a function" was clicked, the function <em>after()</em> was called with  duration set 3000 which is 3 seconds, and an Anonymous function was set awaiting the execution after 3 seconds.
+<b>Note:</b> This function  <em>after()</em> is the copy of javascript <em>setTimeout()</em> function which can also be used achieve the same results in a slightly different way<br>
+<b>Importance:</b> This function <em>after()</em> will help the programmer to make a system that  execute some functions after some time.
+</div>
+</div>
+</section>
+
+<!--every()-->
+<section id="every()">
+<h2>every() | calling a function 'every' after some time</h2>
+<div class="code-description">
+You can call or execute some functions every after a specified time has elapsed just by using <em>every()</em> function. This function has two required paramenters which is the  <em>duration</em>  and  the <em>function</em> to execute: <em>every(duration, function)</em>.The <em>duration</em> should be in miliseconds. note (1000ms==1second). The <em>function</em> if not Anonymous, should be written without parenthesis '()'.<br>
+The following example shows how the <em>every()</em> function can be used to execute some functions every after a given duration.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"every-results"</span>&gt;</span>The number will increment by 1 every second<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#every-results',number) }<span class="func">)</span>"</span>&gt;</span><br>Incremant number<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="every-results" class="hide-text">
+The number will increment by 1 every second</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="var number=0; setHTML('#every-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#every-results',number) })">Incremant number</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "Incremant number" was clicked, the function <em>  every()</em> was called with  duration set to 1000ms which is 1 second, and an Anonymous function was set awaiting the execution every after 1 second. We also created a variable called <em>number</em> which had an initial value of 0. Then we incremented the variable each time the function was called  (every after 1sec) by 1 (number++) and we printed its result in the element with an id of <em>every-results</em><br>
+<b>Note:</b> This function  <em>every()</em> is the copy of javascript <em>setInterval()</em> function which can also be used to achieve the same results in a slightly different way<br>
+<b>Importance:</b> This function <em>every()</em> will help the programmer to make a system that  execute some functions every after some time (repeatedly).
+</div>
+</div>
+</section>
+
+
+<!--stop()-->
+<section id="stop()">
+<h2>stop() | stoping the executing function</h2>
+<div class="code-description">
+You can stop the currently executing function which is embeded in an  <em>every()</em> function just by using a <em>stop()</em> function. This function does not take any arguments, you can just call it: eg <em>stop()</em>.<br>
+The following example shows how the executing function can be stopped using the <em>stop()</em> function.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"stop-results"</span>&gt;</span>The number will increment by 1 every second and will be stopped upon clicking the button<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#stop-results',number) }<span class="func">)</span>"</span>&gt;</span><br>start<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"stop<span class="func">(</span><span class="func">)</span>"</span>&gt;</span>stop<span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="stop-results" class="hide-text">
+The number will increment by 1 every second and will be stoped upon clicking the button</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="var number=0; setHTML('#stop-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#stop-results',number) })">Start</button>
+</div>
+<div class="code-btn">
+<button onclick="stop()">Stop</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "Incremant number" was clicked, the function <em>  every()</em> was called with  duration set to 1000ms which is 1 second, and an Anonymous function was set awaiting the execution every after 1 second. We also created a variable called <em>number</em> which had an initial value of 0. Then we incremented the variable each time the function was called  (every after 1sec) by 1 (number++) and we printed its result in the element with an id of <em>every-results</em>.<br> We created another button with an inner text of "Stop" Where we had included the <em>stop()</em> function which was fired onclick to stop the execution of the function which was incrementing the number<br>
+<b>Note:</b> This function  <em>stop()</em> is the copy of javascript <em>clearInterval()</em> function which can also be used to achieve the same results in a slightly different way. Also note that this function <em>stop()</em> can only be used on a function which is embeded in the <em>every()</em> function and can only be called once.<br>
+<b>Importance:</b> This function <em>stop()</em> will help the programmer to  call off  any executing function embeded in the <em>every()</em> function.
+</div>
+</div>
+</section>
+
+<!--dragDrop()-->
+<section id="dragDrop()">
+<h2>dragDrop() | Dragging & Dropping elements</h2>
+<div class="code-description">
+You can easily drag and drop elements in the web browser just by using the <em>dragDrop()</em>. This function has three arguments, which are: <em>drag id</em>, <em>drop id</em> and an optional <em>drag parent id</em>. The <em>drag id</em> is the id name of the element to be dragged, the <em>drop id</em> is the id name of the element where the dragged element will be dropped and the last paramenter is an optional <em>drag parent id</em> which is the id name of the parent element of the dragged element which can be used to drag back the element.<br>
+If the <em>drag parent id</em> is ignored, the element will not be dragged back.<br>
+<b>Note</b>: you must only use an <b>id</b> as the elements selector without an <b>#</b> hash prefix. eg <em>dragDrop('drag_id', 'drop_id', 'drag_parent_id')</em><br>
+The following example shows how we can drag and drop an image using the <em>dragDrop()</em> function.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"drop"</span>&gt;</span> Drag and drop an image here..<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;div  <span class="attr">class</span>=<span class="attr_val">"drag-img-wrapper"</span>  <span class="attr">id</span>=<span class="attr_val">"drag-parent"</span> &gt;</div>
+<div class="tag">&lt;img  <span class="attr">id</span>=<span class="attr_val">"drag"</span>  <span class="attr">src</span>=<span class="attr_val">"photos/pic-2"</span>/&gt;
+</div>
+<div class="tag">&lt;/div&gt;</div>
+
+<div class="tag">&lt;script&gt;</div>
+dragDrop('drag', 'drop', 'drag-parent')
+<div class="tag">&lt;/script&gt;</div>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<!--<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#stop-results',number) }<span class="func">)</span>"</span>&gt;</span><br>start<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>-->
+
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="drop" class="hide-text" style="min-height: 180px;">Drag and drop an image here..</div>
+
+<div class="drag-img-wrapper" id="drag-parent">
+<img src="sage-js_tutorial/photos/pic-2.jpg" id="drag">
+</div>
+
+<script>
+dragDrop('drag','drop','drag-parent')
+</script>
+<!--<input id="text-value" value="Hello world..">-->
+<!--<div class="code-btn">
+<button onclick="var number=0; setHTML('#stop-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#stop-results',number) })">Start</button>
+</div>-->
+<!--
+<div class="code-btn">
+<button onclick="stop()">Stop</button>
+</div>
+-->
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> The <em> dragDrop()</em> was called when the page finished loading which had three arguments: <em>dragDrop('drag', 'drop', 'drop-parent')</em>. The <em>drag</em> is the id name of an image element <em>img</em> which was to be dragged, the <em>drop</em> is the id name of the element where the image was dropped and the <em>drag-parent</em> is the id name of the parent element from which the image was dragged from and it was used to allow the image to be dragged back.<br><br>
+<b>Note:</b>You must only use the id name as the element's selector without the hash tag prefix as shown in the example above. The third argument <em>drag-parent</em> is an optional and you can ignore it if you dont want to drag back the dragged element (image)<br><br>
+<b>Importance:</b> This function <em>drapDrop()</em> can be used for so many things which we can not manage to mention here.
+</div>
+</div>
+</section>
+
+
+<!--createFile()-->
+<section id="createFile()">
+<h2>createFile() | Creating a file in a web browser</h2>
+<div class="code-description">
+You can  create either a txt or an html file just by using <em>createFile()</em> function. This function has four  paramenters which are: <em>link_id</em>, <em>filename</em>,<em>data</em>  and an optional  <em>file_type</em>: <em>createFile(link_id, filename, data, file_type)</em>.<br>
+The <em>link_id</em> is the id name of an anchor tag <em>&lt;a&gt;</em> which is used to download the created  file, <em>filename</em> is the name of the file to be created, <em>data</em> is the file content which is text and <em>file_type</em> is an optional parameter that specifies the type of the file to be created and it can only be either a <b>txt</b> or <b>html</b>. By default, the file_type is <em>txt</em>.
+<br>
+The following example shows how <em>createFile()</em> function can be used to create  a simple html file.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;a <span class="attr">id</span>=<span class="attr_val">"file_link"</span>&gt;</span> Download file<span class="tag">&lt;/a&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+<!--
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#every-results',number) }<span class="func">)</span>"</span>&gt;</span><br>Incremant number<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>-->
+
+
+<div class="tag">&lt;script&gt;</div>
+<span class="attr">var</span> <span class="func">data</span>="Hello this is a dummy html file created using sage.js creatFile() function";<br><br>
+<span class="func">createFile(</span>'file_link', 'webfile', <span class="func">data</span>, 'html'<span class="func">)</span>
+<div class="tag">&lt;/script&gt;</div>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<div  id="every-results" class="hide-text">
+The number will increment by 1 every second</div>-->
+<a id="file_link" class="hide-text">Download file</a>
+<!--<input id="text-value" value="Hello world..">-->
+<!--<div class="code-btn">
+<button onclick="var number=0; setHTML('#every-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#every-results',number) })">Incremant number</button>
+</div>-->
+</div>
+</div>
+<script>
+var data="Hello this is a dummy html file created using sage.js creatFile() function";
+
+createFile('file_link', 'webfile', data, 'html')
+
+</script>
+<div  class="code-description">
+<div class="example-explained">The <em>createFile()</em>  function got  called  when the web page had finished loading.  It had  four arguments which were passed in its parenthesis: <em>createFile('file_link', 'webfile', data, 'html')</em>. <em>file_link</em> is the the id name of an anchor element <em>&lt;a&gt;</em> which is used to generate the file downloading link, <em>webfile</em> is the name of the file. You can name it anything, <em>data</em> is the content of the file which should be text. We had stored the text in the variable called <em>data</em> and this is why we could not wrap it in single quotes as it's a variable. The last argument is an optional file type which in our case was <b>html</b>. Remember by default the file_type is <b>txt</b> but we wanted to create a web file so we used html instead.<br>
+<b>Note:</b> You must only use  an anchor element <em>&lt;a&gt;</em> to create the downloading link of the file<br>
+<b>Importance:</b> You know  it's not possible to create a file using javascript, but sage.js makes it just possible for any programmer to generate one and save it on their own system. Therefore the importance and usefulness of this <em>createFile()</em> function is endless and unimaginable.
+</div>
+</div>
+</section>
+
+<!--random()-->
+<section id="random()">
+<h2>random() | Randomising  numbers</h2>
+<div class="code-description">
+You can randomise numbers  just by using <em>random()</em> function. This function has two required parameters which is the <em>from</em>  and  the <em>to</em> parameter: <em>random(from, to)</em>.The <em>from</em> is the number where the randomising should start from. The <em>to</em> is the number where the randomising should reach. Therefore the <em>from</em> and <em>to</em> actually forms the random range limits.<br>
+The following example shows how the <em>random()</em> function can be used to randomise a number from 1 to 20.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"random-results"</span>&gt;</span>The random number will run from 1 to 20<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br> setHTML('#random-results', <span class="func">random(</span>1, 20<span class="func">))</span>"</span>&gt;</span><br>Click to Randomise<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="random-results" class="hide-text">The random number will run from 1 to 20</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="setHTML('#random-results', random(1,20))">Click to Randomise</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "Click to Randomise" was clicked, the function <em>  random()</em> was called with  two arguments: <em>random(1, 20)</em> which formed the 1 to 20 random range. Then it was wrapped into the <em>setHTML()</em> function in order to print the results in the inner html of the element with an id name of <em>#random-results</em><br>
+<!--<b>Note:</b> This function  <em>random()</em> is the copy of javascript <em>setInterval()</em> function which can also be used to achieve the same results in a slightly different way--><br>
+<b>Importance:</b> This function <em>random()</em> can be used to randomise numbers or an indexed data such as arrays which can later be used to achieve so many things in programming.
+</div>
+</div>
+</section>
+
+<!--createSPA(links_selector,result,active_class=null,loader)-->
+<section id="createSPA()">
+<h2>createSPA() | Creating a single page app (SPA)</h2>
+<div class="code-description">
+Sage.js has made it very possible for programmers to create a single page application with  no challenges at all. The single page application (SPA) is the web app that only has one page where all the other pages are loaded. An SPA makes a website faster  and prevents the web browser from loading each time the user requests the data.<br>
+However, The most challenge that programmers have faced to create an <em>SPA</em> is the ability to implement the page links  back and forth navigation system. Users love to use the back button on their devices to navigate back and forth on a website, However this ability becomes very difficult to implement as the programmer is forced to understand the window's complicated history api system. Sage.js looked at this problem and provided the solution.<br><br>
+Now You can easily create a single page application just by using <em>createSPA()</em> function. This function has four  parameters which is the  <em>links_selector</em>, <em>results</em> and the last two  optional arguments which are the <em>active_class</em> and <em>loader</em>:<br> <em>createSPA(links_selector, result, active_class, loader)</em>.<br> The <em>links_selector</em> is the class name of the navigation links and must be written withot a <b>.</b> dot prefix, <em>result</em> is the id or class name of the element where the results will be loaded , <em>active_link</em> is an optional parameter which is the name of the class which will be added on the active link. This class should contain some CSS styling such as a color which can be added to an active link and the last paramenter is <em>loader</em> which is optional and its used to provide some text that will be shown when the browser is waiting  for the page to loaded. By default, the <em>loader</em> has a '<b>Loading..</b>' text, however you can change it to anything and you can even include an image<br><br>
+<b>Note</b>:All the links url must be added in a <b>data-url</b> attribute eg: <em>&lt;li data-url="page1.html"&gt; link 1 &lt;/li&gt;</em>.<br> We recommend using <em>&lt;li&gt;</em> as the link element.
+The following example shows how we can create a single page application using <em>createSPA()</em> function.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.active_link</span>{<span class="css">color: aqua;</span><br>
+<span class="css">border: 1px solid teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<!--links-->
+<div class="tag">&lt;ul&gt;</div>
+<span class="tag">&lt;li <span class="attr">class</span>=<span class="attr_val">"link"</span>  <span class="attr">data-url</span>=<span class="attr_val">"data1.html"</span>&gt;</span> Link 1<span class="tag">&lt;/li&gt;</span><br>
+
+<span class="tag">&lt;li <span class="attr">class</span>=<span class="attr_val">"link"</span>  <span class="attr">data-url</span>=<span class="attr_val">"data2.html"</span>&gt;</span>Link 2<span class="tag">&lt;/li&gt;</span><br>
+
+<span class="tag">&lt;li <span class="attr">class</span>=<span class="attr_val">"link"</span>  <span class="attr">data-url</span>=<span class="attr_val">"data3.html"</span>&gt;</span>Link 3<span class="tag">&lt;/li&gt;</span><br>
+
+<div class="tag">&lt;/ul&gt;</div>
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"spa-results"</span>&gt;</span>The results will show here<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+<!--<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#every-results',number) }<span class="func">)</span>"</span>&gt;</span><br>Incremant number<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>-->
+
+
+
+<div class="tag">&lt;script&gt;</div>
+<span class="func">createSPA(</span>'links', '#spa-results','active_link'<span class="func">)</span>
+<div class="tag">&lt;/script&gt;</div>
+
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+
+<ul  id="spa-links-wrapper">
+<li data-url='sage-js_tutorial/data/data1.html' class="link">Link 1</li>
+<li data-url='sage-js_tutorial/data/data2.html' class="link">Link 2</li>
+<li data-url='sage-js_tutorial/data/data3.html' class="link">Link 3</li>	
+</ul>
+<div  id="spa-results" class="hide-text">
+The results will show here!</div>
+<!--<input id="text-value" value="Hello world..">-->
+<!--<div class="code-btn">
+<button onclick="var number=0; setHTML('#every-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#every-results',number) })">Incremant number</button>
+</div>-->
+<script>
+createSPA('link','#spa-results','active_link');
+</script>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> The <em>  createSPA()</em> was called when the page has finished loading which had three arguments, we ignored the fourth <em>loader</em> parameter as it's set by default: <em>createSPA('link', '#spa-results', 'active_link')</em> <br> <em>link</em> is the class name of the links element (<em>&lt;li&gt;</em>). <em>#spa-results</em> is id name of  the element where the results will be loaded (shown) and the <em>active_link</em> is the  style class name which will add an <em>aqua</em> color to any clicked link. This class must be written without a dot (<b>.</b>) prefix.<br><br>
+<b>Note:</b> You must only use the class name as the links selector which should be applied to all the links. If you want to set the loading text in the fourh <em>loader</em> parameter, you must not ignore the <em>active_link</em> parameter, you can even pass a <b>null</b> value. <br><br>
+<!--<b>Importance:</b> This function <em>createSPA()</em> has saved programmers from an headache of trying to understand the complicated window's history api and it has enabled them to create a single page application with ease.-->
+</div>
+</div>
+</section>
+
+</div>

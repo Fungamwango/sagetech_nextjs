@@ -1,0 +1,63 @@
+<title>toggleClass() | Toggling Classes onto The Elements</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to toggle a class onto an html element using a toggleClass() function">
+<!--toggling class onto  the  elements-->
+<div id="tutorial-wrapper">
+<section>
+<h2>toggleClass() | Toggling Classes onto The Elements</h2>
+<div class="code-description">
+You can  either add or remove existing classes from the selected element by using the <em>toggleClass()</em> function. This function checks if the given class exists and if yes, it gets removed  else it gets added. This function accepts two parameters which is the element selector and the class name to be removed or added (toggled): <em>toggleClass(selector, class name)</em>. Multiple class names can be toggled just  separate them with a comma.The following example shows how we can use the <em>toggleClass()</em> function to toggle classes.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"toggle-class"</span>&gt;</span>Toggle a class from me please!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">toggleClass(</span>'#toggle-class','new-class'<span class="func">)</span>"</span>&gt;</span><br>Click to toggle<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div  id="toggle-class" class="new-class">
+Toggle a class from me please!</div>
+<div class="code-btn">
+<button onclick="toggleClass('#toggle-class','new-class')">Toggle class</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>toggle-class</em> is selected and then the class name which is set in the function is checked if it's existing and yes it was existing as the result it was removed else  it was added. This "new-class" which has been toggle (removed or added) has some predefined styles which also getting toggled.Here we have just toggled one class however, there is no limit to how many classes you can toggle just separate them with a comma.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('removeClass()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/removeClass.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('slideShow()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/toggleClass.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

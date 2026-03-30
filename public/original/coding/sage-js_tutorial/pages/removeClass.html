@@ -1,0 +1,63 @@
+<title>removeClass() | Removing Classes From The Elements</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to remove a class from an html element using removeClass() function">
+<!--removing class a class to elements-->
+<div id="tutorial-wrapper">
+<section>
+<h2>removeClass() | Removing Classes From The Elements</h2>
+<div class="code-description">
+You can remove existing classes from the selected element by using the <em>removeClass()</em> function. This function takes two parameters which is the element selector and the class name to be removed: <em>removeClass(selector, class name)</em>. Multiple class names can be removed separated by a space.The following example shows how we can use the <em>removeClass()</em> function to remove classes from the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"remove-class"</span>&gt;</span>Remove a class from me please!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">removeClass(</span>'#remove-class','old-class'<span class="func">)</span>"</span>&gt;</span><br>Click to remove<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div  id="remove-class" class="new-class">
+Remove a class from me please!</div>
+<div class="code-btn">
+<button onclick="removeClass('#remove-class','new-class')">Remove class</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>remove-class</em> is selected and then the class name which is set in the function is removed from it. This "new-class" which has been removed has some predefined styles and they were also removed leaving the element with the default background color.Here we have just removed one class however, there is no limit to how many classes you can remove just separate them with a comma.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('addClass()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/addClass.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('toggleClass()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/toggleClass.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

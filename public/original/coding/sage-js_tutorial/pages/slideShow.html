@@ -1,0 +1,84 @@
+<title>slideShow() | Automatic element slide show</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to slide show elements using the slideShow() function">
+<!--slide showing the elements-->
+<div id="tutorial-wrapper">
+<section>
+<h2>slideShow() | Automatic element slide show</h2>
+<div class="code-description">
+You can make your  own image or other content automatic slide show using the <em>slideShow()</em> function .This function accepts three  attributes which is  the <em>selector</em>,<em>duration (in miliseconds)</em> and an optional <em>random</em> bolean value. The <em>selector</em> must only be a class name of the elements, <em>duration</em> must only be in miliseconds (1000ms=1sec) and the third parameter is the bolean which accepts a true or false value. when true is set, you will get a randomised slide show and when a false value is set, you will get a normal slide show: <em>slideShow('class_name', duration, randomise)</em>.
+You need to add the same class name to all the elements which you want slide else it will not work.The following example shows how we can use the <em>slideShow()</em> to auto slide the images.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<div class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"img-wrapper"</span>&gt;
+</div>
+<div class="tag">&lt;img <span class="attr">class</span>=<span class="attr_val">"slide"</span> <span class="attr">src</span>=<span class="attr_val">"photos/pic-1"</span>/&gt;
+</div>
+
+<div class="tag">&lt;img <span class="attr">class</span>=<span class="attr_val">"slide"</span> <span class="attr">src</span>=<span class="attr_val">"photos/pic-2"</span>/&gt;
+</div>
+
+<div class="tag">&lt;img <span class="attr">class</span>=<span class="attr_val">"slide"</span> <span class="attr">src</span>=<span class="attr_val">"photos/pic-3"</span>/&gt;
+</div>
+
+<div class="tag">&lt;/div&gt;</div>
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">slideShow(</span>'.slide',1000, false<span class="func">)</span>"</span>&gt;</span><br>Click to slide<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<!--<div  id="toggle-class" class="new-class">
+Toggle a class from me please!</div>-->
+<div class="code-btn">
+<button onclick="slideShow('.img-wrapper',1000, false)">Click to slide</button>
+</div>
+<div class="img-wrapper">
+<img src="sage-js_tutorial/photos/pic-1.jpg">
+</div>
+<div class="img-wrapper">
+<img src="sage-js_tutorial/photos/pic-2.jpg">
+</div>
+<div class="img-wrapper">
+<img src="sage-js_tutorial/photos/pic-3.jpg">
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, all the  elements with a class name of <em>slide</em> were selected and then they were put in an array so that they are only called by their index values (0,1,2 etc). Then the duration was set which was just 1 second (1000ms) and randomising was set to false so that the slide goes normal. You can set any duration value in miliseconds but remember that the higher the duration, the slower the slideshow and vise verse.You can try to randomise the slideshow by setting the third parameter to true.<b>Note:</b>
+Always use the class name as the element's selector.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('toggleClass()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/toggleClass.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('loadData()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/loadData.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

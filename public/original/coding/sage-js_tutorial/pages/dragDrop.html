@@ -1,0 +1,89 @@
+<title>dragDrop() | Dragging & Dropping elements</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to drag and drop elements in a web browser using dragDrop() function">
+<!--dragDrop()-->
+<div id="tutorial-wrapper">
+<section id="dragDrop()">
+<h2>dragDrop() | Dragging & Dropping elements</h2>
+<div class="code-description">
+You can easily drag and drop elements in the web browser just by using the <em>dragDrop()</em>. This function has three arguments, which are: <em>drag id</em>, <em>drop id</em> and an optional <em>drag parent id</em>. The <em>drag id</em> is the id name of the element to be dragged, the <em>drop id</em> is the id name of the element where the dragged element will be dropped and the last paramenter is an optional <em>drag parent id</em> which is the id name of the parent element of the dragged element which can be used to drag back the element.<br>
+If the <em>drag parent id</em> is ignored, the element will not be dragged back.<br>
+<b>Note</b>: you must only use an <b>id</b> as the elements selector without an <b>#</b> hash prefix. eg <em>dragDrop('drag_id', 'drop_id', 'drag_parent_id')</em><br>
+The following example shows how we can drag and drop an image using the <em>dragDrop()</em> function.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"drop"</span>&gt;</span> Drag and drop an image here..<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;div  <span class="attr">class</span>=<span class="attr_val">"drag-img-wrapper"</span>  <span class="attr">id</span>=<span class="attr_val">"drag-parent"</span> &gt;</div>
+<div class="tag">&lt;img  <span class="attr">id</span>=<span class="attr_val">"drag"</span>  <span class="attr">src</span>=<span class="attr_val">"photos/pic-2"</span>/&gt;
+</div>
+<div class="tag">&lt;/div&gt;</div>
+
+<div class="tag">&lt;script&gt;</div>
+dragDrop('drag', 'drop', 'drag-parent')
+<div class="tag">&lt;/script&gt;</div>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<!--<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#stop-results',number) }<span class="func">)</span>"</span>&gt;</span><br>start<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>-->
+
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="drop" class="hide-text" style="min-height: 180px;">Drag and drop an image here..</div>
+
+<div class="drag-img-wrapper" id="drag-parent">
+<img src="sage-js_tutorial/photos/pic-2.jpg" id="drag">
+</div>
+
+<script>
+dragDrop('drag','drop','drag-parent')
+</script>
+<!--<input id="text-value" value="Hello world..">-->
+<!--<div class="code-btn">
+<button onclick="var number=0; setHTML('#stop-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#stop-results',number) })">Start</button>
+</div>-->
+<!--
+<div class="code-btn">
+<button onclick="stop()">Stop</button>
+</div>
+-->
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> The <em> dragDrop()</em> was called when the page finished loading which had three arguments: <em>dragDrop('drag', 'drop', 'drop-parent')</em>. The <em>drag</em> is the id name of an image element <em>img</em> which was to be dragged, the <em>drop</em> is the id name of the element where the image was dropped and the <em>drag-parent</em> is the id name of the parent element from which the image was dragged from and it was used to allow the image to be dragged back.<br><br>
+<b>Note:</b>You must only use the id name as the element's selector without the hash tag prefix as shown in the example above. The third argument <em>drag-parent</em> is an optional and you can ignore it if you dont want to drag back the dragged element (image)<br><br>
+<b>Importance:</b> This function <em>drapDrop()</em> can be used for so many things which we can not manage to mention here.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button   onclick="$('#topics-span').html('stop()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/stop.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('createFile()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/createFile.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

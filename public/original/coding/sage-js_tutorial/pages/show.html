@@ -1,0 +1,56 @@
+<title>show() | Showing hidden HTML</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to show hidden elements using the show() function">
+<!--showing the hidden elements-->
+<div id="tutorial-wrapper">
+<section>
+<h2>show() | Showing hidden HTML</h2>
+
+<div  class="code-description">
+Showing hidden html elements or content is very easy, all you need to do is to call the function called <em>show()</em> which accepts a parameter which can be an element tag name, id, class or other selector.The following example shows how we can  show hidden html content when a button is clicked.
+<div></div>
+
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"show-text"</span>&gt;</span>Am now showing!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">show</span>('#show-text')"</span>&gt;</span><br>Click to show<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div class="hide-text" id="show-text" style="display:none;">Am now showing!</div>
+<div class="code-btn">
+<button onclick="show('#show-text')">Click to show</button>
+</div>
+</div>
+</div>
+
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button was clicked using the <em>onclick</em> event listener, the  element with an id name of <em>show-text</em> was selected and then it was shown (the display was set to block).
+Here we used the id as the element selector which is prefixed with an <em>hash-tag (#show-text)</em>, however, you can use any other valid html element selector such as id or all the css selectors.
+</div>
+</div>
+</section>
+
+<div class="pagination-btn-wrapper">
+<div><button   onclick="$('#topics-span').html('hide()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/hide.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('toggle()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/toggleShow.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>	
+</div>

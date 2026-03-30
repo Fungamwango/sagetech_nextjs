@@ -1,0 +1,73 @@
+<title>stop() | stoping the executing function</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to stop a currently executing function using stop() function">
+<!--stop()-->
+<div id="tutorial-wrapper">
+<section id="stop()">
+<h2>stop() | stoping the executing function</h2>
+<div class="code-description">
+You can stop the currently executing function which is embeded in an  <em>every()</em> function just by using a <em>stop()</em> function. This function does not take any arguments, you can just call it: eg <em>stop()</em>.<br>
+The following example shows how the executing function can be stopped using the <em>stop()</em> function.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"stop-results"</span>&gt;</span>The number will increment by 1 every second and will be stopped upon clicking the button<span class="tag">&lt;/div&gt;</span><br>
+
+<!--<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"text-value"</span> <span class="attr">value</span>=<span class="attr_val">hello world..</span> &gt;</div>-->
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"var number=0;<br>  every<span class="func">(</span>1000, function(){ number++;<br> setHTML('#stop-results',number) }<span class="func">)</span>"</span>&gt;</span><br>start<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"stop<span class="func">(</span><span class="func">)</span>"</span>&gt;</span>stop<span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="stop-results" class="hide-text">
+The number will increment by 1 every second and will be stoped upon clicking the button</div>
+<!--<input id="text-value" value="Hello world..">-->
+<div class="code-btn">
+<button onclick="var number=0; setHTML('#stop-results','waiting for 1 second...'); every(1000,function(){ number++; setHTML('#stop-results',number) })">Start</button>
+</div>
+<div class="code-btn">
+<button onclick="stop()">Stop</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+<b>Example explained:</b> When the  button "Incremant number" was clicked, the function <em>  every()</em> was called with  duration set to 1000ms which is 1 second, and an Anonymous function was set awaiting the execution every after 1 second. We also created a variable called <em>number</em> which had an initial value of 0. Then we incremented the variable each time the function was called  (every after 1sec) by 1 (number++) and we printed its result in the element with an id of <em>every-results</em>.<br> We created another button with an inner text of "Stop" Where we had included the <em>stop()</em> function which was fired onclick to stop the execution of the function which was incrementing the number<br>
+<b>Note:</b> This function  <em>stop()</em> is the copy of javascript <em>clearInterval()</em> function which can also be used to achieve the same results in a slightly different way. Also note that this function <em>stop()</em> can only be used on a function which is embeded in the <em>every()</em> function and can only be called once.<br>
+<b>Importance:</b> This function <em>stop()</em> will help the programmer to  call off  any executing function embeded in the <em>every()</em> function.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('every()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/every.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('dragDrop()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/dragDrop.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

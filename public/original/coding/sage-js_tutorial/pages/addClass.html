@@ -1,0 +1,63 @@
+<title>addClass() | Adding a class to the element</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to add a class onto an html element using a addClass() function">
+<!--adding a class to elements-->
+<div id="tutorial-wrapper">
+<section>
+<h2>addClass() | Adding Classes to The Elements</h2>
+<div class="code-description">
+A class is an element's attribute that can be used as its element selector and can also be used to apply some functions.You can add classes to the elements by using the <em>addClass()</em> function. This function accepts two parameters which is the element selector and the class name to be added: <em>addClass(selector, class name)</em>. Multiple class names can be added separated by a comma (<b>,</b>)   eg:<em>addClass('#add-class', 'new-class,another-class')</em>. The following example shows how we can use the <em>addClass()</em> function to add classes to the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>
+
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"add-class"</span>&gt;</span>Give me another class please!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">addClass(</span>'#add-class','new-class'<span class="func">)</span>"</span>&gt;</span><br>Click to style<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div class="hide-text" id="add-class" style="color: white;">
+Give me another class please!</div>
+<div class="code-btn">
+<button onclick="addClass('#add-class','new-class')">Add class</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>add-class</em> is selected and then the class name which is set in the function is added to it. This new-class which has been added has some predefined styles and therefore the element inherits those styles and changes the backgroud-color to teal.Here we have just added one class name however, there is no limit to how many classes you can add just separate them with a comma.<b>Note:</b> Class names should be added without a dot(<b>.</b>) prefix.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('setStyle()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/setStyle.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('removeClass()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/removeClass.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

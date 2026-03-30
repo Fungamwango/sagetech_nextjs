@@ -1,0 +1,74 @@
+<title>filePreview() | Previewing the file on upload</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to preview media files such as images and videos on upload  using a filePreview() function">
+<!--file  preview-->
+<div id="tutorial-wrapper">
+<section>
+<h2>filePreview() | Previewing the file on upload</h2>
+<div class="code-description">
+You can preview files such as pictures, videos and songs before uploading them to the server just by using <em>filePreview()</em> function. This function takes three parameters which is the <em>file_input_id</em> , <em>target_id</em>  and an optional <em>index</em>: <em>filePreview(file_input_id , target_id ,index)</em>.The <em>file_input_id</em> is the id  of the input element which will receive the files. The id  name of the  <em>file_input_id</em> should be set without an hashtag (#) in single quotes. <em>target_id</em> is the id of the media element such as <em>img, video or audio</em> elements where the preview is going to take place.Target id should be set without an hashtag in single quotes.in short target elements should support the <em>src</em> attribute in order for the preview to be successful.<br> Only use <em>img, audio and video</em> as the target elements. The last parameter which is the <em>index</em> is not required unless you  have idea on how to loop through the selected files in case you have selected multiple files. By default, this function only shows a preview for only one file  with an index of 0. Therefore, if you have selected more than one file, only the first file will have the preview. However, you can preview all the selected files using the <em> E('#your-file-id').files.length</em> which will give you the number of all the selected files and then you can loop them and just update the index parameter in the function. This function can simply be  used in this way:<em>filePreview('file-id','target-id')</em> You can just ignore the last <em>index</em> parameter.The following example shows how we can use the <em> filePreview()</em> function to  preview an image to be uploaded.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+<!--
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"send-data"</span>&gt;</span>The response will show here!<span class="tag">&lt;/div&gt;</span><br>-->
+
+<div class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"img-wrapper"</span>&gt;
+</div>
+<div class="tag">&lt;img <span class="attr">id</span>=<span class="attr_val">"image"</span> <span class="attr">style</span>=<span class="attr_val">"display:none"</span>/&gt;
+</div>
+<div class="tag">&lt;/div&gt;</div>
+
+
+<div class="tag">&lt;input  <span class="attr">type</span>=<span class="attr_val">"file"</span> <span class="attr">id</span>=<span class="attr_val">"file"</span> <span class="attr">onchange</span>=<span class="attr_val">"<span class="func">filePreview(</span>'file', 'image'<span class="func">); </span> <span class="func">show(</span>'#image'<span class="func">); </span>"</span> &gt;</div>
+<!--
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">sendData(</span>'#send-data', 'data.php',{ ,name:getValue('#name'), pass:getValue('#pass')}<span class="func">)</span>"</span>&gt;</span><br>Send data<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+-->
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<div  id="send-data" class="hide-text">
+The response will show here!</div>-->
+<div class="img-wrapper">
+The preview will show here!
+<img id="image" style="display:none;">
+</div>
+<input type="file" accept="image/*" id="file" onchange="filePreview('file','image'); show('#image');">
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the file input button "choose file" was clicked, the file dialog showed and we selected the desired picture, then the <em>onchange</em> event listener was  used to detect if the input has received any values. Then we selected the file input's id <em>"file"</em> and set it as the first parameter of the function and we also set the target_id which was the image (img)  element's id called <em>"image"</em>. As you can see, both element's id were set in single qoutes without hashtags(#).The image (img) element was initially hidden and so  we showed it by using the <em>show('#image')</em> function so that we get the preview.<br>
+<b>Importance:</b> This  function <em>filePreview()</em> can be used to allow your website users to see or preview the files they are uploading before sending them to the server for a permanent storage. With this function, users can play a song, watch a video and see pictures before uploading them to the server.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('sendData()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/sendData.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('myLocation()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/myLocation.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

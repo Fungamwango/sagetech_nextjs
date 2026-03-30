@@ -1,0 +1,61 @@
+<!--appending the html content-->
+<title>prependHTML() |prepending the innerHTML content</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to prepend content on the html element using prependHTML() function">
+<!--prepending the html content-->
+<div id="tutorial-wrapper">
+<section>
+<h2>prependHTML() |prepending the innerHTML content</h2>
+<div class="code-description">
+The new html content can be added before the existing content in the selected element by using <em>prependHTML()</em> function which inserts
+ the new content onto the selected element before the existing content.This does not affect the existing content in the selected element as it just only adds the new content. <em>pre</em> means "Before"  therefore the new content is inserted at the begining of the selected element.This function accepts two parameters which is the element selector and html value: <em>prependHTML(selector, content)</em>.The following example shows how we can use the <em>prependHTML()</em> function to insert new content at the begining of the element.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"prepend-html"</span>&gt;</span>prepend some content here!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">appendHTML(</span>'#prepend-html' ,' I have been prepended!&lt;br&gt;' <span class="func">)</span>"</span>&gt;</span><br>prepend html<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<div class="hide-text" id="prepend-html">
+Prepend some content here!</div>
+
+<div class="code-btn">
+<button onclick="prependHTML('#prepend-html',' I have been prepended!<br>')">Prepend html</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>append-html</em> is selected and then the text <q>I have been prepended!</q> was added to the existing content at the begining of the element. you can include any valid html tags or styling in the prepended content and it will be updated with no problems. for example <em>prependHTML('#prepend-html', '&lt;p&gt; new paragraph&lt;/p&gt;')</em> this  will create a new paragraph in the selected element.In  the example we added the <em>&lt;br&gt;</em> break tag to set the content on the new line.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('appendHTML()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/appendHTML.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('getAttr()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/getAttr.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

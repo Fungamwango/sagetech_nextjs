@@ -1,0 +1,54 @@
+<title>toggle() | Toggling HTML elements</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to toggle elements using the toggle() function">
+<!--toggling the html elements-->
+<div id="tutorial-wrapper">
+<section>
+<h2>toggle() | Toggling HTML elements</h2>
+
+<div class="code-description">
+Toggle() is used to switch between hidden and visible html elements or content. If the element is hidden, using <em>toggle()</em> will show them and if the elements are visible, when the <em>toggle()</em> is used, they will be hidden.The following example shows how we can use <em>toggle()</em> function to either  show or hide html elements when a button is clicked.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"toggle-text"</span>&gt;</span>Toggle me please!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">toggle</span>('#toggle-text')"</span>&gt;</span><br>Click to toggle<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div class="hide-text" id="toggle-text">Toggle me please!</div>
+<div class="code-btn">
+<button onclick="toggle('#toggle-text')">Click to toggle</button>
+</div>
+</div>
+</div>
+
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button was clicked using the <em>onclick</em> event listener, the  element with an id name of <em>toggle-text</em> was selected, it checked if it's display is equal to block and if it's true, it was hidden else it was shown.
+Here we used the id as the element selector which is prefixed with an <em>hash-tag (#toggle-text)</em>, however, you can use any other valid html element selector such as id or all the css selectors.
+</div>
+</div>
+</section>	
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('show()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/show.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button   onclick="$('#topics-span').html('getValue()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/getValue.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>	
+</div>

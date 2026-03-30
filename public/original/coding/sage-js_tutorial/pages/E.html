@@ -1,0 +1,73 @@
+<!--simplified html selector-->
+<title>E() | HTML selector using E()</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to select elements using E() function">
+<div id="tutorial-wrapper">
+<section>
+<h2>E() | HTML selector using E()</h2>
+
+<div class="code-description">
+You can simply select any valid html element by tag name, id,class,attribute or by using any valid css selecting format using the <em>E()</em> function which stands for "Element".This function replaces the use of long html query selectors such as: <em>document.getElementById()</em>,
+<em>document.getElementsByTagName()</em>,
+<em>document.getElementsByClassName()</em> and many more.The following example shows how we can use the <em>E()</em> function to select the any html element and apply some function.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"set-html"</span>&gt;</span>new content will appear here!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span  class="tag">&lt;button <span class="attr">id</span>=<span class="attr_val">"BTN"</span> &gt;</span>click me<span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;script&gt;</span><br>
+<span class="func">E('#BTN')</span>.addEventListener('click', function(){
+alert('You have clicked the button!')}<br>
+<span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="get-value" placeholder="Enter your name..">-->
+<!--<div class="hide-text" id="set-html">
+new content will appear here!</div>-->
+<div class="code-btn">
+<button id="BTN">Click me</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<script>
+E('#BTN').addEventListener('click', function(){
+alert('You have clicked the button!')
+})
+
+</script>
+
+<b>Example explained:</b> The button with an id called <b>btn</b> was selected <em>E('#BTN')</em> and an event listener was set using the javascript  function called <em>addEventListener()</em> which accepts two parameters: an <em>event</em> and a <em>function</em>. Then the click event was set which should is fired when a button is clicked. lastly we added some codes in the function which should be executed when the button is clicked and in our cas we just added an alert() function with some text "You have clicked the button!";
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button   onclick="$('#topics-span').html('when()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/when.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('getStyle()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/getStyle.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

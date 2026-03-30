@@ -1,0 +1,63 @@
+<title>loadData() | Loading Data From the Server/File</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to load data from the web server  using  loadData() function">
+<!--loading data-->
+<div id="tutorial-wrapper">
+<section>
+<h2>loadData() | Loading Data From the Server/File</h2>
+<div class="code-description">
+You can load new data from the server or any file without reloading the page just by using <em>loadData()</em> function. This function takes two required parameters which is the <em>selector</em> and <em>URL</em> and one optional parameter which is the <em>interval</em>: <em>loadData(selector, url, interval)</em>.The <em>selector</em> is the element where the data is going to be loaded (innerHTML) while the <em>URL</em> is the pathname of the file which you want to load, the third optional parameter is  the <em>interval</em> which is used to load the data every after the specified duration in miliseconds (1000ms=1sec). When you set the duration, the <em>loadData()</em>  will be checking for any new information from the file and load the results in the selected element. Only use intervals when you want to make some real time updates such as live web text editor.You can leave the <em>interval</em> parameter empty if you want. The following example shows how we can use the <em> loadData()</em> function to load new information.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"load-data"</span>&gt;</span>New data will loaded here!<span class="tag">&lt;/div&gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">loadData(</span>'#load-data', 'data.txt'<span class="func">)</span>"</span>&gt;</span><br>Load data<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<!--<input id="set-attr">-->
+<div  id="load-data" class="hide-text">
+New data will loaded here!</div>
+<div class="code-btn">
+<button onclick="loadData('#load-data','data.txt')">Load data</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the function <em>loadData()</em> was called  which had two argurments: the element selector and the URL. We ignored the last interval parameter. Then the file <em>(data.txt)</em> whose path was specified in the URL was loaded and got inserted into the selected element through the id name. <em>loadData()</em> hides and solves all the complications of using Ajax.
+This function can be used to perform some server side functions such as: getting live updates, making live text editors and more.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('slideShow()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/toggleClass.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('sendData()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/sendData.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

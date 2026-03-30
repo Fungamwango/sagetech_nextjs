@@ -1,0 +1,59 @@
+<title>setAttr() | Setting the Element's attribute</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to set attribute values in an html element using setAttr() function">
+<!--setting the html attribute-->
+<div id="tutorial-wrapper">
+<section>
+<h2>setAttr() | Setting the Element's attribute</h2>
+
+<div class="code-description">
+Attribute is the value that adds more information and capabilities to the element . You can easly set a new attribute or modify the exsiting attribute using the <em>setAttr()</em> function. This function accepts two parameters which is the element selector and the attribute object: <em>setAttr(selector, {name:value})</em>. The attribute object takes the  <em>"name:value"</em> pair where "name" is the name of the attribute such as "href" and value is the value of the attribute's name such "www.web.com". You need to be familiar with objects to work well with this function. You can add as many attributes as you want separated by a comma. The following example shows how we can use the <em>setAttr()</em> function to set or modify the  element's attributes.
+<div></div>
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"set-attr"</span> &gt;</span><br>
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">setAttr(</span>'#set-attr' ,{'placeholder':'Am disabled' , 'disabled':true}<span class="func">)</span>"</span>&gt;</span><br>set html<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<input id="set-attr">
+<!--<div class="hide-text" id="set-html">
+new content will appear here!</div>-->
+<div class="code-btn">
+<button onclick="setAttr('#set-attr',{'placeholder':'Am disabled','disabled':true})">Set attribute</button>
+</div>
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the  element with an id name of <em>set-attr</em> is selected which is an input element and then the attributes defined in the through the object were added.The attributes which were added is the <em>placeholder</em> with a value of <em>"Am disabled"</em> and <em>disabled</em> with a value of <em>true</em>.Here we have just set two attributes however, there is no limit to how many attributes you can set as illustrated earier. <b>Note:</b> you can only set the attributes which are supported by the selected element as some will fail.
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('getAttr()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/getAttr.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button  onclick="$('#topics-span').html('when()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/when.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>

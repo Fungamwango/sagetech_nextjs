@@ -1,0 +1,14 @@
+import { getCurrentUser } from "@/lib/auth";
+import PostFeed from "@/components/posts/PostFeed";
+
+export default async function MusicPage() {
+  const user = await getCurrentUser();
+  return (
+    <div>
+      <h1 className="text-lg font-bold text-white mb-4">
+        <i className="fas fa-music text-cyan-400 mr-2" />Music
+      </h1>
+      <PostFeed postType="song" currentUserId={user?.id ?? null} showComposer={false} />
+    </div>
+  );
+}

@@ -1,0 +1,39 @@
+function pickPostHeadline(post: {
+  blogTitle?: string | null;
+  productName?: string | null;
+  singer?: string | null;
+  filename?: string | null;
+  bookTitle?: string | null;
+  generalPost?: string | null;
+  postDescription?: string | null;
+  advertTitle?: string | null;
+}) {
+  return (
+    post.blogTitle ||
+    post.productName ||
+    post.singer ||
+    post.filename ||
+    post.bookTitle ||
+    post.advertTitle ||
+    post.generalPost ||
+    post.postDescription ||
+    "post"
+  );
+}
+
+export function slugifyPostText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "post";
+}
+
+export function getPostSlug(post: Parameters<typeof pickPostHeadline>[0]) {
+  return slugifyPostText(pickPostHeadline(post));
+}
+
+export function getPostPath(post: { id: string } & Parameters<typeof pickPostHeadline>[0]) {
+  return `/posts/${post.id}/${getPostSlug(post)}`;
+}

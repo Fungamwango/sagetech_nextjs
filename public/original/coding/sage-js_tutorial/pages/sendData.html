@@ -1,0 +1,78 @@
+<title>sendData() | Sending  Data to the Server</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="Learn how to send data to  the web server  using  sendData() function">
+<!--sending data-->
+<div id="tutorial-wrapper">
+<section>
+<h2>sendData() | Sending  Data to the Server</h2>
+<div class="code-description">
+You can send new data to the server without reloading the page just by using <em>sendData()</em> function. This function takes four parameters which is the <em>selector</em> , <em>URL</em> ,<em>data</em> and an optional <em> timer(count-down)</em>: <em>sendData(selector , url , {data} , timer)</em>.The <em>selector</em> is the element where the  response is going to show (innerHTML) if successful while the <em>URL</em> is the pathname of the server-side file such as php files which will receive and process the data, <em>data</em> is the object of values made in a "<em>name:value"</em> pair. The last parameter is <em>timer(count-down)</em> which can be used to send the request after the specified time in miliseconds (1000ms=1sec) elapses. For example, when the timer is set to 2000, it means that the request will be sent after 2 seconds, in short, it will wait for 2 seconds and then sends the request. <em>sendData(selector, 'file.php', {name:'mark'} ,2000)</em>.This function uses <em>POST</em> method to send  and  process data.Therefore, to get the value of the name from the data, we can use  the <em>PHP</em> global variable <em>$_POST['name']</em> which takes the name as the index and print its value.The following example shows how we can use the <em> sendData()</em> function to send data to the server.
+</div>
+<div class="code-editor">
+<div class="code_wrapper">
+<div class="tag">&lt;html&gt;</div>
+<div class="tag">&lt;head&gt;</div>
+<div class="tag">&lt;link <span class="attr">href</span>=<span class="attr_val">"css/style.css"</span>  <span class="attr">ref</span>=<span class="attr_val">"text/css"</span>&gt;</div>
+
+<span class="tag">&lt;script <span class="attr">src</span>=<span class="attr_val">"sage.js"</span>&gt;</span><span class="tag">&lt;/script&gt;</span><br>
+<!--
+<div class="tag">&lt;style&gt;</div>
+  <span class="func">.new-class</span>{<span class="css">background: teal;</span>}
+<div class="tag">&lt;/style&gt;</div>-->
+
+<div class="tag">&lt;/head&gt;</div>
+<div class="tag">&lt;body&gt;</div>
+
+<span class="tag">&lt;div <span class="attr">id</span>=<span class="attr_val">"send-data"</span>&gt;</span>The response will show here!<span class="tag">&lt;/div&gt;</span><br>
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"name"</span> <span class="attr">placeholder</span>=<span class="attr_val">"Enter your name"</span> &gt;</div>
+
+<div class="tag">&lt;input  <span class="attr">id</span>=<span class="attr_val">"pass"</span> <span class="attr">placeholder</span>=<span class="attr_val">"Enter your password"</span> &gt;</div>
+
+
+<span class="tag">&lt;div <span class="attr">class</span>=<span class="attr_val">"code-btn"</span>&gt;</span><br>
+
+<span class="tag">&lt;button  <span class="attr">onclick</span>=<span class="attr_val">"<span class="func">sendData(</span>'#send-data', 'data.php',{ ,name:getValue('#name'), pass:getValue('#pass')}<span class="func">)</span>"</span>&gt;</span><br>Send data<br><span class="tag">&lt;/button&gt;</span><br>
+<span class="tag">&lt;/div&gt;</span><br>
+
+Data getting processed using php in (data.php)<br>
+<div class="tag">&lt;?php<br>
+<span class="css">echo </span>"Hello, your name is".<span  class="func">$_POST['name'].</span>"<br><br>
+and password is ".<span class="func">$_POST['pass'];</span><br>
+?&gt;</div>
+
+
+<div class="tag">&lt;/body&gt;</div>
+<div class="tag">&lt;/html&gt;</div>
+</div>
+<div class="code-output">
+<div  id="send-data" class="hide-text">
+The response will show here!</div>
+<form onsubmit="event.preventDefault()">
+<input id="name"  required placeholder="Enter your name..">
+<input id="pass" required type="password"  placeholder="Enter your password..">
+
+<div class="code-btn">
+<button id="send-btn" onclick="var data=sendData('#send-data','data.php',{name:getValue('#name'),pass:getValue('#pass')})">Send data</button>
+</div>
+</form>
+
+</div>
+</div>
+<div  class="code-description">
+<div class="example-explained">
+
+<b>Example explained:</b> When the button is clicked using the <em>onclick</em> event listener, the function <em>sendData()</em> was called  which had three argurments: the element selector ,the URL and data object. We ignored the last timer parameter. Then the file <em>(data.php)</em> whose path was specified in the URL was set and this is the file that received and processed the data. Then we set the data in the object as a <em>name:value</em> pair: The name can be written without any single quotes while its value should be enclosed in single quotes unless it's a variable.We then retrived the values from the input elements using the <em>getValue()</em> functions. and the last parameter was ignored which is the timer  which sends the request after the specified period of time measured in miliseconds(1000ms=1sec). The element with an id of  <em>send-data</em> was used to get the response from the server. <b>Importance</b>: this function <em>sendData()</em> can be used to both send and receive the data from the server in real time without reloading the page. Besides, it can also be used to send requests to the server after a specific period of time using timer parameter. 
+</div>
+</div>
+</section>
+<div class="pagination-btn-wrapper">
+<div><button  onclick="$('#topics-span').html('loadData()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/loadData.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Prev</button></div> 
+<div><button onclick="$('#topics-span').html('filePreview()'); loadData('#tutorial-wrapper','sage-js_tutorial/pages/filePreview.html'); E('#tutorial-wrapper').scrollIntoView({behavior:'smooth'});">Next</button></div>
+</div>  
+</div>
+
+<script>
+//calling the createSPA function to make an spa
+createSPA('sage-js-links','#tutorial-wrapper')
+</script>
