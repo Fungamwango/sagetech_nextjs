@@ -63,7 +63,16 @@ html, body {
   word-spacing: 1.6px;
   transition: all 0.2s;
 }
-.btn-sage:hover { background: #008; }
+.btn-sage:hover {
+  background: #0a7f93;
+  border-color: #b8f4ff;
+}
+.btn-sage:focus-visible {
+  outline: none;
+  background: #0a7f93;
+  border-color: #b8f4ff;
+  box-shadow: 0 0 0 3px rgba(77, 214, 233, 0.2);
+}
 .btn-sage:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* Post textarea */

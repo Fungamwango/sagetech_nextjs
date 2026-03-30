@@ -250,8 +250,8 @@ async function generateExampleSentences(englishTerm: string) {
   if (cached) return cached;
 
   try {
-    const raw = await runCloudflarePrompt(`Write exactly two short everyday example sentences using the word or phrase "${englishTerm}". Return one sentence per line, nothing else.`);
-    const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 2);
+    const raw = await runCloudflarePrompt(`Write exactly one short basic everyday sentence using the word or phrase "${englishTerm}". Return only the sentence, nothing else.`);
+    const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 1);
     if (lines.length > 0) {
       exampleCache.set(cacheKey, lines);
       return lines;
@@ -261,8 +261,7 @@ async function generateExampleSentences(englishTerm: string) {
   }
 
   const fallback = [
-    `I can use ${englishTerm} in a simple sentence.`,
-    `${englishTerm} is useful in everyday conversation.`,
+    `I use ${englishTerm} every day.`,
   ];
   exampleCache.set(cacheKey, fallback);
   return fallback;

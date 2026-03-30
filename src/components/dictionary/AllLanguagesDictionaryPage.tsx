@@ -40,6 +40,42 @@ function InlineTranslationPair({ source, target }: { source: string; target: str
   );
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function HighlightedTerm({ text, term }: { text: string; term: string }) {
+  const normalizedTerm = term.trim();
+  if (!normalizedTerm) return <>{text}</>;
+
+  const matcher = new RegExp(`(${escapeRegExp(normalizedTerm)})`, "gi");
+  const parts = text.split(matcher);
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.toLowerCase() === normalizedTerm.toLowerCase() ? (
+          <strong key={`${part}-${index}`} className="font-semibold text-white">
+            {part}
+          </strong>
+        ) : (
+          <span key={`${part}-${index}`}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function buildSpeechText(entry: DictEntry, examples: GeneratedExample[]) {
+  const parts = [`${entry.word}. ${entry.bemba}.`];
+  const firstExample = examples[0];
+  if (firstExample) {
+    parts.push(firstExample.source);
+    parts.push(firstExample.target);
+  }
+  return parts.join(" ");
+}
+
 function speak(text: string) {
   if ("speechSynthesis" in window) {
     const u = new SpeechSynthesisUtterance(text);
@@ -188,11 +224,13 @@ function LanguageSelectors({
 function ExamplePanel({
   sourceLabel,
   targetLabel,
+  targetTerm,
   examples,
   loading,
 }: {
   sourceLabel: string;
   targetLabel: string;
+  targetTerm: string;
   examples: GeneratedExample[];
   loading: boolean;
 }) {
@@ -213,7 +251,9 @@ function ExamplePanel({
               <div className="text-xs uppercase tracking-wide text-white/35">{sourceLabel}</div>
               <div className="mt-1 text-sm text-white/85">{example.source}</div>
               <div className="mt-3 text-xs uppercase tracking-wide text-white/35">{targetLabel}</div>
-              <div className="mt-1 text-sm text-cyan-300">{example.target}</div>
+              <div className="mt-1 text-sm text-cyan-300">
+                <HighlightedTerm text={example.target} term={targetTerm} />
+              </div>
             </div>
           ))}
         </div>
@@ -228,10 +268,11 @@ interface QuizRunnerProps {
   mode: QuizMode;
   challengeData?: { challengeId: string; senderScore: number; senderUsername: string };
   challengeTarget?: { id: string; username: string };
+  autoStart?: boolean;
   onComplete: (score: number, questions: QuizQuestion[]) => void;
 }
 
-function QuizRunner({ questions, mode, challengeData, challengeTarget, onComplete }: QuizRunnerProps) {
+function QuizRunner({ questions, mode, challengeData, challengeTarget, autoStart = false, onComplete }: QuizRunnerProps) {
   const [qIndex, setQIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -305,67 +346,93 @@ function QuizRunner({ questions, mode, challengeData, challengeTarget, onComplet
     startTimer();
   };
 
+  useEffect(() => {
+    if (!autoStart) return;
+    beginQuiz();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, questions]);
+
   const q = questions[qIndex];
 
   if (!started) {
     return (
-      <div style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", padding: "16px", borderRadius: "4px" }}>
+      <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
         {mode === "challenge-friend" && challengeTarget && (
-          <div className="mb-3 p-2 rounded text-sm text-cyan-300" style={{ background: "rgba(0,200,200,0.08)", border: "1px solid rgba(0,200,200,0.2)" }}>
+          <div className="mb-4 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-200">
             You are challenging <strong>{challengeTarget.username}</strong>! Take this quiz and we&apos;ll send them your score.
           </div>
         )}
         {mode === "accepted-challenge" && challengeData && (
-          <div className="mb-3 p-2 rounded text-sm text-yellow-300" style={{ background: "rgba(255,200,0,0.08)", border: "1px solid rgba(255,200,0,0.2)" }}>
+          <div className="mb-4 rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-3 py-2 text-sm text-yellow-200">
             <strong>{challengeData.senderUsername}</strong> challenged you! They scored <strong>{challengeData.senderScore}/10</strong>. Beat them to win 20 points!
           </div>
         )}
         {mode === "solo" && (
-          <div className="mb-3 text-sm text-white/80">
-            Welcome to the quiz. You will translate between the selected languages in both directions. Note the following before starting:
+          <div className="mb-4">
+            <div className="text-xs font-medium uppercase tracking-[0.22em] text-white/35">Quiz mode</div>
+            <div className="mt-2 text-sm text-white/80">
+              Welcome to the quiz. You will translate between the selected languages in both directions. Note the following before starting:
+            </div>
           </div>
         )}
-        <ul className="text-sm text-white/60 space-y-1 mb-4 list-disc list-inside">
+        <ul className="mb-5 space-y-2 text-sm text-white/65">
           <li>The quiz has ten (10) multiple choice questions.</li>
           <li>You will earn 10 points when you get all questions correct.</li>
           <li>You will only begin to earn points when you have at least 40% and above.</li>
         </ul>
-        <button onClick={beginQuiz} className="btn-sage px-8">Start now</button>
+        <button onClick={beginQuiz} className="btn-sage rounded-full px-8 py-2.5">Start now</button>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-white/60">
-          <span className="text-cyan-400 font-bold">{qIndex + 1}</span> / {questions.length}
-        </span>
-        <div className={`text-sm font-bold ${timer <= 5 ? "text-red-400" : "text-cyan-400"}`}>
-          Next &gt; 00:{String(timer).padStart(2, "0")}sec
+    <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs uppercase tracking-[0.18em] text-white/35">Question</div>
+          <div className="mt-1 text-sm text-white/70">
+            <span className="font-semibold text-cyan-300">{qIndex + 1}</span> of {questions.length}
+          </div>
+        </div>
+        <div className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${timer <= 5 ? "border-red-400/30 bg-red-400/10 text-red-300" : "border-cyan-400/25 bg-cyan-400/10 text-cyan-300"}`}>
+          00:{String(timer).padStart(2, "0")}
         </div>
       </div>
-      <div className="mb-4 p-3 rounded text-center" style={{ background: "rgba(0,0,0,0.2)" }}>
-        <p className="text-white/60 text-sm">What is the translation of</p>
-        <p className="text-2xl font-bold text-white capitalize mt-1">{q?.word}</p>
+      <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-center">
+        <p className="text-xs uppercase tracking-[0.18em] text-white/35">Translate</p>
+        <p className="mt-2 text-2xl font-bold capitalize text-white">{q?.word}</p>
       </div>
-      <ol className="space-y-2" style={{ listStyleType: "upper-alpha", paddingLeft: "1.5rem" }}>
+      <ol className="space-y-2.5 list-none pl-0">
         {q?.options.map((opt, i) => {
-          let bg = "rgba(255,255,255,0.05)";
-          let color = "white";
+          let bg = "rgba(255,255,255,0.04)";
+          let color = "rgba(255,255,255,0.92)";
+          let border = "1px solid rgba(255,255,255,0.1)";
           if (chosen !== null) {
-            if (opt === q.correct) { bg = "#084"; color = "white"; }
-            else if (opt === chosen) { bg = "crimson"; color = "white"; }
+            if (opt === q.correct) {
+              bg = "rgba(22,163,74,0.18)";
+              color = "white";
+              border = "1px solid rgba(74,222,128,0.35)";
+            }
+            else if (opt === chosen) {
+              bg = "rgba(220,38,38,0.18)";
+              color = "white";
+              border = "1px solid rgba(248,113,113,0.35)";
+            }
           }
           return (
             <li key={i}>
               <button
                 onClick={() => handleAnswer(opt)}
                 disabled={chosen !== null}
-                className="w-full text-left px-4 py-3 rounded text-sm transition-all cursor-pointer"
-                style={{ background: bg, color, border: "1px solid rgba(255,255,255,0.1)" }}
+                className="w-full cursor-pointer rounded-2xl px-4 py-3 text-left text-sm transition-all hover:-translate-y-[1px] disabled:cursor-default"
+                style={{ background: bg, color, border }}
               >
-                {opt}
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/12 bg-black/20 text-xs font-semibold text-white/70">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span className="text-base capitalize">{opt}</span>
+                </div>
               </button>
             </li>
           );
@@ -394,6 +461,7 @@ export default function DictionaryPage() {
   const [selected, setSelected] = useState<DictEntry | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchSubmitted, setSearchSubmitted] = useState(false);
+  const [speechPending, setSpeechPending] = useState(false);
   const [sourceLang, setSourceLang] = useState(DEFAULT_SOURCE_LANGUAGE);
   const [targetLang, setTargetLang] = useState(DEFAULT_TARGET_LANGUAGE);
   const [generatedExamples, setGeneratedExamples] = useState<GeneratedExample[]>([]);
@@ -404,6 +472,7 @@ export default function DictionaryPage() {
   const [loadingQuiz, setLoadingQuiz] = useState(false);
   const [quizActive, setQuizActive] = useState(false);
   const [quizDone, setQuizDone] = useState(false);
+  const [quizAutoStart, setQuizAutoStart] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
   const [finalQuestions, setFinalQuestions] = useState<QuizQuestion[]>([]);
   const [pointsSaved, setPointsSaved] = useState(false);
@@ -559,6 +628,7 @@ export default function DictionaryPage() {
     setHistoryCursor(nextCursor);
     setCurrentEntry(entryHistory[nextCursor] ?? null);
     window.speechSynthesis.cancel();
+    setSpeechPending(false);
     setSpeaking(false);
   }, [entryHistory, historyCursor]);
 
@@ -566,17 +636,29 @@ export default function DictionaryPage() {
     if (!currentEntry || !("speechSynthesis" in window)) return;
     if (speaking) {
       window.speechSynthesis.cancel();
+      setSpeechPending(false);
       setSpeaking(false);
       return;
     }
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(`${currentEntry.word}. ${currentEntry.bemba}`);
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
+    const utterance = new SpeechSynthesisUtterance(buildSpeechText(currentEntry, generatedExamples));
+    utterance.onstart = () => {
+      setSpeechPending(false);
+      setSpeaking(true);
+    };
+    utterance.onend = () => {
+      setSpeechPending(false);
+      setSpeaking(false);
+    };
+    utterance.onerror = () => {
+      setSpeechPending(false);
+      setSpeaking(false);
+    };
+    setSpeechPending(true);
     setSpeaking(true);
     window.speechSynthesis.speak(utterance);
-  }, [currentEntry, speaking]);
+  }, [currentEntry, generatedExamples, speaking]);
 
   const shareDictionary = useCallback(async () => {
     const shareData = {
@@ -609,13 +691,14 @@ export default function DictionaryPage() {
   }, [currentEntry, loadNextHomeEntry]);
 
   // ── Quiz tab
-  const loadAndStartQuiz = async () => {
+  const loadAndStartQuiz = async (autoStart = false) => {
     setLoadingQuiz(true);
     const res = await fetch(`/api/dictionary/quiz?from=${encodeURIComponent(sourceLang)}&to=${encodeURIComponent(targetLang)}`);
     const data = await res.json();
     setQuizQuestions(data.questions ?? []);
     setQuizActive(true);
     setQuizDone(false);
+    setQuizAutoStart(autoStart);
     setPointsSaved(false);
     setLoadingQuiz(false);
   };
@@ -644,6 +727,7 @@ export default function DictionaryPage() {
   const resetQuiz = () => {
     setQuizActive(false);
     setQuizDone(false);
+    setQuizAutoStart(false);
     setFinalScore(0);
     setFinalQuestions([]);
     setPointsSaved(false);
@@ -964,6 +1048,7 @@ export default function DictionaryPage() {
                 <ExamplePanel
                   sourceLabel={getDictionaryLanguageLabel(sourceLang)}
                   targetLabel={getDictionaryLanguageLabel(targetLang)}
+                  targetTerm={selected.bemba}
                   examples={generatedExamples}
                   loading={loadingExamples}
                 />
@@ -988,6 +1073,7 @@ export default function DictionaryPage() {
                           <ExamplePanel
                             sourceLabel={getDictionaryLanguageLabel(sourceLang)}
                             targetLabel={getDictionaryLanguageLabel(targetLang)}
+                            targetTerm={currentEntry.bemba}
                             examples={generatedExamples}
                             loading={loadingExamples}
                           />
@@ -998,25 +1084,24 @@ export default function DictionaryPage() {
                             <button
                               onClick={goPrevEntry}
                               disabled={historyCursor <= 0}
-                              className="rounded border border-white/20 px-4 py-2 text-sm text-white/70 transition-colors hover:border-cyan-400 hover:text-cyan-400 disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded border border-white/20 px-3 py-1.5 text-sm text-white/70 transition-colors hover:border-cyan-400 hover:text-cyan-400 disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               &lt;&lt; prev
                             </button>
                           </div>
-                          <div className="flex items-center gap-2 rounded border border-white/10 px-3 py-2">
-                            <span className="text-xs text-white/40">{speaking ? "playing..." : "wait.."}</span>
+                          <div className="flex items-center gap-2 rounded border border-white/10 px-2.5 py-1.5">
                             <button
                               onClick={toggleSpeak}
                               className="text-cyan-400 transition-colors hover:text-cyan-300"
                               aria-label={speaking ? "Pause audio" : "Play audio"}
                             >
-                              <i className={`fas ${speaking ? "fa-pause" : "fa-play"}`} />
+                              <i className={`fas ${speechPending ? "fa-spinner fa-spin" : "fa-play"}`} />
                             </button>
                           </div>
                           <div className="text-right">
                             <button
                               onClick={loadNextHomeEntry}
-                              className="rounded border border-white/20 px-4 py-2 text-sm text-white/70 transition-colors hover:border-cyan-400 hover:text-cyan-400"
+                              className="rounded border border-white/20 px-3 py-1.5 text-sm text-white/70 transition-colors hover:border-cyan-400 hover:text-cyan-400"
                             >
                               next &gt;&gt;
                             </button>
@@ -1042,16 +1127,16 @@ export default function DictionaryPage() {
       {tab === "quiz" && (
         <div>
           {!quizActive && !quizDone && (
-            <div style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", padding: "16px", borderRadius: "4px" }}>
+            <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
               <div className="mb-3 text-sm text-white/80">
                 Welcome to the quiz. You will translate between {getDictionaryLanguageLabel(sourceLang)} and {getDictionaryLanguageLabel(targetLang)} in both directions. Note the following before starting:
               </div>
-              <ul className="text-sm text-white/60 space-y-1 mb-4 list-disc list-inside">
+              <ul className="mb-4 space-y-2 text-sm text-white/65">
                 <li>The quiz has ten (10) multiple choice questions.</li>
                 <li>You will earn 10 points when you get all questions correct.</li>
                 <li>You will only begin to earn points when you have at least 40% and above.</li>
               </ul>
-              <button onClick={loadAndStartQuiz} disabled={loadingQuiz} className="btn-sage px-8">
+              <button onClick={() => loadAndStartQuiz(true)} disabled={loadingQuiz} className="btn-sage rounded-full px-8 py-2.5">
                 {loadingQuiz ? <><i className="fas fa-spinner fa-spin mr-2" />Loading...</> : "Start now"}
               </button>
             </div>
@@ -1061,20 +1146,21 @@ export default function DictionaryPage() {
             <QuizRunner
               questions={quizQuestions}
               mode="solo"
+              autoStart={quizAutoStart}
               onComplete={handleQuizComplete}
             />
           )}
 
           {quizDone && (
-            <div className="text-center py-6" style={{ background: "rgba(0,0,0,0.2)", padding: "24px", borderRadius: "4px" }}>
-              <h2 className="text-xl font-bold text-white mb-2">The Quiz is over!</h2>
-              <p className="text-white/60 text-sm mb-1">
+            <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] px-5 py-6 text-center shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
+              <h2 className="mb-2 text-xl font-bold text-white">The Quiz is over!</h2>
+              <p className="mb-1 text-sm text-white/60">
                 {finalScore < 4 ? "Sorry 😐," : finalScore <= 7 ? "Nice 😎," : "Congrats! 🎉,"}{" "}You got
               </p>
-              <div className="text-5xl font-bold text-cyan-400 my-3">{finalScore}<span className="text-xl text-white/40">/10</span></div>
-              <div className="text-lg text-white/70 mb-2">{finalScore * 10}%</div>
+              <div className="my-3 text-5xl font-bold text-cyan-400">{finalScore}<span className="text-xl text-white/40">/10</span></div>
+              <div className="mb-2 text-lg text-white/70">{finalScore * 10}%</div>
               {getEarnedPoints(finalScore) > 0 && (
-                <div className="text-sm text-green-400 mb-2">
+                <div className="mb-2 text-sm text-green-400">
                   {savingPoints
                     ? <><i className="fas fa-spinner fa-spin mr-1" />Saving points...</>
                     : pointsSaved
@@ -1083,19 +1169,19 @@ export default function DictionaryPage() {
                   }
                 </div>
               )}
-              <div className="flex gap-3 justify-center flex-wrap mt-4">
-                <button onClick={loadAndStartQuiz} className="btn-sage px-6">Play Again</button>
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                <button onClick={() => loadAndStartQuiz(true)} className="btn-sage rounded-full px-6 py-2.5">Play Again</button>
                 <button
                   onClick={() => {
                     setPendingChallengeQs(finalQuestions);
                     resetQuiz();
                     setTab("challenge");
                   }}
-                  className="px-6 py-2 border border-cyan-400/50 text-cyan-400 rounded-full text-sm hover:bg-cyan-400/10 transition-colors"
+                  className="rounded-full border border-cyan-400/50 px-6 py-2 text-sm text-cyan-400 transition-colors hover:bg-cyan-400/10"
                 >
                   Challenge a Friend
                 </button>
-                <button onClick={resetQuiz} className="px-6 py-2 border border-white/30 text-white rounded-full text-sm hover:border-white/60 transition-colors">
+                <button onClick={resetQuiz} className="rounded-full border border-white/30 px-6 py-2 text-sm text-white transition-colors hover:border-white/60">
                   Back
                 </button>
               </div>
@@ -1333,6 +1419,7 @@ export default function DictionaryPage() {
               <ExamplePanel
                 sourceLabel={getDictionaryLanguageLabel(sourceLang)}
                 targetLabel={getDictionaryLanguageLabel(targetLang)}
+                targetTerm={wotd.bemba}
                 examples={generatedExamples}
                 loading={loadingExamples}
               />
@@ -1371,6 +1458,7 @@ export default function DictionaryPage() {
               <ExamplePanel
                 sourceLabel={getDictionaryLanguageLabel(sourceLang)}
                 targetLabel={getDictionaryLanguageLabel(targetLang)}
+                targetTerm={randomEntry.bemba}
                 examples={generatedExamples}
                 loading={loadingExamples}
               />
