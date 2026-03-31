@@ -40,10 +40,17 @@ export default function PostFeed({
   const [selectedGridPost, setSelectedGridPost] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
+  const [showNoMoreNotice, setShowNoMoreNotice] = useState(false);
+  const [randomSeed, setRandomSeed] = useState<string | null>(order === "random" ? null : "");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const fetchMoreRef = useRef<() => void>(() => {});
+  const inFlightOffsetRef = useRef<number | null>(null);
+  const scrollTriggerLockedRef = useRef(false);
+  const noMoreNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const LIMIT = 15;
 
   const buildUrl = useCallback(
@@ -54,63 +61,123 @@ export default function PostFeed({
       if (postId) params.set("postId", postId);
       if (search) params.set("q", search);
       if (order) params.set("order", order);
+      if (order === "random" && randomSeed) params.set("seed", randomSeed);
       return `/api/posts?${params}`;
     },
-    [postType, userId, postId, search, order]
+    [postType, userId, postId, search, order, randomSeed]
   );
 
   const fetchPosts = useCallback(async (reset = false) => {
     const currentOffset = reset ? 0 : offset;
     if (!reset && !hasMore) return;
+    if (inFlightOffsetRef.current === currentOffset) return;
+    if (!reset && scrollTriggerLockedRef.current) return;
 
+    inFlightOffsetRef.current = currentOffset;
+    scrollTriggerLockedRef.current = true;
+    if (reset) setLoadError(null);
     reset ? setLoading(true) : setLoadingMore(true);
 
-    const res = await fetch(buildUrl(currentOffset));
-    if (res.ok) {
-      const data = await res.json();
-      const newPosts: any[] = data.posts ?? [];
-      setPosts((prev) => (reset ? newPosts : [...prev, ...newPosts]));
-      setHasMore(newPosts.length === LIMIT);
-      setOffset(currentOffset + newPosts.length);
+    try {
+      const res = await fetch(buildUrl(currentOffset), { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const newPosts: any[] = data.posts ?? [];
+        setPosts((prev) => {
+          if (reset) return newPosts;
+          const seen = new Set(prev.map((post) => post.id));
+          const deduped = newPosts.filter((post) => !seen.has(post.id));
+          return [...prev, ...deduped];
+        });
+        setHasMore(newPosts.length === LIMIT);
+        setOffset(currentOffset + newPosts.length);
+        if (!reset && newPosts.length < LIMIT) {
+          setShowNoMoreNotice(true);
+          if (noMoreNoticeTimeoutRef.current) clearTimeout(noMoreNoticeTimeoutRef.current);
+          noMoreNoticeTimeoutRef.current = setTimeout(() => setShowNoMoreNotice(false), 1800);
+        }
+      } else if (reset) {
+        setLoadError("Unable to load posts right now.");
+      }
+    } catch {
+      if (reset) {
+        setLoadError("Unable to load posts right now.");
+      }
+    } finally {
+      inFlightOffsetRef.current = null;
+      scrollTriggerLockedRef.current = false;
+      reset ? setLoading(false) : setLoadingMore(false);
     }
-    reset ? setLoading(false) : setLoadingMore(false);
   }, [offset, hasMore, buildUrl]);
+
+  useEffect(() => {
+    if (order !== "random") return;
+    setRandomSeed(Math.random().toString(36).slice(2, 12));
+  }, [order, postType, userId, postId, search]);
 
   // Initial load + reset on filter change
   useEffect(() => {
+    if (order === "random" && !randomSeed) return;
     setPosts([]);
     setOffset(0);
     setHasMore(true);
+    setShowNoMoreNotice(false);
+    setLoadError(null);
+    inFlightOffsetRef.current = null;
+    scrollTriggerLockedRef.current = false;
     fetchPosts(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postType, userId, postId, search, order]);
+  }, [postType, userId, postId, search, order, randomSeed]);
 
   useEffect(() => {
     const handler = () => {
+      if (order === "random" && !randomSeed) return;
       setPosts([]);
       setOffset(0);
       setHasMore(true);
+      setShowNoMoreNotice(false);
+      setLoadError(null);
+      inFlightOffsetRef.current = null;
+      scrollTriggerLockedRef.current = false;
       fetchPosts(true);
     };
     window.addEventListener("post-created", handler as EventListener);
     return () => window.removeEventListener("post-created", handler as EventListener);
-  }, [fetchPosts]);
+  }, [fetchPosts, order, randomSeed]);
 
   // Keep ref in sync so the observer callback always sees latest values
   useEffect(() => {
     fetchMoreRef.current = () => {
-      if (hasMore && !loadingMore && !loading) fetchPosts(false);
+      if (
+        hasMore &&
+        !loadingMore &&
+        !loading &&
+        inFlightOffsetRef.current === null &&
+        !scrollTriggerLockedRef.current
+      ) {
+        fetchPosts(false);
+      }
     };
   }, [hasMore, loadingMore, loading, fetchPosts]);
 
+  useEffect(() => {
+    return () => {
+      if (noMoreNoticeTimeoutRef.current) clearTimeout(noMoreNoticeTimeoutRef.current);
+    };
+  }, []);
+
   // Create observer once — never recreated, uses ref to avoid stale closure
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) fetchMoreRef.current(); },
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        if (scrollTriggerLockedRef.current) return;
+        fetchMoreRef.current();
+      },
       { threshold: 0.1 }
     );
-    if (sentinelRef.current) observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
+    if (sentinelRef.current) observerRef.current.observe(sentinelRef.current);
+    return () => observerRef.current?.disconnect();
   }, []);
 
   const handlePostCreated = (newPost: any) => {
@@ -136,7 +203,30 @@ export default function PostFeed({
         </div>
       )}
 
-      {!loading && posts.length === 0 && (
+      {!loading && loadError && posts.length === 0 && (
+        <div className="text-center py-16">
+          <i className="fas fa-wifi text-4xl text-white/20 mb-3" />
+          <p className="text-white/55 text-sm">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setPosts([]);
+              setOffset(0);
+              setHasMore(true);
+              setShowNoMoreNotice(false);
+              setLoadError(null);
+              inFlightOffsetRef.current = null;
+              scrollTriggerLockedRef.current = false;
+              void fetchPosts(true);
+            }}
+            className="mt-4 rounded-full border border-white/15 px-4 py-2 text-sm text-white/75 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && !loadError && posts.length === 0 && (
         <div className="text-center py-16">
           <i className="fas fa-inbox text-4xl text-white/20 mb-3" />
           <p className="text-white/40 text-sm">
@@ -226,7 +316,7 @@ export default function PostFeed({
         </div>
       )}
 
-      {!hasMore && posts.length > 0 && (
+      {showNoMoreNotice && !loadingMore && posts.length > 0 && (
         <p className="text-center text-red-400 text-sm py-4">No more posts</p>
       )}
     </div>

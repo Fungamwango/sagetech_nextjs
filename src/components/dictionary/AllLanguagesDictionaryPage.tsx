@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { DICTIONARY_LANGUAGES, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE, getDictionaryLanguageLabel } from "@/lib/dictionaryLanguages";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Types ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 interface DictEntry { word: string; bemba: string; html: string; base?: string; sourceLang?: string; targetLang?: string }
 interface GeneratedExample { source: string; target: string }
 interface QuizQuestion { word: string; correct: string; options: string[] }
@@ -17,7 +18,7 @@ interface Leader { id: string; username: string; picture: string | null; level: 
 
 type QuizMode = "solo" | "challenge-friend" | "accepted-challenge";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Helpers ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 function getEarnedPoints(s: number): number {
   const pts = [0, 0, 0, 0, 1, 2, 3, 5, 7, 9, 10];
   return pts[s] ?? 0;
@@ -76,11 +77,29 @@ function buildSpeechText(entry: DictEntry, examples: GeneratedExample[]) {
   return parts.join(" ");
 }
 
-function speak(text: string) {
-  if ("speechSynthesis" in window) {
-    const u = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(u);
-  }
+function formatRelativeTime(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+  return date.toLocaleDateString();
+}
+
+function formatPoints(value: string | null) {
+  const numeric = Number(value ?? 0);
+  if (Number.isNaN(numeric)) return value ?? "0";
+  return numeric.toLocaleString(undefined, {
+    minimumFractionDigits: numeric % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function Avatar({ src, size = 32 }: { src: string | null; size?: number }) {
@@ -262,7 +281,7 @@ function ExamplePanel({
   );
 }
 
-// ─── QuizRunner ───────────────────────────────────────────────────────────────
+// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ QuizRunner ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
 interface QuizRunnerProps {
   questions: QuizQuestion[];
   mode: QuizMode;
@@ -359,12 +378,12 @@ function QuizRunner({ questions, mode, challengeData, challengeTarget, autoStart
       <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
         {mode === "challenge-friend" && challengeTarget && (
           <div className="mb-4 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-200">
-            You are challenging <strong>{challengeTarget.username}</strong>! Take this quiz and we&apos;ll send them your score.
+            You are challenging <strong>{challengeTarget.username}</strong>. If you win, you earn <strong>20 points</strong>. If you lose, you earn <strong>0 points</strong>. If it is a draw, you both earn <strong>10 points</strong>.
           </div>
         )}
         {mode === "accepted-challenge" && challengeData && (
           <div className="mb-4 rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-3 py-2 text-sm text-yellow-200">
-            <strong>{challengeData.senderUsername}</strong> challenged you! They scored <strong>{challengeData.senderScore}/10</strong>. Beat them to win 20 points!
+            <strong>{challengeData.senderUsername}</strong> challenged you! They scored <strong>{challengeData.senderScore}/10</strong>. Win to earn <strong>20 points</strong>, lose and get <strong>0 points</strong>, or draw and you both get <strong>10 points</strong>.
           </div>
         )}
         {mode === "solo" && (
@@ -375,11 +394,18 @@ function QuizRunner({ questions, mode, challengeData, challengeTarget, autoStart
             </div>
           </div>
         )}
-        <ul className="mb-5 space-y-2 text-sm text-white/65">
-          <li>The quiz has ten (10) multiple choice questions.</li>
-          <li>You will earn 10 points when you get all questions correct.</li>
-          <li>You will only begin to earn points when you have at least 40% and above.</li>
-        </ul>
+        {mode === "solo" ? (
+          <ul className="mb-5 space-y-2 text-sm text-white/65">
+            <li>The quiz has ten (10) multiple choice questions.</li>
+            <li>You will earn 10 points when you get all questions correct.</li>
+            <li>You will only begin to earn points when you have at least 40% and above.</li>
+          </ul>
+        ) : (
+          <ul className="mb-5 space-y-2 text-sm text-white/65">
+            <li>The winner earns 20 points, the loser earns 0 points.</li>
+            <li>If the result is a draw, both players earn 10 points each.</li>
+          </ul>
+        )}
         <button onClick={beginQuiz} className="btn-sage rounded-full px-8 py-2.5">Start now</button>
       </div>
     );
@@ -442,14 +468,14 @@ function QuizRunner({ questions, mode, challengeData, challengeTarget, autoStart
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-type Tab = "translate" | "quiz" | "challenge" | "my-challenges" | "leaderboard" | "wotd" | "random";
+// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Main Page ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+type Tab = "translate" | "quiz" | "challenge" | "my-challenges" | "leaderboard" | "wotd";
 
 export default function DictionaryPage() {
   const [tab, setTab] = useState<Tab>("translate");
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
-  // ── Translate state
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Translate state
   const [wordList, setWordList] = useState<DictEntry[]>([]);
   const [wordListPage, setWordListPage] = useState(0);
   const [wordListTotal, setWordListTotal] = useState(0);
@@ -467,7 +493,7 @@ export default function DictionaryPage() {
   const [generatedExamples, setGeneratedExamples] = useState<GeneratedExample[]>([]);
   const [loadingExamples, setLoadingExamples] = useState(false);
 
-  // ── Quiz state
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Quiz state
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
   const [quizActive, setQuizActive] = useState(false);
@@ -478,7 +504,7 @@ export default function DictionaryPage() {
   const [pointsSaved, setPointsSaved] = useState(false);
   const [savingPoints, setSavingPoints] = useState(false);
 
-  // ── Challenge state
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Challenge state
   const [challengeUsers, setChallengeUsers] = useState<ChallengeUser[]>([]);
   const [challengeSearch, setChallengeSearch] = useState("");
   const [loadingChallengeUsers, setLoadingChallengeUsers] = useState(false);
@@ -489,10 +515,12 @@ export default function DictionaryPage() {
   const [challengeQuizDone, setChallengeQuizDone] = useState(false);
   const [challengeSent, setChallengeSent] = useState(false);
   const [sendingChallenge, setSendingChallenge] = useState(false);
+  const [startingChallengeFor, setStartingChallengeFor] = useState<string | null>(null);
+  const [loadingChallengeQuiz, setLoadingChallengeQuiz] = useState(false);
   // When user finishes solo quiz and clicks "Challenge a Friend"
   const [pendingChallengeQs, setPendingChallengeQs] = useState<QuizQuestion[] | null>(null);
 
-  // ── My Challenges state
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ My Challenges state
   const [incomingChallenges, setIncomingChallenges] = useState<IncomingChallenge[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(false);
   const [challengeBadge, setChallengeBadge] = useState(0);
@@ -500,20 +528,22 @@ export default function DictionaryPage() {
   const [acceptedQuizActive, setAcceptedQuizActive] = useState(false);
   const [acceptedQuizDone, setAcceptedQuizDone] = useState(false);
   const [acceptedResult, setAcceptedResult] = useState<{ result: string; receiverPoints: number; receiverScore: number } | null>(null);
+  const [acceptingChallengeId, setAcceptingChallengeId] = useState<string | null>(null);
+  const [decliningChallengeId, setDecliningChallengeId] = useState<string | null>(null);
 
-  // ── Leaderboard state
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Leaderboard state
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loadingLeaders, setLoadingLeaders] = useState(false);
 
-  // ── Word of Day state
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Word of Day state
   const [wotd, setWotd] = useState<DictEntry | null>(null);
-  const [randomEntry, setRandomEntry] = useState<DictEntry | null>(null);
   const [currentEntry, setCurrentEntry] = useState<DictEntry | null>(null);
   const [entryHistory, setEntryHistory] = useState<DictEntry[]>([]);
   const [historyCursor, setHistoryCursor] = useState(-1);
   const [speaking, setSpeaking] = useState(false);
+  const [activeSpeakerKey, setActiveSpeakerKey] = useState<string | null>(null);
 
-  // ── On mount
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ On mount
   useEffect(() => {
     fetch(`/api/dictionary/word-of-the-day?from=${encodeURIComponent(sourceLang)}&to=${encodeURIComponent(targetLang)}`).then(r => r.json()).then(d => setWotd(d));
     fetch("/api/dictionary/challenges/count").then(r => r.json()).then(d => setChallengeBadge(d.count ?? 0));
@@ -527,7 +557,6 @@ export default function DictionaryPage() {
     setCurrentEntry(null);
     setEntryHistory([]);
     setHistoryCursor(-1);
-    setRandomEntry(null);
     setGeneratedExamples([]);
     setSearchSubmitted(false);
     fetch(`/api/dictionary/word-of-the-day?from=${encodeURIComponent(sourceLang)}&to=${encodeURIComponent(targetLang)}`).then(r => r.json()).then(d => setWotd(d));
@@ -542,7 +571,7 @@ export default function DictionaryPage() {
     };
   }, []);
 
-  // ── Load word list page
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Load word list page
   const loadWordListPage = async (page: number, from = sourceLang, to = targetLang) => {
     setLoadingWords(true);
     const res = await fetch(`/api/dictionary/words?page=${page}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
@@ -554,7 +583,7 @@ export default function DictionaryPage() {
     setLoadingWords(false);
   };
 
-  // ── Translate search
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Translate search
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim()) {
       setSuggestions([]);
@@ -583,6 +612,8 @@ export default function DictionaryPage() {
   };
 
   const selectWord = (entry: DictEntry) => {
+    setTab("translate");
+    setMoreMenuOpen(false);
     setSelected(entry);
     setSearch("");
     setShowSuggestions(false);
@@ -604,12 +635,6 @@ export default function DictionaryPage() {
     if (words.length === 0) return null;
     return words[Math.floor(Math.random() * words.length)] ?? null;
   }, [sourceLang, targetLang, wordListPages]);
-
-  const loadRandomWord = useCallback(async () => {
-    const word = await fetchRandomWord();
-    if (!word) return;
-    setRandomEntry(word);
-  }, [fetchRandomWord]);
 
   const loadNextHomeEntry = useCallback(async () => {
     const entry = await fetchRandomWord();
@@ -638,10 +663,12 @@ export default function DictionaryPage() {
       window.speechSynthesis.cancel();
       setSpeechPending(false);
       setSpeaking(false);
+      setActiveSpeakerKey(null);
       return;
     }
 
     window.speechSynthesis.cancel();
+    setActiveSpeakerKey(null);
     const utterance = new SpeechSynthesisUtterance(buildSpeechText(currentEntry, generatedExamples));
     utterance.onstart = () => {
       setSpeechPending(false);
@@ -659,6 +686,28 @@ export default function DictionaryPage() {
     setSpeaking(true);
     window.speechSynthesis.speak(utterance);
   }, [currentEntry, generatedExamples, speaking]);
+
+  const speakWithIndicator = useCallback((key: string, text: string) => {
+    if (!text || !("speechSynthesis" in window)) return;
+
+    window.speechSynthesis.cancel();
+    setSpeechPending(false);
+    setSpeaking(false);
+    setActiveSpeakerKey(key);
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onstart = () => {
+      setActiveSpeakerKey(key);
+    };
+    utterance.onend = () => {
+      setActiveSpeakerKey((current) => (current === key ? null : current));
+    };
+    utterance.onerror = () => {
+      setActiveSpeakerKey((current) => (current === key ? null : current));
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }, []);
 
   const shareDictionary = useCallback(async () => {
     const shareData = {
@@ -690,7 +739,7 @@ export default function DictionaryPage() {
     }
   }, [currentEntry, loadNextHomeEntry]);
 
-  // ── Quiz tab
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Quiz tab
   const loadAndStartQuiz = async (autoStart = false) => {
     setLoadingQuiz(true);
     const res = await fetch(`/api/dictionary/quiz?from=${encodeURIComponent(sourceLang)}&to=${encodeURIComponent(targetLang)}`);
@@ -733,7 +782,7 @@ export default function DictionaryPage() {
     setPointsSaved(false);
   };
 
-  // ── Challenge tab — load users
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Challenge tab ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â load users
   const loadChallengeUsers = useCallback(async (q: string) => {
     setLoadingChallengeUsers(true);
     const url = q ? `/api/dictionary/challenge-users?q=${encodeURIComponent(q)}` : "/api/dictionary/challenge-users";
@@ -756,6 +805,8 @@ export default function DictionaryPage() {
   };
 
   const startChallengeQuiz = async (user: ChallengeUser) => {
+    setStartingChallengeFor(user.id);
+    setLoadingChallengeQuiz(true);
     setChallengeTarget(user);
     setChallengeQuizDone(false);
     setChallengeSent(false);
@@ -769,6 +820,8 @@ export default function DictionaryPage() {
       setChallengeQs(data.questions ?? []);
     }
     setChallengeQuizActive(true);
+    setLoadingChallengeQuiz(false);
+    setStartingChallengeFor(null);
   };
 
   const handleChallengeQuizComplete = async (score: number, qs: QuizQuestion[]) => {
@@ -793,10 +846,12 @@ export default function DictionaryPage() {
     setChallengeQuizActive(false);
     setChallengeQuizDone(false);
     setChallengeSent(false);
+    setStartingChallengeFor(null);
+    setLoadingChallengeQuiz(false);
     setPendingChallengeQs(null);
   };
 
-  // ── My Challenges tab
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ My Challenges tab
   const loadChallenges = useCallback(async () => {
     setLoadingChallenges(true);
     const res = await fetch("/api/dictionary/challenges");
@@ -818,9 +873,7 @@ export default function DictionaryPage() {
         ? (selected?.word || currentEntry?.word)
         : tab === "wotd"
           ? wotd?.word
-          : tab === "random"
-            ? randomEntry?.word
-            : null;
+          : null;
     if (!activeTerm) {
       setGeneratedExamples([]);
       return;
@@ -830,19 +883,23 @@ export default function DictionaryPage() {
       .then((r) => r.json())
       .then((d) => setGeneratedExamples(d.examples ?? []))
       .finally(() => setLoadingExamples(false));
-  }, [selected?.word, currentEntry?.word, wotd?.word, randomEntry?.word, sourceLang, targetLang, tab]);
+  }, [selected?.word, currentEntry?.word, wotd?.word, sourceLang, targetLang, tab]);
 
   const declineChallenge = async (id: string) => {
+    setDecliningChallengeId(id);
     await fetch(`/api/dictionary/challenges/${id}/decline`, { method: "POST" });
     setIncomingChallenges(prev => prev.filter(c => c.id !== id));
     setChallengeBadge(b => Math.max(0, b - 1));
+    setDecliningChallengeId(null);
   };
 
   const acceptChallenge = (ch: IncomingChallenge) => {
+    setAcceptingChallengeId(ch.id);
     setAcceptedChallenge(ch);
     setAcceptedQuizDone(false);
     setAcceptedResult(null);
     setAcceptedQuizActive(true);
+    setAcceptingChallengeId(null);
   };
 
   const handleAcceptedQuizComplete = async (score: number) => {
@@ -868,7 +925,7 @@ export default function DictionaryPage() {
     setAcceptedResult(null);
   };
 
-  // ── Leaderboard tab
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Leaderboard tab
   useEffect(() => {
     if (tab === "leaderboard") {
       setLoadingLeaders(true);
@@ -879,7 +936,7 @@ export default function DictionaryPage() {
     }
   }, [tab]);
 
-  // ── Tab labels
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Tab labels
   return (
     <div>
       <div className="mb-4 overflow-visible rounded border border-white/10 bg-white/5">
@@ -1006,17 +1063,6 @@ export default function DictionaryPage() {
               <i className="fas fa-edit w-4 text-center" />
               Word of the Day
             </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await loadRandomWord();
-                switchTab("random");
-              }}
-              className="flex items-center gap-3 rounded px-3 py-2 text-left text-white/70 transition-colors hover:bg-white/5 hover:text-cyan-400"
-            >
-              <i className="fas fa-random w-4 text-center" />
-              Randomise Words
-            </button>
             <button type="button" onClick={() => switchTab("leaderboard")} className="flex items-center gap-3 rounded px-3 py-2 text-left text-white/70 transition-colors hover:bg-white/5 hover:text-cyan-400">
               <i className="fas fa-trophy w-4 text-center" />
               Leaderboard
@@ -1029,7 +1075,7 @@ export default function DictionaryPage() {
         )}
       </div>
 
-      {/* ── TRANSLATE TAB ── */}
+      {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ TRANSLATE TAB ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
       {tab === "translate" && (
         <div>
           {/* Selected word detail */}
@@ -1041,8 +1087,13 @@ export default function DictionaryPage() {
               <div className="p-4 rounded" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)" }}>
                 <div className="flex items-start justify-between mb-2">
                   <InlineTranslationPair source={selected.word} target={selected.bemba} />
-                  <button onClick={() => speak(selected.bemba)} className="text-white/50 hover:text-cyan-400 transition-colors" title="Pronounce">
-                    <i className="fas fa-volume-up" />
+                  <button
+                    onClick={() => speakWithIndicator("selected", buildSpeechText(selected, generatedExamples))}
+                    className="text-white/50 hover:text-cyan-400 transition-colors"
+                    title="Pronounce"
+                    aria-label="Pronounce selection"
+                  >
+                    <i className={`fas ${activeSpeakerKey === "selected" ? "fa-spinner fa-spin" : "fa-volume-up"}`} />
                   </button>
                 </div>
                 <ExamplePanel
@@ -1123,7 +1174,7 @@ export default function DictionaryPage() {
         </div>
       )}
 
-      {/* ── QUIZ TAB ── */}
+      {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ QUIZ TAB ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
       {tab === "quiz" && (
         <div>
           {!quizActive && !quizDone && (
@@ -1155,7 +1206,7 @@ export default function DictionaryPage() {
             <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] px-5 py-6 text-center shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
               <h2 className="mb-2 text-xl font-bold text-white">The Quiz is over!</h2>
               <p className="mb-1 text-sm text-white/60">
-                {finalScore < 4 ? "Sorry 😐," : finalScore <= 7 ? "Nice 😎," : "Congrats! 🎉,"}{" "}You got
+                {finalScore < 4 ? "Sorry ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â," : finalScore <= 7 ? "Nice ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¹Ã…â€œÃƒâ€¦Ã‚Â½," : "Congrats! ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°,"}{" "}You got
               </p>
               <div className="my-3 text-5xl font-bold text-cyan-400">{finalScore}<span className="text-xl text-white/40">/10</span></div>
               <div className="mb-2 text-lg text-white/70">{finalScore * 10}%</div>
@@ -1164,7 +1215,7 @@ export default function DictionaryPage() {
                   {savingPoints
                     ? <><i className="fas fa-spinner fa-spin mr-1" />Saving points...</>
                     : pointsSaved
-                    ? <>You earned <strong>{getEarnedPoints(finalScore)}</strong> point{getEarnedPoints(finalScore) !== 1 ? "s" : ""}! ✓</>
+                    ? <>You earned <strong>{getEarnedPoints(finalScore)}</strong> point{getEarnedPoints(finalScore) !== 1 ? "s" : ""}! ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ</>
                     : <>You earned <strong>{getEarnedPoints(finalScore)}</strong> point{getEarnedPoints(finalScore) !== 1 ? "s" : ""}!</>
                   }
                 </div>
@@ -1190,13 +1241,22 @@ export default function DictionaryPage() {
         </div>
       )}
 
-      {/* ── CHALLENGE TAB ── */}
+      {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ CHALLENGE TAB ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
       {tab === "challenge" && (
         <div>
+          {challengeTarget && loadingChallengeQuiz && (
+            <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] px-5 py-8 text-center shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
+              <div className="mb-3 text-sm text-white/60">Preparing challenge for <strong className="text-cyan-300">{challengeTarget.username}</strong></div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-200">
+                <i className="fas fa-spinner fa-spin" />
+                Loading quiz instructions...
+              </div>
+            </div>
+          )}
           {/* In quiz flow */}
           {challengeTarget && challengeQuizActive && challengeQs.length > 0 && (
             <div>
-              <div className="mb-3 p-2 rounded text-xs text-cyan-300" style={{ background: "rgba(0,200,200,0.08)", border: "1px solid rgba(0,200,200,0.2)" }}>
+              <div className="mb-4 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-200">
                 Challenging <strong>{challengeTarget.username}</strong>
               </div>
               <QuizRunner
@@ -1210,15 +1270,16 @@ export default function DictionaryPage() {
 
           {/* Challenge sent result */}
           {challengeTarget && challengeQuizDone && (
-            <div className="text-center py-8" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", padding: "24px", borderRadius: "4px" }}>
+            <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] px-5 py-8 text-center shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
               {sendingChallenge ? (
                 <><i className="fas fa-spinner fa-spin mr-2 text-cyan-400" /><span className="text-white/60">Sending challenge...</span></>
               ) : challengeSent ? (
                 <>
-                  <div className="text-4xl mb-3">🎯</div>
-                  <h3 className="text-lg font-bold text-white mb-1">Challenge Sent!</h3>
-                  <p className="text-white/60 text-sm mb-4">Challenge sent to <strong className="text-cyan-400">{challengeTarget.username}</strong>!</p>
-                  <button onClick={resetChallenge} className="btn-sage px-6">Challenge Another</button>
+                  <div className="text-4xl mb-3">ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â¯</div>
+                  <h3 className="text-lg font-bold text-white mb-1">Your part is done!</h3>
+                  <p className="text-white/60 text-sm mb-2">You scored <strong className="text-cyan-300">{finalScore}/10</strong>.</p>
+                  <p className="text-white/60 text-sm mb-4">This quiz is now sent to <strong className="text-cyan-400">{challengeTarget.username}</strong>. The winner will be notified soon!</p>
+                  <button onClick={resetChallenge} className="btn-sage rounded-full px-6 py-2.5">Challenge Another</button>
                 </>
               ) : (
                 <p className="text-red-400 text-sm">Failed to send challenge. <button onClick={resetChallenge} className="underline text-cyan-400">Try again</button></p>
@@ -1230,35 +1291,42 @@ export default function DictionaryPage() {
           {!challengeTarget && (
             <div>
               {pendingChallengeQs && (
-                <div className="mb-3 p-2 rounded text-sm text-cyan-300" style={{ background: "rgba(0,200,200,0.08)", border: "1px solid rgba(0,200,200,0.2)" }}>
+                <div className="mb-4 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-200">
                   <i className="fas fa-info-circle mr-1" />Pick a user to challenge with your last quiz score.
                   <button onClick={() => setPendingChallengeQs(null)} className="ml-2 text-white/40 hover:text-white text-xs">(clear)</button>
                 </div>
               )}
-              <div className="relative mb-4">
-                <input
-                  type="text"
-                  value={challengeSearch}
-                  onChange={(e) => handleChallengeSearchChange(e.target.value)}
-                  placeholder="Search users to challenge..."
-                  className="sage-input w-full py-2 rounded-full text-sm px-4"
-                />
-                {loadingChallengeUsers && <i className="fas fa-spinner fa-spin absolute right-4 top-1/2 -translate-y-1/2 text-white/40 text-xs" />}
+              <div className="mb-4 rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+                <div className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-white/35">Challenge a friend</div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={challengeSearch}
+                    onChange={(e) => handleChallengeSearchChange(e.target.value)}
+                    placeholder="Search users to challenge..."
+                    className="sage-input w-full rounded-full py-2 text-sm"
+                  />
+                  {loadingChallengeUsers && <i className="fas fa-spinner fa-spin absolute right-4 top-1/2 -translate-y-1/2 text-white/40 text-xs" />}
+                </div>
               </div>
               {challengeUsers.length === 0 && !loadingChallengeUsers && (
                 <p className="text-white/40 text-sm text-center py-4">No users found</p>
               )}
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {challengeUsers.map((u) => (
-                  <li key={u.id} className="flex items-center gap-3 p-3 rounded" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                    <Avatar src={u.picture} size={36} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-white truncate">{u.username}</div>
-                      <div className="text-xs text-white/40 capitalize">{u.level ?? "amateur"} · {u.points ?? "0"} pts</div>
-                    </div>
+                  <li key={u.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 shadow-[0_12px_30px_rgba(0,0,0,0.16)]">
+                    <Link href={`/profile/${u.id}`} className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90">
+                      <Avatar src={u.picture} size={36} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-white hover:text-cyan-300">{u.username}</div>
+                        <div className="text-xs text-white/40 capitalize">{u.level ?? "amateur"} {" \u00b7 "} {u.points ?? "0"} pts</div>
+                      </div>
+                    </Link>
                     <div className="flex items-center gap-2">
                       {u.isOnline && <span className="w-2 h-2 rounded-full bg-green-400 inline-block" title="Online" />}
-                      <button onClick={() => startChallengeQuiz(u)} className="btn-sage text-xs px-3 py-1">Challenge</button>
+                      <button onClick={() => startChallengeQuiz(u)} disabled={startingChallengeFor === u.id} className="btn-sage rounded-full px-3 py-1 text-xs">
+                        {startingChallengeFor === u.id ? <><i className="fas fa-spinner fa-spin mr-1" />Starting</> : "Challenge"}
+                      </button>
                     </div>
                   </li>
                 ))}
@@ -1268,13 +1336,13 @@ export default function DictionaryPage() {
         </div>
       )}
 
-      {/* ── MY CHALLENGES TAB ── */}
+      {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ MY CHALLENGES TAB ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
       {tab === "my-challenges" && (
         <div>
           {/* Accepted challenge quiz */}
           {acceptedChallenge && acceptedQuizActive && (
             <div>
-              <div className="mb-3 p-2 rounded text-sm text-yellow-300" style={{ background: "rgba(255,200,0,0.08)", border: "1px solid rgba(255,200,0,0.2)" }}>
+              <div className="mb-4 rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-3 py-2 text-sm text-yellow-200">
                 <strong>{acceptedChallenge.senderUsername}</strong> challenged you! They scored <strong>{acceptedChallenge.senderScore}/10</strong>.
               </div>
               <QuizRunner
@@ -1292,10 +1360,10 @@ export default function DictionaryPage() {
 
           {/* Result screen */}
           {acceptedQuizDone && acceptedResult && (
-            <div className="text-center py-8" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", padding: "24px", borderRadius: "4px" }}>
+            <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] px-5 py-8 text-center shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
               {acceptedResult.result === "win" && (
                 <>
-                  <div className="text-5xl mb-3">🎉</div>
+                  <div className="text-5xl mb-3">ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â½ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°</div>
                   <h3 className="text-2xl font-bold text-green-400 mb-1">You Win!</h3>
                   <p className="text-white/60 text-sm mb-1">You scored <strong className="text-white">{acceptedResult.receiverScore}/10</strong> vs their <strong className="text-white">{acceptedChallenge?.senderScore}/10</strong></p>
                   <p className="text-green-400 text-sm">+{acceptedResult.receiverPoints} points added to your profile!</p>
@@ -1303,7 +1371,7 @@ export default function DictionaryPage() {
               )}
               {acceptedResult.result === "draw" && (
                 <>
-                  <div className="text-5xl mb-3">😎</div>
+                  <div className="text-5xl mb-3">ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¹Ã…â€œÃƒâ€¦Ã‚Â½</div>
                   <h3 className="text-2xl font-bold text-cyan-400 mb-1">It&apos;s a Draw!</h3>
                   <p className="text-white/60 text-sm mb-1">Both scored <strong className="text-white">{acceptedResult.receiverScore}/10</strong></p>
                   <p className="text-cyan-400 text-sm">+{acceptedResult.receiverPoints} points each!</p>
@@ -1311,13 +1379,13 @@ export default function DictionaryPage() {
               )}
               {acceptedResult.result === "lose" && (
                 <>
-                  <div className="text-5xl mb-3">😐</div>
+                  <div className="text-5xl mb-3">ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¹Ã…â€œÃƒâ€šÃ‚Â</div>
                   <h3 className="text-2xl font-bold text-white/70 mb-1">You Lose</h3>
                   <p className="text-white/60 text-sm mb-1">You scored <strong className="text-white">{acceptedResult.receiverScore}/10</strong> vs their <strong className="text-white">{acceptedChallenge?.senderScore}/10</strong></p>
                   <p className="text-white/40 text-sm">No points this time. Keep practicing!</p>
                 </>
               )}
-              <button onClick={resetAccepted} className="btn-sage px-6 mt-4">Back to Challenges</button>
+              <button onClick={resetAccepted} className="btn-sage mt-4 rounded-full px-6 py-2.5">Back to Challenges</button>
             </div>
           )}
 
@@ -1334,22 +1402,39 @@ export default function DictionaryPage() {
               ) : (
                 <ul className="space-y-3">
                   {incomingChallenges.map((ch) => (
-                    <li key={ch.id} className="p-3 rounded" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <Avatar src={ch.senderPicture} size={36} />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-white">{ch.senderUsername ?? "Unknown"}</div>
-                          <div className="text-xs text-white/40">Scored <span className="text-yellow-400 font-bold">{ch.senderScore}/10</span> · {ch.status === "pending" ? <span className="text-cyan-400">Pending</span> : ch.status}</div>
-                        </div>
+                    <li key={ch.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 shadow-[0_12px_30px_rgba(0,0,0,0.16)]">
+                      <div className="mb-3 flex items-center gap-3">
+                        <Link href={`/profile/${ch.senderId}`} className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90">
+                          <Avatar src={ch.senderPicture} size={36} />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium text-white hover:text-cyan-300">{ch.senderUsername ?? "Unknown"}</div>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-white/40">
+                            <span>Scored <span className="font-bold text-yellow-400">{ch.senderScore}/10</span></span>
+                            <span>&middot;</span>
+                            <span className={`rounded-full px-2 py-0.5 ${ch.status === "pending" ? "bg-cyan-400/10 text-cyan-300" : "bg-white/8 text-white/55"}`}>
+                              {ch.status === "pending" ? "Pending" : ch.status}
+                            </span>
+                            {formatRelativeTime(ch.createdAt) && (
+                              <>
+                                <span>&middot;</span>
+                                <span>{formatRelativeTime(ch.createdAt)}</span>
+                              </>
+                            )}
+                          </div>
+                          </div>
+                        </Link>
                       </div>
                       {ch.status === "pending" && (
                         <div className="flex gap-2">
-                          <button onClick={() => acceptChallenge(ch)} className="btn-sage text-xs px-4 py-1.5 flex-1">Accept</button>
+                          <button onClick={() => acceptChallenge(ch)} disabled={acceptingChallengeId === ch.id} className="btn-sage flex-1 rounded-full px-4 py-1.5 text-xs">
+                            {acceptingChallengeId === ch.id ? <><i className="fas fa-spinner fa-spin mr-1" />Opening</> : "Accept"}
+                          </button>
                           <button
                             onClick={() => declineChallenge(ch.id)}
+                            disabled={decliningChallengeId === ch.id}
                             className="text-xs px-4 py-1.5 flex-1 rounded border border-white/20 text-white/60 hover:border-red-400 hover:text-red-400 transition-colors"
                           >
-                            Decline
+                            {decliningChallengeId === ch.id ? <><i className="fas fa-spinner fa-spin mr-1" />Declining</> : "Decline"}
                           </button>
                         </div>
                       )}
@@ -1362,60 +1447,102 @@ export default function DictionaryPage() {
         </div>
       )}
 
-      {/* ── LEADERBOARD TAB ── */}
+      {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ LEADERBOARD TAB ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
       {tab === "leaderboard" && (
-        <div>
-          <h2 className="text-sm font-semibold text-white/80 mb-3 flex items-center gap-2">
-            <i className="fas fa-trophy text-yellow-400" />Top 10 Leaderboard
-          </h2>
+        <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-white/85">
+                <i className="fas fa-trophy text-yellow-400" />
+                Top 10 Leaderboard
+              </div>
+              <div className="mt-1 text-xs text-white/45">Top players ranked by total points</div>
+            </div>
+            <div className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-yellow-200">
+              Live ranking
+            </div>
+          </div>
+
           {loadingLeaders ? (
-            <div className="text-center py-8 text-white/40"><i className="fas fa-spinner fa-spin mr-2" />Loading...</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] py-10 text-center text-white/40">
+              <i className="fas fa-spinner fa-spin mr-2 text-cyan-400" />
+              Loading leaderboard...
+            </div>
+          ) : leaders.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] py-10 text-center text-white/40">
+              <i className="fas fa-trophy mb-3 block text-2xl text-white/20" />
+              No leaderboard data yet
+            </div>
           ) : (
-            <ol className="space-y-2">
-              {leaders.map((u, i) => (
-                <li
-                  key={u.id}
-                  className="flex items-center gap-3 p-3 rounded"
-                  style={{
-                    background: i === 0 ? "rgba(255,215,0,0.08)" : i === 1 ? "rgba(192,192,192,0.06)" : i === 2 ? "rgba(205,127,50,0.06)" : "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <div className="w-7 text-center font-bold text-sm" style={{ color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "rgba(255,255,255,0.4)" }}>
-                    {i + 1}
-                  </div>
-                  <Avatar src={u.picture} size={32} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">{u.username}</div>
-                    <div className="text-xs text-white/40 capitalize">{u.level ?? "amateur"}</div>
-                  </div>
-                  <div className="text-sm font-bold text-cyan-400">{u.points ?? "0"} <span className="text-xs text-white/40 font-normal">pts</span></div>
-                </li>
-              ))}
+            <ol className="space-y-3">
+              {leaders.map((u, i) => {
+                const topThree = i < 3;
+                const rankTone =
+                  i === 0
+                    ? "border-yellow-400/25 bg-yellow-400/10"
+                    : i === 1
+                      ? "border-slate-300/20 bg-slate-200/5"
+                      : i === 2
+                        ? "border-amber-500/20 bg-amber-500/8"
+                        : "border-white/10 bg-white/[0.04]";
+                const rankText =
+                  i === 0
+                    ? "text-yellow-300"
+                    : i === 1
+                      ? "text-slate-200"
+                      : i === 2
+                        ? "text-amber-300"
+                        : "text-white/45";
+
+                return (
+                  <li
+                    key={u.id}
+                    className={`flex items-center gap-3 rounded-2xl border p-3.5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] ${rankTone}`}
+                  >
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${rankText} ${topThree ? "border-current/35 bg-black/20" : "border-white/10 bg-black/10"}`}>
+                      {i + 1}
+                    </div>
+                    <Link href={`/profile/${u.id}`} className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90">
+                      <Avatar src={u.picture} size={40} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-white hover:text-cyan-300">{u.username}</div>
+                        <div className="mt-0.5 text-xs capitalize text-white/45">{u.level ?? "amateur"}</div>
+                      </div>
+                    </Link>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-cyan-300">{formatPoints(u.points)}</div>
+                      <div className="text-[11px] uppercase tracking-[0.14em] text-white/35">PTS</div>
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           )}
         </div>
       )}
 
-      {/* ── WORD OF DAY TAB ── */}
+      {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ WORD OF DAY TAB ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
       {tab === "wotd" && (
         <div>
           {wotd ? (
-            <div className="p-4 rounded" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <p className="text-xs text-white/40 mb-2 italic">
-                Word of the day • {getDictionaryLanguageLabel(sourceLang)} to {getDictionaryLanguageLabel(targetLang)}
-              </p>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-2xl font-bold text-white capitalize">{wotd.word}</span>
-                <button onClick={() => speak(wotd.bemba)} className="text-white/50 hover:text-cyan-400 transition-colors">
-                  <i className="fas fa-volume-up" />
+            <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.22)] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]">              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-[0.18em] text-white/35">Word of the day</div>
+                  <div className="mt-1 text-xs text-white/45">
+                    {getDictionaryLanguageLabel(sourceLang)} to {getDictionaryLanguageLabel(targetLang)}
+                  </div>
+                </div>
+                <button
+                  onClick={() => speakWithIndicator("wotd", buildSpeechText(wotd, generatedExamples))}
+                  className="text-white/50 hover:text-cyan-400 transition-colors"
+                  aria-label="Pronounce word of the day"
+                >
+                  <i className={`fas ${activeSpeakerKey === "wotd" ? "fa-spinner fa-spin" : "fa-volume-up"}`} />
                 </button>
               </div>
-              <div
-                className="text-sm leading-relaxed"
-                style={{ color: "rgba(255,255,255,0.85)", lineHeight: "26px", fontSize: "16px" }}
-                dangerouslySetInnerHTML={{ __html: renderHtml(wotd.html) }}
-              />
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4">
+                <InlineTranslationPair source={wotd.word} target={wotd.bemba} />
+              </div>
               <ExamplePanel
                 sourceLabel={getDictionaryLanguageLabel(sourceLang)}
                 targetLabel={getDictionaryLanguageLabel(targetLang)}
@@ -1432,44 +1559,7 @@ export default function DictionaryPage() {
         </div>
       )}
 
-      {tab === "random" && (
-        <div>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-sm text-white/60">
-              Keep clicking below to randomise words. They will keep appearing here.
-            </p>
-            <button onClick={loadRandomWord} className="btn-sage px-5 py-2 text-xs">
-              Randomise
-            </button>
-          </div>
-          {randomEntry ? (
-            <div className="p-4 rounded" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <div className="flex items-start justify-between mb-2">
-                <span className="text-xl font-bold text-white capitalize">{randomEntry.word}</span>
-                <button onClick={() => speak(randomEntry.bemba)} className="text-white/50 hover:text-cyan-400 transition-colors" title="Pronounce">
-                  <i className="fas fa-volume-up" />
-                </button>
-              </div>
-              <div
-                className="text-sm leading-relaxed"
-                style={{ color: "rgba(255,255,255,0.85)", lineHeight: "26px", fontSize: "16px" }}
-                dangerouslySetInnerHTML={{ __html: renderHtml(randomEntry.html) }}
-              />
-              <ExamplePanel
-                sourceLabel={getDictionaryLanguageLabel(sourceLang)}
-                targetLabel={getDictionaryLanguageLabel(targetLang)}
-                targetTerm={randomEntry.bemba}
-                examples={generatedExamples}
-                loading={loadingExamples}
-              />
-            </div>
-          ) : (
-            <div className="text-center py-8 text-white/40">
-              <i className="fas fa-spinner fa-spin mr-2" />Loading...
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
+

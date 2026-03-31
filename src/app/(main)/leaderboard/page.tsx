@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
@@ -16,7 +16,7 @@ export default async function LeaderboardPage() {
         points: users.points,
         awards: users.awards,
         level: users.level,
-        isOnline: users.isOnline,
+        isOnline: sql<boolean>`(${users.lastSeen} IS NOT NULL AND ${users.lastSeen} >= NOW() - INTERVAL '1 minute')`,
       })
       .from(users)
       .orderBy(desc(users.points))

@@ -4,8 +4,9 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users, follows, posts, notifications } from "@/lib/db/schema";
-import { eq, sql, and, ne, ilike, desc } from "drizzle-orm";
+import { eq, sql, and, ne, ilike, desc, inArray } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
+import { getMonetiseMinPosts } from "@/lib/websiteSettings";
 
 const updateProfileSchema = z.object({
   username: z.string().min(3).max(50).optional(),
@@ -14,14 +15,32 @@ const updateProfileSchema = z.object({
 });
 
 const updateMonetiseSchema = z.object({
-  adsUrl: z.string().url(),
-  adsFreq: z.enum(["high", "medium", "low"]),
+  provider: z.enum(["monetag", "adsterra"]),
+  adsUrl: z.string().url().optional().or(z.literal("")),
+  adsFreq: z.enum(["high", "medium", "low"]).optional(),
+  adsterraBannerCode: z.string().optional().or(z.literal("")),
+  adsterraApiToken: z.string().optional().or(z.literal("")),
+  adsterraDomainId: z.string().optional().or(z.literal("")),
+  adsterraPlacementId: z.string().optional().or(z.literal("")),
 });
 
 const updatePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(4).max(100),
 });
+
+const ONLINE_WINDOW_SQL = sql<boolean>`(${users.lastSeen} IS NOT NULL AND ${users.lastSeen} >= NOW() - INTERVAL '1 minute')`;
+
+function isMonetiseConfigReady(input: {
+  provider: "monetag" | "adsterra";
+  adsUrl?: string;
+  adsterraBannerCode?: string;
+}) {
+  if (input.provider === "adsterra") {
+    return !!input.adsterraBannerCode?.trim();
+  }
+  return !!input.adsUrl?.trim();
+}
 
 export const usersRouter = new Hono()
 
@@ -39,9 +58,15 @@ export const usersRouter = new Hono()
         points: users.points,
         awards: users.awards,
         level: users.level,
-        isOnline: users.isOnline,
+        isOnline: ONLINE_WINDOW_SQL,
         lastSeen: users.lastSeen,
         isMonetised: users.isMonetised,
+        monetiseProvider: users.monetiseProvider,
+        adsUrl: users.adsUrl,
+        adsFreq: users.adsFreq,
+        adsterraBannerCode: users.adsterraBannerCode,
+        adsterraDomainId: users.adsterraDomainId,
+        adsterraPlacementId: users.adsterraPlacementId,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -154,7 +179,15 @@ export const usersRouter = new Hono()
     const id = c.req.param("id");
     if (session.userId !== id) return c.json({ error: "Forbidden" }, 403);
 
-    const { adsUrl, adsFreq } = c.req.valid("json");
+    const {
+      provider,
+      adsUrl = "",
+      adsFreq = "low",
+      adsterraBannerCode = "",
+      adsterraApiToken = "",
+      adsterraDomainId = "",
+      adsterraPlacementId = "",
+    } = c.req.valid("json");
 
     const [postCount] = await db
       .select({ count: sql<number>`COUNT(*)` })
@@ -162,23 +195,45 @@ export const usersRouter = new Hono()
       .where(eq(posts.userId, id));
 
     const count = Number(postCount?.count ?? 0);
-    if (count < 5) {
-      return c.json({ error: "You must create at least 5 posts to start monetising." }, 400);
+    const minimumPosts = await getMonetiseMinPosts();
+    if (count < minimumPosts) {
+      return c.json({ error: `You must create at least ${minimumPosts} posts to start monetising.` }, 400);
+    }
+
+    if (provider === "monetag" && !adsUrl.trim()) {
+      return c.json({ error: "Enter a valid Monetag direct link." }, 400);
+    }
+
+    if (provider === "adsterra" && !adsterraBannerCode.trim()) {
+      return c.json({ error: "Paste your Adsterra banner code or script." }, 400);
     }
 
     const [updated] = await db
       .update(users)
       .set({
-        adsUrl,
+        monetiseProvider: provider,
+        adsUrl: adsUrl.trim() || null,
         adsFreq,
-        isMonetised: true,
+        adsterraBannerCode: adsterraBannerCode.trim() || null,
+        adsterraApiToken: adsterraApiToken.trim() || null,
+        adsterraDomainId: adsterraDomainId.trim() || null,
+        adsterraPlacementId: adsterraPlacementId.trim() || null,
+        isMonetised: isMonetiseConfigReady({
+          provider,
+          adsUrl: adsUrl.trim(),
+          adsterraBannerCode: adsterraBannerCode.trim(),
+        }),
         updatedAt: new Date(),
       })
       .where(eq(users.id, id))
       .returning({
         isMonetised: users.isMonetised,
+        monetiseProvider: users.monetiseProvider,
         adsUrl: users.adsUrl,
         adsFreq: users.adsFreq,
+        adsterraBannerCode: users.adsterraBannerCode,
+        adsterraDomainId: users.adsterraDomainId,
+        adsterraPlacementId: users.adsterraPlacementId,
       });
 
     return c.json({ success: true, monetise: updated });
@@ -233,7 +288,7 @@ export const usersRouter = new Hono()
         username: users.username,
         picture: users.picture,
         level: users.level,
-        isOnline: users.isOnline,
+        isOnline: ONLINE_WINDOW_SQL,
       })
       .from(follows)
       .leftJoin(users, eq(follows.followerId, users.id))
@@ -255,7 +310,7 @@ export const usersRouter = new Hono()
         username: users.username,
         picture: users.picture,
         level: users.level,
-        isOnline: users.isOnline,
+        isOnline: ONLINE_WINDOW_SQL,
       })
       .from(follows)
       .leftJoin(users, eq(follows.followingId, users.id))
@@ -278,20 +333,49 @@ export const usersRouter = new Hono()
         username: users.username,
         picture: users.picture,
         level: users.level,
-        isOnline: users.isOnline,
+        isOnline: ONLINE_WINDOW_SQL,
         points: users.points,
       })
       .from(users)
       .where(
         q
           ? and(ilike(users.username, `%${q}%`), session?.userId ? ne(users.id, session.userId) : undefined)
+          : session?.userId
+            ? ne(users.id, session.userId)
           : undefined
       )
       .orderBy(desc(users.points))
       .limit(20)
       .offset(offset);
 
-    return c.json({ users: result });
+    if (!session?.userId || result.length === 0) {
+      return c.json({
+        users: result.map((user) => ({
+          ...user,
+          isFollowing: false,
+        })),
+      });
+    }
+
+    const userIds = result.map((user) => user.id);
+    const followingRows = await db
+      .select({ followingId: follows.followingId })
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, session.userId),
+          inArray(follows.followingId, userIds),
+        ),
+      );
+
+    const followingSet = new Set(followingRows.map((row) => row.followingId));
+
+    return c.json({
+      users: result.map((user) => ({
+        ...user,
+        isFollowing: followingSet.has(user.id),
+      })),
+    });
   })
 
   // ─── Update online status ────────────────────────────────────

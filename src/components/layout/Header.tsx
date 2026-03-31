@@ -132,44 +132,46 @@ export default function Header({ user }: HeaderProps) {
 
   return (
     <nav
-      className="fixed left-0 right-0 z-50 px-[10px] py-[10px] sm:px-[10px]"
+      className="fixed left-0 right-0 z-50 px-[8px] py-[8px] sm:px-[10px]"
       style={{
-        background: "linear-gradient(to bottom, rgba(0,0,0,0.95), rgb(22,40,50), rgba(0,0,0,0.92))",
+        background: "linear-gradient(to bottom, rgba(0,0,0,0.96), rgba(12,28,38,0.97), rgba(22,40,50,0.95))",
         top: "-14px",
         transition: "top 1.5s ease",
+        backdropFilter: "blur(10px)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}
     >
       <div
-        className="flex items-start justify-between gap-3 overflow-hidden transition-all duration-[1500ms] ease-in-out"
+        className="mx-auto flex max-w-[1280px] items-start justify-between gap-3 overflow-hidden transition-all duration-[1500ms] ease-in-out"
         style={{
-          marginBottom: scrolled ? "0px" : "15px",
-          maxHeight: scrolled ? "0px" : "60px",
+          marginBottom: scrolled ? "0px" : "12px",
+          maxHeight: scrolled ? "0px" : "62px",
           opacity: scrolled ? 0 : 1,
           transform: scrolled ? "translateY(-18px)" : "translateY(0)",
         }}
       >
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <Image src="/files/sagetech_icon.jpg" alt="SageTech" width={35} height={35} className="rounded-sm object-cover" />
-          <span className="truncate text-[28px] font-bold text-white max-sm:text-[25px]" style={{ fontFamily: "serif", wordSpacing: "2.8px" }}>
+          <span className="truncate text-[28px] font-bold text-white max-sm:text-[25px]" style={{ fontFamily: "serif", wordSpacing: "2.2px" }}>
             Sage<span className="text-cyan-400">Tech</span>
           </span>
         </Link>
 
         <div className="ml-auto flex flex-shrink-0 items-start gap-2 sm:gap-3">
           {user ? (
-            <Link href={profileHref}>
-              <Image
-                src={user.picture || "/files/default-avatar.svg"}
-                alt={user.username}
-                width={32}
-                height={32}
-                className="mt-[5px] rounded-full border border-white/30 object-cover"
-              />
-            </Link>
+              <Link href={profileHref} className="rounded-full border border-white/10 bg-white/[0.03] p-1 transition-colors hover:border-cyan-400/40">
+                <Image
+                  src={user.picture || "/files/default-avatar.svg"}
+                  alt={user.username}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              </Link>
           ) : (
             <Link
               href="/login"
-              className="mt-[9px] rounded-[20px] border border-white px-[60px] py-[4px] text-sm text-white transition-colors hover:border-cyan-400 hover:text-cyan-400 max-sm:mt-[5px] max-sm:px-[30px]"
+              className="mt-[6px] rounded-[20px] border border-white/30 bg-white/[0.03] px-[60px] py-[4px] text-sm text-white transition-colors hover:border-cyan-400 hover:text-cyan-400 max-sm:px-[30px]"
             >
               Login
             </Link>
@@ -178,11 +180,11 @@ export default function Header({ user }: HeaderProps) {
       </div>
 
       <div
-        className="h-px bg-white/20 transition-all duration-[1500ms] ease-in-out"
-        style={{ marginBottom: scrolled ? "8px" : "2px" }}
+        className="mx-auto h-px max-w-[1280px] bg-white/15 transition-all duration-[1500ms] ease-in-out"
+        style={{ marginBottom: scrolled ? "7px" : "4px" }}
       />
 
-      <ul className="grid list-none items-center gap-[2px]" style={{ gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>
+      <ul className="mx-auto grid max-w-[1280px] list-none items-center gap-[3px]" style={{ gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           const badge =
@@ -194,9 +196,10 @@ export default function Header({ user }: HeaderProps) {
               <Link
                 href={link.href}
                 className={cn(
-                  "flex min-w-0 items-center justify-center gap-[10px] px-3 py-[5px] text-[13.5px] capitalize text-white transition-all",
+                  "flex min-w-0 items-center justify-center gap-[10px] rounded-full px-3 py-[6px] text-[13.5px] capitalize text-white transition-all",
                   isActive ? "active-link text-cyan-400" : "min-[650px]:hover:active-link"
                 )}
+                style={{ background: isActive ? "rgba(0,255,255,0.08)" : "transparent" }}
               >
                 <span className="relative">
                   <i className={`${link.icon} text-[17px] max-[500px]:text-[15px]`} />
@@ -217,9 +220,10 @@ export default function Header({ user }: HeaderProps) {
           <button
             onClick={() => setShowSearch((v) => !v)}
             className={cn(
-              "flex w-full min-w-0 items-center justify-center gap-[10px] px-5 py-[5px] text-[13.5px] capitalize text-white transition-all",
+              "flex w-full min-w-0 items-center justify-center gap-[10px] rounded-full px-5 py-[6px] text-[13.5px] capitalize text-white transition-all",
               showSearch ? "active-link text-cyan-400" : "min-[650px]:hover:active-link"
             )}
+            style={{ background: showSearch ? "rgba(0,255,255,0.08)" : "transparent" }}
           >
             <i className="fas fa-search text-[17px] max-[500px]:text-[15px]" />
             <span className="hidden text-[13.5px] min-[995px]:inline">search</span>
@@ -229,9 +233,10 @@ export default function Header({ user }: HeaderProps) {
           <button
             onClick={() => setShowMenu((v) => !v)}
             className={cn(
-              "hidden w-full min-w-0 items-center justify-center gap-[10px] px-3 py-[5px] text-[13.5px] capitalize text-white transition-all max-[995px]:flex",
+              "hidden w-full min-w-0 items-center justify-center gap-[10px] rounded-full px-3 py-[6px] text-[13.5px] capitalize text-white transition-all max-[995px]:flex",
               showMenu ? "active-link text-cyan-400" : "min-[650px]:hover:active-link"
             )}
+            style={{ background: showMenu ? "rgba(0,255,255,0.08)" : "transparent" }}
           >
             <span className="relative">
               <i className="fas fa-align-justify text-[17px] max-[500px]:text-[15px]" />
@@ -242,20 +247,20 @@ export default function Header({ user }: HeaderProps) {
       </ul>
 
       {showSearch && (
-        <form onSubmit={handleSearch} className="mt-5 flex gap-0">
+        <form onSubmit={handleSearch} className="mx-auto mt-4 flex max-w-[1280px] gap-0">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="type here..."
-            className="sage-input flex-1 rounded-none py-1 text-sm"
+            className="sage-input flex-1 rounded-none py-2 text-sm"
             autoFocus
-            style={{ width: "80%", borderRadius: 0 }}
+            style={{ width: "80%", borderRadius: "18px 0 0 18px" }}
           />
           <button
             type="submit"
             className="border border-white/30 bg-black/20 px-4 text-sm text-white transition-colors hover:text-cyan-400"
-            style={{ width: "20%", borderRadius: "0 20px 20px 0" }}
+            style={{ width: "20%", borderRadius: "0 18px 18px 0" }}
           >
             Search
           </button>
@@ -265,18 +270,17 @@ export default function Header({ user }: HeaderProps) {
       {showMenu && (
         <div
           ref={menuRef}
-          className="mt-2 pb-2 lg:hidden"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}
+          className="mx-auto mt-3 max-w-[1280px] rounded-[18px] border border-white/10 bg-[rgba(5,16,23,0.94)] px-3 pb-3 pt-2 shadow-[0_16px_40px_rgba(0,0,0,0.28)] lg:hidden"
         >
           {user && (
             <div className="mb-2 flex items-center gap-3 border-b border-white/10 px-1 py-3">
-              <Image
-                src={user.picture || "/files/default-avatar.svg"}
-                alt={user.username}
-                width={38}
-                height={38}
-                className="rounded-full object-cover border border-white/30"
-              />
+                <Image
+                  src={user.picture || "/files/default-avatar.svg"}
+                  alt={user.username}
+                  width={38}
+                  height={38}
+                  className="h-[38px] w-[38px] rounded-full object-cover border border-white/30"
+                />
               <div>
                 <p className="text-sm font-semibold capitalize text-white">{user.username}</p>
                 <p className="text-xs text-cyan-400">

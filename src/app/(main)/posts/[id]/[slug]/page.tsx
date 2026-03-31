@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { notFound, permanentRedirect } from "next/navigation";
 import PostFeed from "@/components/posts/PostFeed";
+import AdsterraBannerEmbed from "@/components/monetise/AdsterraBannerEmbed";
+import MonetisationSummaryCard from "@/components/monetise/MonetisationSummaryCard";
 import { getCurrentUser } from "@/lib/auth";
+import { canUseAdsterraStats, fetchAdsterraStats } from "@/lib/adsterra";
 import { getPostSeo, getVisiblePostById } from "@/lib/posts";
 import { getPostPath } from "@/lib/postUrls";
 
@@ -68,6 +71,25 @@ export default async function PostPage({ params }: PostPageProps) {
   const canonical = `${siteUrl}${canonicalPath}`;
   const seo = getPostSeo(post);
   const imageUrl = seo.image.startsWith("http") ? seo.image : `${siteUrl}${seo.image}`;
+  let monetiseStats = null;
+
+  if (
+    canUseAdsterraStats({
+      provider: post.userMonetiseProvider,
+      isMonetised: post.userIsMonetised,
+      token: post.userAdsterraApiToken,
+    })
+  ) {
+    try {
+      monetiseStats = await fetchAdsterraStats({
+        token: post.userAdsterraApiToken ?? "",
+        domainId: post.userAdsterraDomainId,
+        placementId: post.userAdsterraPlacementId,
+      });
+    } catch {
+      monetiseStats = null;
+    }
+  }
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -105,6 +127,24 @@ export default async function PostPage({ params }: PostPageProps) {
         postId={post.id}
         showComposer={false}
       />
+      {post.userIsMonetised && post.userMonetiseProvider === "adsterra" && monetiseStats ? (
+        <div className="mt-4">
+          <MonetisationSummaryCard
+            provider={post.userMonetiseProvider}
+            impressions={monetiseStats.impressions}
+            clicks={monetiseStats.clicks}
+            revenue={monetiseStats.revenue}
+            ctr={monetiseStats.ctr}
+            cpm={monetiseStats.cpm}
+          />
+        </div>
+      ) : null}
+      {post.userIsMonetised && post.userMonetiseProvider === "adsterra" && post.userAdsterraBannerCode ? (
+        <section className="mt-4 rounded-[3px] border border-white/10 bg-white/[0.02] px-3 py-4">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Sponsored</div>
+          <AdsterraBannerEmbed code={post.userAdsterraBannerCode} />
+        </section>
+      ) : null}
     </div>
   );
 }

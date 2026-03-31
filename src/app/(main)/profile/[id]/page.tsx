@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { users, follows, posts } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { canUseAdsterraStats, fetchAdsterraStats } from "@/lib/adsterra";
 import ProfilePageClient from "./ProfilePageClient";
 
 interface ProfilePageProps {
@@ -12,6 +13,7 @@ interface ProfilePageProps {
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { id } = await params;
   const currentUser = await getCurrentUser();
+  const ONLINE_WINDOW_MS = 1 * 60 * 1000;
 
   const [profile] = await db
     .select()
@@ -21,28 +23,22 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   if (!profile) notFound();
 
-  const [
-    followerCount,
-    followingCount,
-    postCount,
-    photoCount,
-    videoCount,
-    appCount,
-    songCount,
-    bookCount,
-    documentCount,
-    productCount,
-  ] = await Promise.all([
+  const [followerCount, followingCount, postCounts] = await Promise.all([
     db.select({ count: sql<number>`COUNT(*)` }).from(follows).where(eq(follows.followingId, id)),
     db.select({ count: sql<number>`COUNT(*)` }).from(follows).where(eq(follows.followerId, id)),
-    db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(eq(posts.userId, id)),
-    db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(and(eq(posts.userId, id), eq(posts.postType, "photo"))),
-    db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(and(eq(posts.userId, id), eq(posts.postType, "video"))),
-    db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(and(eq(posts.userId, id), eq(posts.postType, "app"))),
-    db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(and(eq(posts.userId, id), eq(posts.postType, "song"))),
-    db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(and(eq(posts.userId, id), eq(posts.postType, "book"))),
-    db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(and(eq(posts.userId, id), eq(posts.postType, "document"))),
-    db.select({ count: sql<number>`COUNT(*)` }).from(posts).where(and(eq(posts.userId, id), eq(posts.postType, "product"))),
+    db
+      .select({
+        posts: sql<number>`COUNT(*)`,
+        photos: sql<number>`COUNT(*) FILTER (WHERE ${posts.postType} = 'photo')`,
+        videos: sql<number>`COUNT(*) FILTER (WHERE ${posts.postType} = 'video')`,
+        apps: sql<number>`COUNT(*) FILTER (WHERE ${posts.postType} = 'app')`,
+        music: sql<number>`COUNT(*) FILTER (WHERE ${posts.postType} = 'song')`,
+        books: sql<number>`COUNT(*) FILTER (WHERE ${posts.postType} = 'book')`,
+        documents: sql<number>`COUNT(*) FILTER (WHERE ${posts.postType} = 'document')`,
+        products: sql<number>`COUNT(*) FILTER (WHERE ${posts.postType} = 'product')`,
+      })
+      .from(posts)
+      .where(eq(posts.userId, id)),
   ]);
 
   let isFollowing = false;
@@ -56,6 +52,25 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   const isMe = currentUser?.id === id;
+  let monetiseStats = null;
+
+  if (
+    canUseAdsterraStats({
+      provider: profile.monetiseProvider,
+      isMonetised: profile.isMonetised,
+      token: profile.adsterraApiToken,
+    })
+  ) {
+    try {
+      monetiseStats = await fetchAdsterraStats({
+        token: profile.adsterraApiToken ?? "",
+        domainId: profile.adsterraDomainId,
+        placementId: profile.adsterraPlacementId,
+      });
+    } catch {
+      monetiseStats = null;
+    }
+  }
 
   return (
     <ProfilePageClient
@@ -68,19 +83,25 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         points: profile.points,
         awards: profile.awards,
         level: profile.level,
-        isOnline: profile.isOnline,
+        isOnline: !!profile.lastSeen && Date.now() - new Date(profile.lastSeen).getTime() <= ONLINE_WINDOW_MS,
+      }}
+      monetise={{
+        isMonetised: !!profile.isMonetised,
+        provider: profile.monetiseProvider,
+        adsterraBannerCode: profile.adsterraBannerCode,
+        stats: monetiseStats,
       }}
       counts={{
         followers: Number(followerCount[0]?.count ?? 0),
         following: Number(followingCount[0]?.count ?? 0),
-        posts: Number(postCount[0]?.count ?? 0),
-        photos: Number(photoCount[0]?.count ?? 0),
-        videos: Number(videoCount[0]?.count ?? 0),
-        apps: Number(appCount[0]?.count ?? 0),
-        music: Number(songCount[0]?.count ?? 0),
-        books: Number(bookCount[0]?.count ?? 0),
-        documents: Number(documentCount[0]?.count ?? 0),
-        products: Number(productCount[0]?.count ?? 0),
+        posts: Number(postCounts[0]?.posts ?? 0),
+        photos: Number(postCounts[0]?.photos ?? 0),
+        videos: Number(postCounts[0]?.videos ?? 0),
+        apps: Number(postCounts[0]?.apps ?? 0),
+        music: Number(postCounts[0]?.music ?? 0),
+        books: Number(postCounts[0]?.books ?? 0),
+        documents: Number(postCounts[0]?.documents ?? 0),
+        products: Number(postCounts[0]?.products ?? 0),
       }}
       isMe={isMe}
       isFollowing={isFollowing}

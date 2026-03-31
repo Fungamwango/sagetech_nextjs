@@ -895,6 +895,14 @@ export const adminRouter = new Hono()
     async (c) => {
       const { settings } = c.req.valid("json");
 
+      const minimumPostsRaw = settings.monetise_min_posts;
+      if (minimumPostsRaw != null) {
+        const minimumPosts = Number(minimumPostsRaw);
+        if (!Number.isFinite(minimumPosts) || minimumPosts < 1 || !Number.isInteger(minimumPosts)) {
+          return c.json({ error: "Monetise minimum posts must be a whole number of at least 1." }, 400);
+        }
+      }
+
       for (const [key, value] of Object.entries(settings)) {
         const [existing] = await db.select().from(websiteInfo).where(eq(websiteInfo.key, key)).limit(1);
         if (existing) {

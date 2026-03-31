@@ -11,6 +11,7 @@ import { logger } from "hono/logger";
 import { promises as fs } from "fs";
 import path from "path";
 import vm from "vm";
+import { sql } from "drizzle-orm";
 import { DICTIONARY_SEED_WORDS } from "@/lib/dictionarySeed";
 
 const app = new Hono().basePath("/api");
@@ -72,6 +73,25 @@ app.post("/contact", async (c) => {
   await db.insert(contactMessages).values({ name, email, phone, message });
   return c.json({ success: true });
 });
+
+function buildAmountLink(baseLink: string, amount: number) {
+  const normalized = baseLink.trim();
+  if (!normalized) return "";
+  const amountText = amount.toFixed(2);
+
+  if (normalized.includes("{amount}")) {
+    return normalized.replaceAll("{amount}", amountText);
+  }
+
+  if (/paypal\.me/i.test(normalized)) {
+    return `${normalized.replace(/\/$/, "")}/${amountText}`;
+  }
+
+  const url = new URL(normalized);
+  url.searchParams.set("amount", amountText);
+  if (!url.searchParams.has("currency_code")) url.searchParams.set("currency_code", "USD");
+  return url.toString();
+}
 
 // ── AI helpers ────────────────────────────────────────────────────
 function mdToHtml(raw: string): string {
@@ -631,7 +651,14 @@ app.get("/dictionary/challenge-users", async (c) => {
   const { ilike, not, eq, and } = await import("drizzle-orm");
   const session = await getSession();
   const q = (c.req.query("q") ?? "").toLowerCase().trim();
-  let qb = db.select({ id: users.id, username: users.username, picture: users.picture, level: users.level, points: users.points, isOnline: users.isOnline }).from(users);
+  let qb = db.select({
+    id: users.id,
+    username: users.username,
+    picture: users.picture,
+    level: users.level,
+    points: users.points,
+    isOnline: sql<boolean>`(${users.lastSeen} IS NOT NULL AND ${users.lastSeen} >= NOW() - INTERVAL '1 minute')`,
+  }).from(users);
   const conds: any[] = [];
   if (session) conds.push(not(eq(users.id, session.userId)));
   if (q) conds.push(ilike(users.username, `%${q}%`));
@@ -812,19 +839,51 @@ app.post("/upload/file", async (c) => {
   }
 });
 
-// Recharge request
+// Recharge request (manual international payment confirmation)
 app.post("/recharge", async (c) => {
   const { getSession } = await import("@/lib/auth");
   const session = await getSession();
   if (!session) return c.json({ error: "Unauthorized" }, 401);
 
   const body = await c.req.json();
-  const { amount, method, transactionId } = body;
+  const amount = Number(body?.amount);
+  const method = String(body?.method ?? "").trim();
+  const transactionId = String(body?.transactionId ?? "").trim();
 
-  const points = parseFloat(amount) * 100;
+  if (!Number.isFinite(amount) || amount < 0.1) {
+    return c.json({ error: "Invalid recharge amount." }, 400);
+  }
+  if (amount > 1000) {
+    return c.json({ error: "Recharge amount is too large." }, 400);
+  }
+  if (!["international", "wise", "payoneer"].includes(method)) {
+    return c.json({ error: "Only international manual payments use this confirmation flow." }, 400);
+  }
+  if (transactionId.length < 4) {
+    return c.json({ error: "A valid payment reference is required." }, 400);
+  }
+
+  const points = Math.round(amount * 100);
+  if (points < 10) {
+    return c.json({ error: "Recharge must be at least 10 points." }, 400);
+  }
+  if (points > 100000) {
+    return c.json({ error: "Recharge points cannot exceed 100000 in one request." }, 400);
+  }
 
   const { db } = await import("@/lib/db");
   const { rechargeRequests } = await import("@/lib/db/schema");
+  const { eq, and } = await import("drizzle-orm");
+
+  const [existing] = await db
+    .select({ id: rechargeRequests.id })
+    .from(rechargeRequests)
+    .where(and(eq(rechargeRequests.userId, session.userId), eq(rechargeRequests.transactionId, transactionId)))
+    .limit(1);
+
+  if (existing) {
+    return c.json({ error: "This payment reference has already been submitted." }, 400);
+  }
 
   await db.insert(rechargeRequests).values({
     userId: session.userId,
@@ -832,9 +891,195 @@ app.post("/recharge", async (c) => {
     points: String(points),
     method,
     transactionId,
+    status: "pending",
   });
 
-  return c.json({ success: true, message: "Recharge request submitted" });
+  return c.json({ success: true, message: "International payment submitted for verification." });
+});
+
+app.post("/recharge/international-link", async (c) => {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+  const body = await c.req.json();
+  const points = Number(body?.points);
+  const amount = Number(body?.amount);
+  const wiseLink = process.env.WISE_PAYMENT_LINK || process.env.NEXT_PUBLIC_WISE_PAYMENT_LINK || "";
+  const payoneerLink = process.env.PAYONEER_PAYMENT_LINK || process.env.NEXT_PUBLIC_PAYONEER_PAYMENT_LINK || "";
+  const baseLink = wiseLink || payoneerLink;
+  const provider = wiseLink ? "Wise" : payoneerLink ? "Payoneer" : "";
+
+  if (!Number.isFinite(points) || points < 10 || !Number.isInteger(points)) {
+    return c.json({ error: "Invalid points amount." }, 400);
+  }
+  if (!Number.isFinite(amount) || amount < 0.1) {
+    return c.json({ error: "Invalid payment amount." }, 400);
+  }
+  if (!baseLink) {
+    return c.json({ error: "International payment is not configured." }, 500);
+  }
+
+  return c.json({
+    success: true,
+    url: buildAmountLink(baseLink, amount),
+    amount: amount.toFixed(2),
+    points,
+    provider,
+  });
+});
+
+app.post("/recharge/mobile-money/initiate", async (c) => {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+  const body = await c.req.json();
+  const amount = Number(body?.amount);
+  const points = Number(body?.points);
+  const phoneRaw = String(body?.phone ?? "").trim();
+  const authId = process.env.MU_AUTH_ID || "";
+
+  if (!Number.isFinite(amount) || amount < 0.1 || amount > 1000) {
+    return c.json({ error: "Invalid recharge amount." }, 400);
+  }
+  if (!Number.isFinite(points) || points < 10 || points > 100000 || !Number.isInteger(points)) {
+    return c.json({ error: "Invalid points amount." }, 400);
+  }
+  if (!authId) {
+    return c.json({ error: "Mobile money is not configured." }, 500);
+  }
+
+  let cleanPhone = phoneRaw.replace(/\s+/g, "");
+  if (/^260\d{9}$/.test(cleanPhone)) {
+    cleanPhone = `0${cleanPhone.substring(3)}`;
+  }
+  if (!/^0\d{9}$/.test(cleanPhone)) {
+    return c.json({ error: "Invalid Zambian phone number." }, 400);
+  }
+
+  const muResp = await fetch("https://api.moneyunify.one/payments/request", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: new URLSearchParams({
+      from_payer: cleanPhone,
+      amount: amount.toFixed(2),
+      auth_id: authId,
+    }).toString(),
+  });
+
+  const muData = await muResp.json().catch(() => null);
+  const txRef = muData?.data?.transaction_id ? String(muData.data.transaction_id) : "";
+  if (!muResp.ok || !muData || !txRef) {
+    return c.json({ error: muData?.message || "Payment initiation failed. Try again." }, 400);
+  }
+  const { db } = await import("@/lib/db");
+  const { rechargeRequests } = await import("@/lib/db/schema");
+
+  await db.insert(rechargeRequests).values({
+    userId: session.userId,
+    amount: amount.toFixed(2),
+    points: String(points),
+    method: "mobile_money",
+    transactionId: txRef,
+    status: "pending",
+  });
+
+  return c.json({
+    success: true,
+    txRef,
+    message:
+      muData?.message ||
+      "Check your phone for a payment prompt. Enter your PIN to confirm.",
+  });
+});
+
+app.post("/recharge/mobile-money/verify", async (c) => {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+  const body = await c.req.json();
+  const txRef = String(body?.txRef ?? "").trim();
+  const authId = process.env.MU_AUTH_ID || "";
+
+  if (!txRef) return c.json({ error: "Transaction reference is required." }, 400);
+
+  const { db } = await import("@/lib/db");
+  const { rechargeRequests, users, notifications } = await import("@/lib/db/schema");
+  const { eq, and } = await import("drizzle-orm");
+  const { getUserLevel } = await import("@/lib/utils");
+
+  const [recharge] = await db
+    .select()
+    .from(rechargeRequests)
+    .where(and(eq(rechargeRequests.userId, session.userId), eq(rechargeRequests.transactionId, txRef)))
+    .limit(1);
+
+  if (!recharge) return c.json({ error: "Payment not found." }, 404);
+
+  if (recharge.status === "approved") {
+    return c.json({ success: true, status: "successful", message: "Payment already confirmed." });
+  }
+  if (recharge.status === "failed") {
+    return c.json({ success: true, status: "failed", message: "This payment failed." });
+  }
+  if (!authId) {
+    return c.json({ success: true, status: "pending", message: "Payment is still pending verification." });
+  }
+
+  const muResp = await fetch("https://api.moneyunify.one/payments/verify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: new URLSearchParams({
+      transaction_id: txRef,
+      auth_id: authId,
+    }).toString(),
+  });
+  const muData = await muResp.json().catch(() => null);
+
+  if (!muResp.ok || !muData || muData.isError || !muData.data) {
+    return c.json({ success: true, status: "pending", message: muData?.message || "Payment is still pending." });
+  }
+
+  const txStatus = String(muData.data.status ?? "").toLowerCase();
+  if (txStatus === "successful") {
+    const [currentUser] = await db
+      .select({ points: users.points })
+      .from(users)
+      .where(eq(users.id, session.userId))
+      .limit(1);
+
+    const newPoints = parseFloat(String(currentUser?.points ?? 0)) + parseFloat(String(recharge.points));
+    const newLevel = getUserLevel(newPoints);
+
+    await db.update(users).set({ points: String(newPoints), level: newLevel as typeof users.level._.data }).where(eq(users.id, session.userId));
+    await db
+      .update(rechargeRequests)
+      .set({ status: "approved", processedAt: new Date() })
+      .where(eq(rechargeRequests.id, recharge.id));
+    await db.insert(notifications).values({
+      userId: session.userId,
+      actorId: session.userId,
+      type: "system",
+      content: `Your mobile money payment for ${recharge.points} points was successful.`,
+    });
+
+    return c.json({ success: true, status: "successful", message: "Payment confirmed and points added." });
+  }
+
+  if (txStatus === "failed") {
+    await db.update(rechargeRequests).set({ status: "failed", processedAt: new Date() }).where(eq(rechargeRequests.id, recharge.id));
+    return c.json({ success: true, status: "failed", message: "Payment failed." });
+  }
+
+  return c.json({ success: true, status: "pending", message: "Payment is still pending." });
 });
 
 export const GET = handle(app);

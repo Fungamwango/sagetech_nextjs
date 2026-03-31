@@ -65,6 +65,12 @@ export async function getPostById(id: string) {
       username: users.username,
       userPicture: users.picture,
       userLevel: users.level,
+      userIsMonetised: users.isMonetised,
+      userMonetiseProvider: users.monetiseProvider,
+      userAdsterraBannerCode: users.adsterraBannerCode,
+      userAdsterraApiToken: users.adsterraApiToken,
+      userAdsterraDomainId: users.adsterraDomainId,
+      userAdsterraPlacementId: users.adsterraPlacementId,
     })
     .from(posts)
     .leftJoin(users, eq(posts.userId, users.id))

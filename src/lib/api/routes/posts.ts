@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { posts, likes, comments, notifications, users } from "@/lib/db/schema";
-import { eq, desc, sql, and, or, ilike, asc } from "drizzle-orm";
+import { posts, likes, comments, notifications, users, follows } from "@/lib/db/schema";
+import { eq, desc, sql, and, or, ilike, asc, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { getPostTypeCost, getUserLevel } from "@/lib/utils";
 
@@ -179,6 +179,7 @@ export const postsRouter = new Hono()
     const userId = url.searchParams.get("userId");
     const postId = url.searchParams.get("postId");
     const order = url.searchParams.get("order") ?? "latest";
+    const seed = url.searchParams.get("seed") ?? "sagetech";
 
     const conditions = [eq(posts.approved, true), eq(posts.privacy, "public")];
 
@@ -206,7 +207,19 @@ export const postsRouter = new Hono()
       );
     }
 
-    const orderBy = order === "random" ? sql`RANDOM()` : desc(posts.createdAt);
+    const orderBy =
+      order === "random"
+        ? [
+            sql`CASE
+              WHEN ${posts.createdAt} >= NOW() - INTERVAL '1 day' THEN 0
+              WHEN ${posts.createdAt} >= NOW() - INTERVAL '7 days' THEN 1
+              WHEN ${posts.createdAt} >= NOW() - INTERVAL '30 days' THEN 2
+              ELSE 3
+            END`,
+            desc(posts.createdAt),
+            sql`md5(${posts.id}::text || ${seed})`,
+          ]
+        : [desc(posts.createdAt)];
 
     const feedPosts = await db
       .select({
@@ -248,7 +261,7 @@ export const postsRouter = new Hono()
       .from(posts)
       .leftJoin(users, eq(posts.userId, users.id))
       .where(and(...conditions))
-      .orderBy(orderBy)
+      .orderBy(...orderBy)
       .limit(limit)
       .offset(offset);
 
@@ -256,6 +269,7 @@ export const postsRouter = new Hono()
     const result = await Promise.all(
       feedPosts.map(async (post) => {
         let likedByMe = false;
+        let isFollowingAuthor = false;
         if (session?.userId) {
           const [like] = await db
             .select({ id: likes.id })
@@ -263,8 +277,17 @@ export const postsRouter = new Hono()
             .where(and(eq(likes.postId, post.id), eq(likes.userId, session.userId)))
             .limit(1);
           likedByMe = !!like;
+
+          if (post.userId !== session.userId) {
+            const [follow] = await db
+              .select({ id: follows.id })
+              .from(follows)
+              .where(and(eq(follows.followerId, session.userId), eq(follows.followingId, post.userId)))
+              .limit(1);
+            isFollowingAuthor = !!follow;
+          }
         }
-        return { ...post, likedByMe };
+        return { ...post, likedByMe, isFollowingAuthor };
       })
     );
 
@@ -466,6 +489,20 @@ export const postsRouter = new Hono()
   .get("/:id/comments", async (c) => {
     const postId = c.req.param("id");
     const offset = parseInt(c.req.query("offset") ?? "0");
+    const parentId = c.req.query("parentId");
+    const baseCondition = and(
+      eq(comments.postId, postId),
+      parentId ? eq(comments.parentId, parentId) : isNull(comments.parentId)
+    );
+
+    const [total] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(comments)
+      .where(baseCondition);
+    const [threadTotal] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(comments)
+      .where(eq(comments.postId, postId));
 
     const postComments = await db
       .select({
@@ -477,15 +514,26 @@ export const postsRouter = new Hono()
         userId: comments.userId,
         username: users.username,
         userPicture: users.picture,
+        repliesCount: parentId
+          ? sql<number>`0`
+          : sql<number>`(
+              SELECT COUNT(*)
+              FROM comments AS reply_comments
+              WHERE reply_comments.parent_id = ${comments.id}
+            )`,
       })
       .from(comments)
       .leftJoin(users, eq(comments.userId, users.id))
-      .where(eq(comments.postId, postId))
+      .where(baseCondition)
       .orderBy(asc(comments.createdAt))
       .limit(20)
       .offset(offset);
 
-    return c.json({ comments: postComments });
+    return c.json({
+      comments: postComments,
+      totalCount: Number(total?.count ?? 0),
+      threadTotalCount: Number(threadTotal?.count ?? 0),
+    });
   })
 
   // ─── Add comment ─────────────────────────────────────────────

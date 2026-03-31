@@ -16,6 +16,7 @@ const SETTING_FIELDS = [
   ["facebook_page_url", "Facebook page URL"],
   ["email_info", "Email info"],
   ["address_info", "Address info"],
+  ["monetise_min_posts", "Monetise min posts"],
 ] as const;
 
 export default function WebsiteSettingsClient() {
@@ -56,6 +57,7 @@ export default function WebsiteSettingsClient() {
       <div className="sage-card space-y-5">
         {SETTING_FIELDS.map(([key, label]) => {
           const isLong = key.includes("info") || key.includes("statement");
+          const isNumeric = key === "monetise_min_posts";
           return (
             <div key={key}>
               <label className="text-xs text-white/60 uppercase tracking-wider">{label}</label>
@@ -67,6 +69,8 @@ export default function WebsiteSettingsClient() {
                 />
               ) : (
                 <input
+                  type={isNumeric ? "number" : "text"}
+                  min={isNumeric ? 1 : undefined}
                   value={settings[key] ?? ""}
                   onChange={(e) => setSettings((current) => ({ ...current, [key]: e.target.value }))}
                   className="sage-input mt-1 w-full"

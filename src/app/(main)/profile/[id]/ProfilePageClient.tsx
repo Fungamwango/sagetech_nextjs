@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
 import PostFeed from "@/components/posts/PostFeed";
+import AdsterraBannerEmbed from "@/components/monetise/AdsterraBannerEmbed";
+import MonetisationSummaryCard from "@/components/monetise/MonetisationSummaryCard";
 import { prepareUploadFile } from "@/lib/client/upload";
 
 interface ProfileSummary {
@@ -35,13 +37,28 @@ interface ProfileCounts {
 
 interface ProfilePageClientProps {
   profile: ProfileSummary;
+  monetise: {
+    isMonetised: boolean;
+    provider: string | null;
+    adsterraBannerCode: string | null;
+    stats:
+      | {
+          impressions: number;
+          clicks: number;
+          revenue: number;
+          ctr: number;
+          cpm: number;
+          updatedAt: string;
+        }
+      | null;
+      };
   counts: ProfileCounts;
   isMe: boolean;
   isFollowing: boolean;
   currentUserId: string | null;
 }
 
-type PostFilter = "all" | "photo" | "video" | "app" | "song" | "book" | "document" | "product";
+type PostFilter = "all" | "video" | "song" | "document" | "product";
 
 const FILTERS: Array<{
   id: PostFilter;
@@ -49,11 +66,9 @@ const FILTERS: Array<{
   icon: string;
   countKey: keyof ProfileCounts;
 }> = [
-  { id: "photo", label: "Photos", icon: "fas fa-images", countKey: "photos" },
+  { id: "all", label: "Posts", icon: "fas fa-paper-plane", countKey: "posts" },
   { id: "video", label: "Videos", icon: "fas fa-tv", countKey: "videos" },
-  { id: "app", label: "Apps", icon: "fas fa-th-large", countKey: "apps" },
   { id: "song", label: "Music", icon: "fas fa-music", countKey: "music" },
-  { id: "book", label: "Books", icon: "fas fa-book", countKey: "books" },
   { id: "document", label: "Documents", icon: "fas fa-file-alt", countKey: "documents" },
   { id: "product", label: "Products", icon: "fas fa-store", countKey: "products" },
 ];
@@ -74,6 +89,7 @@ function levelLabel(level: string | null) {
 
 export default function ProfilePageClient({
   profile,
+  monetise,
   counts,
   isMe,
   isFollowing,
@@ -83,7 +99,6 @@ export default function ProfilePageClient({
   const { showToast } = useToast();
   const [following, setFollowing] = useState(isFollowing);
   const [followLoading, setFollowLoading] = useState(false);
-  const [showPostFilters, setShowPostFilters] = useState(false);
   const [activeFilter, setActiveFilter] = useState<PostFilter>("all");
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
@@ -349,6 +364,17 @@ export default function ProfilePageClient({
         </div>
       </section>
 
+      {monetise.isMonetised && monetise.provider === "adsterra" && monetise.stats ? (
+        <MonetisationSummaryCard
+          provider={monetise.provider}
+          impressions={monetise.stats.impressions}
+          clicks={monetise.stats.clicks}
+          revenue={monetise.stats.revenue}
+          ctr={monetise.stats.ctr}
+          cpm={monetise.stats.cpm}
+        />
+      ) : null}
+
       <section
         className="grid gap-2 rounded-[3px] border border-black/10 px-3 py-4 [grid-template-columns:repeat(auto-fit,minmax(8rem,1fr))]"
         style={{ background: "linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgb(22, 40, 50), rgba(0, 0, 0, 0.9))" }}
@@ -375,18 +401,6 @@ export default function ProfilePageClient({
         </div>
 
         <div>
-          <button
-            onClick={() => setShowPostFilters((prev) => !prev)}
-            className={`w-full rounded-full border px-3 py-1.5 text-left text-[13px] ${
-              showPostFilters ? "border-[#035] text-white" : "border-white/10 bg-black/10 text-[rgba(155,155,180)]"
-            }`}
-          >
-            <i className="fas fa-paper-plane mr-2 text-xs text-[rgba(155,155,155,0.8)]" />
-            Posts | <span className="text-[11px] text-white/60">{compactCount(counts.posts)}</span>
-          </button>
-        </div>
-
-        <div>
           <Link
             href={currentUserId ? `/messages?userId=${profile.id}` : "/login"}
             className="block w-full rounded-full border border-white/10 bg-black/10 px-3 py-1.5 text-left text-[13px] text-[rgba(155,155,180)]"
@@ -406,23 +420,22 @@ export default function ProfilePageClient({
           </button>
         </div>
 
-        {showPostFilters &&
-          FILTERS.map((filter) => (
-            <div key={filter.id}>
-              <button
-                onClick={() => setActiveFilter(filter.id)}
-                className={`w-full rounded-full border px-3 py-1.5 text-left text-[13px] ${
-                  activeFilter === filter.id
-                    ? "border-aqua text-white"
-                    : "border-white/10 bg-black/10 text-[rgba(155,155,180)]"
-                }`}
-              >
-                <i className={`${filter.icon} mr-2 text-xs text-[rgba(155,155,155,0.8)]`} />
-                {filter.label} |{" "}
-                <span className="text-[11px] text-white/60">{compactCount(counts[filter.countKey])}</span>
-              </button>
-            </div>
-          ))}
+        {FILTERS.map((filter) => (
+          <div key={filter.id}>
+            <button
+              onClick={() => setActiveFilter(filter.id)}
+              className={`w-full rounded-full border px-3 py-1.5 text-left text-[13px] ${
+                activeFilter === filter.id
+                  ? "border-aqua text-white"
+                  : "border-white/10 bg-black/10 text-[rgba(155,155,180)]"
+              }`}
+            >
+              <i className={`${filter.icon} mr-2 text-xs text-[rgba(155,155,155,0.8)]`} />
+              {filter.label} |{" "}
+              <span className="text-[11px] text-white/60">{compactCount(counts[filter.countKey])}</span>
+            </button>
+          </div>
+        ))}
       </section>
 
       {showEditPanel && isMe && (
@@ -555,6 +568,16 @@ export default function ProfilePageClient({
           showComposer={false}
         />
       </section>
+
+      {monetise.isMonetised && monetise.provider === "adsterra" && monetise.adsterraBannerCode ? (
+        <section
+          className="rounded-[3px] border border-white/10 px-3 py-4"
+          style={{ background: "linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgb(22, 40, 50), rgba(0, 0, 0, 0.9))" }}
+        >
+          <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Sponsored</div>
+          <AdsterraBannerEmbed code={monetise.adsterraBannerCode} />
+        </section>
+      ) : null}
 
       {showMoreMenu && (
         <div

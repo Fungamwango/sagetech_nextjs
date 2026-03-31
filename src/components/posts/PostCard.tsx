@@ -44,6 +44,7 @@ interface PostCardProps {
     userPicture?: string | null;
     userLevel?: string | null;
     likedByMe?: boolean;
+    isFollowingAuthor?: boolean;
   };
   currentUserId?: string | null;
   onDelete?: (id: string) => void;
@@ -62,6 +63,11 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
   const [postState, setPostState] = useState(post);
   const [liked, setLiked] = useState(post.likedByMe ?? false);
   const [likeCount, setLikeCount] = useState(post.likesCount ?? 0);
+  const [liking, setLiking] = useState(false);
+  const [followingAuthor, setFollowingAuthor] = useState(post.isFollowingAuthor ?? false);
+  const [followingAuthorLoading, setFollowingAuthorLoading] = useState(false);
+  const [reactionBurst, setReactionBurst] = useState<Array<{ id: number; emoji: string }>>([]);
+  const likeRequestPendingRef = useRef(false);
   const [showComments, setShowComments] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [editingPost, setEditingPost] = useState(false);
@@ -95,11 +101,43 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
   }, []);
 
   const handleLike = async () => {
-    const res = await fetch(`/api/posts/${postState.id}/like`, { method: "POST" });
-    if (res.ok) {
-      const d = await res.json();
-      setLiked(d.liked);
-      setLikeCount((c) => (d.liked ? c + 1 : Math.max(0, c - 1)));
+    if (!currentUserId) {
+      showToast({ type: "error", message: "Login is required to like posts." });
+      return;
+    }
+    if (likeRequestPendingRef.current) return;
+
+    likeRequestPendingRef.current = true;
+    setLiking(true);
+
+    try {
+      const res = await fetch(`/api/posts/${postState.id}/like`, { method: "POST" });
+      if (res.ok) {
+        const d = await res.json();
+        setLiked(d.liked);
+        setLikeCount((current) => (d.liked ? current + 1 : Math.max(0, current - 1)));
+        if (d.liked) {
+          const burstId = Date.now();
+          const emojis = ["👍", "❤️", "🔥"];
+          setReactionBurst(emojis.map((emoji, index) => ({ id: burstId + index, emoji })));
+          window.setTimeout(() => {
+            setReactionBurst((current) => current.filter((item) => item.id < burstId || item.id > burstId + 2));
+          }, 1100);
+        } else {
+          setReactionBurst([]);
+        }
+      } else {
+        if (res.status === 401) {
+          showToast({ type: "error", message: "Your session has expired. Please log in again." });
+        } else {
+          showToast({ type: "error", message: "Unable to update like right now." });
+        }
+      }
+    } catch {
+      showToast({ type: "error", message: "Unable to update like right now." });
+    } finally {
+      setLiking(false);
+      likeRequestPendingRef.current = false;
     }
   };
 
@@ -118,6 +156,30 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
 
   const handleDownload = async () => {
     await fetch(`/api/posts/${postState.id}/download`, { method: "POST" });
+  };
+
+  const handleFollowAuthor = async () => {
+    if (!currentUserId) {
+      showToast({ type: "error", message: "Login is required to follow users." });
+      return;
+    }
+    if (followingAuthorLoading || currentUserId === postState.userId) return;
+
+    setFollowingAuthorLoading(true);
+    try {
+      const res = await fetch(`/api/users/${postState.userId}/follow`, { method: "POST" });
+      if (!res.ok) {
+        showToast({ type: "error", message: "Unable to update follow status." });
+        return;
+      }
+      const data = await res.json();
+      setFollowingAuthor(!!data.following);
+      showToast({ type: "success", message: data.following ? "User followed." : "User unfollowed." });
+    } catch {
+      showToast({ type: "error", message: "Unable to update follow status." });
+    } finally {
+      setFollowingAuthorLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -208,14 +270,16 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
   const [expanded, setExpanded] = useState(false);
   const needsTruncate = !!textContent && textContent.length > TRUNCATE;
   const displayText = expanded || !needsTruncate ? textContent : textContent?.slice(0, TRUNCATE) + "...";
+  const captionOnTopPostTypes = new Set(["photo", "video", "product", "song", "app", "book", "document"]);
+  const hasMediaBackedCaption = captionOnTopPostTypes.has(postState.postType) || (!!postState.fileUrl && ["image", "video", "audio", "document"].includes(postState.fileType ?? ""));
 
   return (
     <>
       <article className="modern-feed-card fade-in">
       <div className="modern-feed-card__body">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
           <Link href={`/profile/${postState.userId}`} className="flex items-center gap-2">
             <Image
               src={postState.userPicture || "/files/default-avatar.svg"}
@@ -226,17 +290,30 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
               style={{ border: "2px solid rgba(0,200,220,0.3)" }}
             />
           </Link>
-          <div>
-            <Link href={`/profile/${postState.userId}`} className="text-sm font-semibold text-white capitalize hover:text-cyan-400 transition-colors">
-              {postState.username}
-            </Link>
             <div>
-              <Link href={postPath} className={`text-xs level-${postState.userLevel?.toLowerCase() ?? "amateur"} hover:underline`}>
-                {postState.userLevel ?? "Amateur"} . {timeAgo(postState.createdAt ?? null)}
+              <Link href={`/profile/${postState.userId}`} className="text-sm font-semibold text-white capitalize hover:text-cyan-400 transition-colors">
+                {postState.username}
               </Link>
+              <div className="flex items-center gap-2">
+                <Link href={postPath} className="text-xs text-white/45 hover:text-white/70 hover:underline">
+                  {timeAgo(postState.createdAt ?? null)}
+                </Link>
+                {currentUserId && currentUserId !== postState.userId && !followingAuthor && (
+                  <>
+                    <span className="text-[10px] text-white/20">•</span>
+                    <button
+                      type="button"
+                      onClick={handleFollowAuthor}
+                      disabled={followingAuthorLoading}
+                      className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 disabled:opacity-60"
+                    >
+                      {followingAuthorLoading ? <i className="fas fa-spinner fa-spin" /> : "Follow"}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
         <div className="relative" ref={menuRef}>
           <button
@@ -325,9 +402,6 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
         <p className="text-base font-bold text-white mb-2">{postState.blogTitle}</p>
       )}
 
-      {/* Media content */}
-      <PostContent post={postState} onDownload={handleDownload} />
-
       {/* Text content with truncation */}
       {editingPost ? (
         <div className="mt-2 space-y-2">
@@ -362,7 +436,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
           {postState.postType === "blog" && /<[a-z][\s\S]*>/i.test(displayText) ? (
             <>
               <div
-                className="text-sm text-white/85 leading-relaxed ai-blog-content"
+                className="text-[16px] text-white/85 leading-relaxed ai-blog-content"
                 dangerouslySetInnerHTML={{ __html: displayText }}
               />
               {needsTruncate && (
@@ -373,7 +447,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
             </>
           ) : (
             <>
-              <p className="text-sm text-white/85 leading-relaxed">{displayText}</p>
+              <p className="text-[16px] text-white/85 leading-relaxed">{displayText}</p>
               {needsTruncate && (
                 <button onClick={() => setExpanded(!expanded)} className="text-xs text-cyan-400 mt-1 hover:underline">
                   {expanded ? "Show less" : "Read more"}
@@ -386,10 +460,19 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
 
       {/* Non-text title */}
       {postTitle && postState.postType !== "blog" && (
-        <p className="text-sm text-white mt-2 font-medium">{postTitle}</p>
+        <p className="text-[16px] text-white mt-2 font-medium">{postTitle}</p>
       )}
-      {postState.postDescription && !["general", "blog", "advert"].includes(postState.postType) && !editingPost && (
-        <p className="text-xs text-white/55 mt-1">{postState.postDescription}</p>
+      {postState.postDescription && !displayText && !["general", "blog", "advert"].includes(postState.postType) && !editingPost && (
+        <p className="mt-1 text-[16px] text-white/55">{postState.postDescription}</p>
+      )}
+
+      {/* Media content */}
+      {hasMediaBackedCaption ? (
+        <div className="mt-3">
+          <PostContent post={postState} onDownload={handleDownload} />
+        </div>
+      ) : (
+        <PostContent post={postState} onDownload={handleDownload} />
       )}
 
       {/* Stats bar */}
@@ -400,19 +483,33 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
       >
           <button
             onClick={handleLike}
-            className={`modern-pill-action flex items-center justify-center gap-1.5 px-3 py-2 text-sm transition-all ${liked ? "text-cyan-400" : "text-white/60 hover:text-cyan-400"}`}
+            disabled={liking}
+            className={`modern-pill-action relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-sm transition-all disabled:opacity-70 ${liked ? "text-cyan-400" : "text-white/60 hover:text-cyan-400"}`}
           >
-            <i className={`${liked ? "fas" : "far"} fa-thumbs-up`} />
+            {reactionBurst.length > 0 && (
+              <span className="pointer-events-none absolute inset-x-0 -top-1 flex items-center justify-center gap-1">
+                {reactionBurst.map((reaction, index) => (
+                  <span
+                    key={reaction.id}
+                    className={`like-reaction-burst like-reaction-burst--${index + 1}`}
+                    aria-hidden="true"
+                  >
+                    {reaction.emoji}
+                  </span>
+                ))}
+              </span>
+            )}
+            {liking ? <i className="fas fa-circle-notch fa-spin" /> : <i className={`${liked ? "fas" : "far"} fa-thumbs-up`} />}
             <span className="text-xs font-medium">{likeCount}</span>
           </button>
           <button
             onClick={() => setShowComments(!showComments)}
-            className={`modern-pill-action flex items-center justify-center gap-1.5 px-3 py-2 text-sm transition-colors ${showComments ? "text-cyan-400" : "text-white/60 hover:text-cyan-400"}`}
+            className={`modern-pill-action flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-sm transition-colors ${showComments ? "text-cyan-400" : "text-white/60 hover:text-cyan-400"}`}
           >
             <i className={`${showComments ? "fas" : "far"} fa-comment`} />
             <span className="text-xs font-medium">{postState.commentsCount ?? 0}</span>
           </button>
-          <span className="modern-pill-action flex items-center justify-center gap-1 px-3 py-2 text-xs text-white/45">
+          <span className="modern-pill-action flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs text-white/45">
             <i className="far fa-eye" />
             <span>{postState.views ?? 0}</span>
           </span>
@@ -454,13 +551,19 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
         )}
       </div>
 
-      {showComments && (
-        <CommentsSection
-          postId={postState.id}
-          currentUserId={currentUserId}
-          onCountChange={(delta) =>
-            setPostState((current) => ({
-              ...current,
+        {showComments && (
+          <CommentsSection
+            postId={postState.id}
+            currentUserId={currentUserId}
+            onCountSync={(count) =>
+              setPostState((current) => ({
+                ...current,
+                commentsCount: count,
+              }))
+            }
+            onCountChange={(delta) =>
+              setPostState((current) => ({
+                ...current,
               commentsCount: Math.max(0, (current.commentsCount ?? 0) + delta),
             }))
           }
@@ -1214,17 +1317,28 @@ function CommentsSection({
   postId,
   currentUserId,
   onCountChange,
+  onCountSync,
   onToast,
 }: {
   postId: string;
   currentUserId?: string | null;
   onCountChange?: (delta: number) => void;
+  onCountSync?: (count: number) => void;
   onToast?: (toast: NonNullable<AppToast>) => void;
 }) {
   const [comments, setComments] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentsHasMore, setCommentsHasMore] = useState(false);
+  const [commentsOffset, setCommentsOffset] = useState(0);
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false);
   const [input, setInput] = useState("");
   const [replyInput, setReplyInput] = useState<Record<string, string>>({});
   const [replyLoading, setReplyLoading] = useState<Record<string, boolean>>({});
+  const [replyThreadLoading, setReplyThreadLoading] = useState<Record<string, boolean>>({});
+  const [replyThreadLoadingMore, setReplyThreadLoadingMore] = useState<Record<string, boolean>>({});
+  const [replyThreadHasMore, setReplyThreadHasMore] = useState<Record<string, boolean>>({});
+  const [replyThreadOffset, setReplyThreadOffset] = useState<Record<string, number>>({});
+  const [replyThreadInitialized, setReplyThreadInitialized] = useState<Record<string, boolean>>({});
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editInput, setEditInput] = useState("");
@@ -1233,11 +1347,109 @@ function CommentsSection({
   const [deleteTarget, setDeleteTarget] = useState<DeleteConfirmState>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
+  const mergeUniqueComments = useCallback((current: any[], incoming: any[]) => {
+    const map = new Map<string, any>();
+    [...current, ...incoming].forEach((comment) => {
+      const existing = map.get(comment.id);
+      map.set(comment.id, existing ? { ...existing, ...comment } : comment);
+    });
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
+    );
+  }, []);
+
   useEffect(() => {
-    fetch(`/api/posts/${postId}/comments`)
-      .then((r) => r.json())
-      .then((d) => setComments(d.comments ?? []));
+    let cancelled = false;
+
+    const loadInitialComments = async () => {
+      setCommentsLoading(true);
+      setComments([]);
+      setCommentsHasMore(false);
+      setCommentsOffset(0);
+      setReplyThreadLoading({});
+      setReplyThreadLoadingMore({});
+      setReplyThreadHasMore({});
+      setReplyThreadOffset({});
+      setReplyThreadInitialized({});
+
+      try {
+        const res = await fetch(`/api/posts/${postId}/comments`);
+        if (!res.ok) throw new Error("Unable to load comments.");
+        const data = await res.json();
+        if (cancelled) return;
+        const initialComments = data.comments ?? [];
+        setComments(initialComments);
+        setCommentsOffset(initialComments.length);
+        setCommentsHasMore(initialComments.length < Number(data.totalCount ?? 0));
+        onCountSync?.(Number(data.threadTotalCount ?? data.totalCount ?? initialComments.length));
+      } catch {
+        if (cancelled) return;
+        setComments([]);
+      } finally {
+        if (!cancelled) setCommentsLoading(false);
+      }
+    };
+
+    void loadInitialComments();
+
+    return () => {
+      cancelled = true;
+    };
   }, [postId]);
+
+  const loadMoreComments = async () => {
+    if (loadingMoreComments || !commentsHasMore) return;
+    setLoadingMoreComments(true);
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments?offset=${commentsOffset}`);
+      if (!res.ok) throw new Error("Unable to load more comments.");
+      const data = await res.json();
+      const incoming = data.comments ?? [];
+      setComments((current) => mergeUniqueComments(current, incoming));
+      setCommentsOffset((current) => current + incoming.length);
+      setCommentsHasMore(commentsOffset + incoming.length < Number(data.totalCount ?? 0));
+    } catch {
+      onToast?.({ type: "error", message: "Unable to load more comments." });
+    } finally {
+      setLoadingMoreComments(false);
+    }
+  };
+
+  const loadReplies = async (parentId: string, append = false) => {
+    const offset = append ? replyThreadOffset[parentId] ?? 0 : 0;
+    if (append) {
+      if (replyThreadLoadingMore[parentId] || !replyThreadHasMore[parentId]) return;
+      setReplyThreadLoadingMore((current) => ({ ...current, [parentId]: true }));
+    } else {
+      if (replyThreadLoading[parentId]) return;
+      setReplyThreadLoading((current) => ({ ...current, [parentId]: true }));
+    }
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments?parentId=${parentId}&offset=${offset}`);
+      if (!res.ok) throw new Error("Unable to load replies.");
+      const data = await res.json();
+      const incoming = data.comments ?? [];
+      setComments((current) => mergeUniqueComments(current, incoming));
+      setReplyThreadInitialized((current) => ({ ...current, [parentId]: true }));
+      setReplyThreadOffset((current) => ({ ...current, [parentId]: offset + incoming.length }));
+      setReplyThreadHasMore((current) => ({
+        ...current,
+        [parentId]: offset + incoming.length < Number(data.totalCount ?? 0),
+      }));
+      if (!append) {
+        onCountSync?.(Number(data.threadTotalCount ?? 0));
+      }
+    } catch {
+      onToast?.({ type: "error", message: "Unable to load replies." });
+    } finally {
+      if (append) {
+        setReplyThreadLoadingMore((current) => ({ ...current, [parentId]: false }));
+      } else {
+        setReplyThreadLoading((current) => ({ ...current, [parentId]: false }));
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1250,8 +1462,9 @@ function CommentsSection({
     });
     if (res.ok) {
       const d = await res.json();
-      setComments((c) => [...c, d.comment]);
+      setComments((current) => mergeUniqueComments(current, [{ ...d.comment, repliesCount: 0 }]));
       setInput("");
+      setCommentsOffset((current) => current + 1);
       onCountChange?.(1);
       onToast?.({ type: "success", message: "Comment posted." });
     } else {
@@ -1265,20 +1478,36 @@ function CommentsSection({
     if (!content) return;
     setReplyLoading((current) => ({ ...current, [parentId]: true }));
 
-    const res = await fetch(`/api/posts/${postId}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, parentId }),
-    });
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, parentId }),
+      });
 
-    if (res.ok) {
-      const d = await res.json();
-      setComments((current) => [...current, d.comment]);
-      setReplyInput((current) => ({ ...current, [parentId]: "" }));
-      setReplyingTo(null);
-      onCountChange?.(1);
-      onToast?.({ type: "success", message: "Reply sent." });
-    } else {
+      if (res.ok) {
+        const d = await res.json();
+        setComments((current) =>
+          mergeUniqueComments(
+            current.map((comment) =>
+              comment.id === parentId
+                ? { ...comment, repliesCount: Number(comment.repliesCount ?? 0) + 1 }
+                : comment
+            ),
+            [d.comment]
+          )
+        );
+        setReplyInput((current) => ({ ...current, [parentId]: "" }));
+        setReplyingTo(null);
+        setReplyThreadInitialized((current) => ({ ...current, [parentId]: true }));
+        setReplyThreadOffset((current) => ({ ...current, [parentId]: (current[parentId] ?? 0) + 1 }));
+        onCountChange?.(1);
+        onToast?.({ type: "success", message: "Reply sent." });
+      } else {
+        const error = await res.json().catch(() => null);
+        onToast?.({ type: "error", message: error?.error || "Unable to send reply." });
+      }
+    } catch {
       onToast?.({ type: "error", message: "Unable to send reply." });
     }
     setReplyLoading((current) => ({ ...current, [parentId]: false }));
@@ -1296,7 +1525,16 @@ function CommentsSection({
     const idsToRemove = new Set(
       comments.filter((comment) => comment.id === commentId || comment.parentId === commentId).map((comment) => comment.id)
     );
-    setComments((current) => current.filter((comment) => !idsToRemove.has(comment.id)));
+    const targetComment = comments.find((comment) => comment.id === commentId);
+    setComments((current) =>
+      current
+        .filter((comment) => !idsToRemove.has(comment.id))
+        .map((comment) =>
+          targetComment?.parentId && comment.id === targetComment.parentId
+            ? { ...comment, repliesCount: Math.max(0, Number(comment.repliesCount ?? 0) - 1) }
+            : comment
+        )
+    );
     onCountChange?.(-idsToRemove.size);
     setDeleteTarget(null);
     setDeletingCommentId(null);
@@ -1339,22 +1577,38 @@ function CommentsSection({
   return (
     <div className="mt-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
       <div className="space-y-3 mb-3 max-h-56 overflow-y-auto">
-        {rootComments.length === 0 && (
+        {commentsLoading && (
+          <div className="flex items-center justify-center gap-2 py-3 text-sm text-white/45">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+            Loading comments...
+          </div>
+        )}
+        {!commentsLoading && rootComments.length === 0 && (
           <p className="text-xs text-white/30 text-center py-2">No comments yet</p>
         )}
-        {rootComments.map((c) => (
+        {!commentsLoading && rootComments.map((c) => {
+          const loadedReplyCount = (repliesByParent[c.id] ?? []).length;
+          const replyCount = Number(c.repliesCount ?? loadedReplyCount);
+          return (
           <div key={c.id} className="space-y-2">
             <div className="flex gap-2.5 items-start">
-              <Image
-                src={c.userPicture || "/files/default-avatar.svg"}
-                alt={c.username || "user"}
-                width={28}
-                height={28}
-                className="rounded-full object-cover flex-shrink-0 mt-0.5"
-                style={{ border: "1.5px solid rgba(0,200,220,0.2)" }}
-              />
+              <Link href={`/profile/${c.userId}`} className="flex-shrink-0 mt-0.5">
+                <Image
+                  src={c.userPicture || "/files/default-avatar.svg"}
+                  alt={c.username || "user"}
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 rounded-full object-cover flex-shrink-0 mt-0.5"
+                  style={{ border: "1.5px solid rgba(0,200,220,0.2)" }}
+                />
+              </Link>
               <div className="modern-comment-surface flex-1 px-3 py-2.5">
-                <p className="text-xs font-semibold text-cyan-400 capitalize">{c.username}</p>
+                <Link
+                  href={`/profile/${c.userId}`}
+                  className="text-xs font-semibold text-cyan-400 capitalize hover:text-cyan-300 transition-colors"
+                >
+                  {c.username}
+                </Link>
                 {editingCommentId === c.id ? (
                   <div className="space-y-2 mt-1">
                     <textarea
@@ -1383,19 +1637,26 @@ function CommentsSection({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-white/80 mt-0.5 leading-relaxed">{c.content}</p>
+                    <p className="mt-0.5 text-[15px] leading-relaxed text-white/80">{c.content}</p>
                 )}
                 <div className="mt-2 flex items-center gap-3 text-[11px] text-white/45">
                   {currentUserId && (
                     <button
-                      onClick={() => setReplyingTo((current) => (current === c.id ? null : c.id))}
+                      type="button"
+                      onClick={() => {
+                        setReplyingTo((current) => (current === c.id ? null : c.id));
+                        if (!replyThreadInitialized[c.id] && replyCount > 0) {
+                          void loadReplies(c.id);
+                        }
+                      }}
                       className="hover:text-cyan-400 transition-colors"
                     >
-                      Reply
+                      Reply{replyCount > 0 ? ` (${replyCount})` : ""}
                     </button>
                   )}
                   {currentUserId === c.userId && (
                     <button
+                      type="button"
                       onClick={() => {
                         setEditingCommentId(c.id);
                         setEditInput(c.content);
@@ -1407,6 +1668,7 @@ function CommentsSection({
                   )}
                   {currentUserId === c.userId && (
                     <button
+                      type="button"
                       onClick={() => setDeleteTarget({ id: c.id, label: "comment" })}
                       className="hover:text-red-400 transition-colors"
                     >
@@ -1417,14 +1679,27 @@ function CommentsSection({
               </div>
             </div>
 
+            {replyCount > 0 && !replyThreadInitialized[c.id] && (
+              <div className="ml-10">
+                <button
+                  type="button"
+                  onClick={() => void loadReplies(c.id)}
+                  disabled={replyThreadLoading[c.id]}
+                  className="text-xs font-medium text-cyan-400/90 hover:text-cyan-300 disabled:opacity-60"
+                >
+                  {replyThreadLoading[c.id] ? "Loading replies..." : `View replies (${replyCount})`}
+                </button>
+              </div>
+            )}
+
             {replyingTo === c.id && currentUserId && (
               <div className="ml-10 flex gap-2">
-                <input
-                  type="text"
+                <textarea
                   value={replyInput[c.id] ?? ""}
                   onChange={(e) => setReplyInput((current) => ({ ...current, [c.id]: e.target.value }))}
                   placeholder={`Reply to ${c.username}...`}
-                  className="sage-input flex-1 text-sm py-2 rounded-full px-4"
+                  rows={1}
+                  className="sage-input flex-1 rounded-3xl px-4 py-2 text-sm leading-5 min-h-10 max-h-28 resize-none"
                 />
                 <button
                   type="button"
@@ -1443,17 +1718,39 @@ function CommentsSection({
             )}
 
             {(repliesByParent[c.id] ?? []).map((reply: any) => (
-              <div key={reply.id} className="ml-10 flex gap-2.5 items-start">
-                <Image
-                  src={reply.userPicture || "/files/default-avatar.svg"}
-                  alt={reply.username || "user"}
-                  width={24}
-                  height={24}
-                  className="rounded-full object-cover flex-shrink-0 mt-0.5"
-                  style={{ border: "1px solid rgba(0,200,220,0.2)" }}
+              <div key={reply.id} className="ml-10 flex gap-2.5 items-start pl-4 relative">
+                <span
+                  className="pointer-events-none absolute left-0 top-0 bottom-2 w-px rounded-full"
+                  style={{ background: "linear-gradient(180deg, rgba(0,200,220,0.28), rgba(255,255,255,0.06))" }}
                 />
-                <div className="modern-comment-surface flex-1 px-3 py-2.5">
-                  <p className="text-xs font-semibold text-cyan-400 capitalize">{reply.username}</p>
+                <span
+                  className="pointer-events-none absolute left-0 top-4 h-px w-3 rounded-full"
+                  style={{ background: "rgba(0,200,220,0.22)" }}
+                />
+                <Link href={`/profile/${reply.userId}`} className="flex-shrink-0 mt-0.5">
+                  <Image
+                    src={reply.userPicture || "/files/default-avatar.svg"}
+                    alt={reply.username || "user"}
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 rounded-full object-cover flex-shrink-0 mt-0.5"
+                    style={{ border: "1px solid rgba(0,200,220,0.18)" }}
+                  />
+                </Link>
+                <div
+                  className="flex-1 px-3 py-2.5 rounded-2xl"
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+                  }}
+                >
+                  <Link
+                    href={`/profile/${reply.userId}`}
+                    className="text-[11px] font-semibold text-cyan-300/90 capitalize hover:text-cyan-200 transition-colors"
+                  >
+                    {reply.username}
+                  </Link>
                   {editingCommentId === reply.id ? (
                     <div className="space-y-2 mt-1">
                       <textarea
@@ -1482,11 +1779,12 @@ function CommentsSection({
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-white/80 mt-0.5 leading-relaxed">{reply.content}</p>
+                    <p className="mt-0.5 text-[14px] leading-relaxed text-white/78">{reply.content}</p>
                   )}
-                  <div className="mt-2 flex items-center gap-3 text-[11px] text-white/45">
+                  <div className="mt-2 flex items-center gap-3 text-[11px] text-white/40">
                     {currentUserId === reply.userId && (
                       <button
+                        type="button"
                         onClick={() => {
                           setEditingCommentId(reply.id);
                           setEditInput(reply.content);
@@ -1498,6 +1796,7 @@ function CommentsSection({
                     )}
                     {currentUserId === reply.userId && (
                       <button
+                        type="button"
                         onClick={() => setDeleteTarget({ id: reply.id, label: "reply" })}
                         className="hover:text-red-400 transition-colors"
                       >
@@ -1508,18 +1807,44 @@ function CommentsSection({
                 </div>
               </div>
             ))}
+
+            {replyThreadInitialized[c.id] && replyThreadHasMore[c.id] && (
+              <div className="ml-10">
+                <button
+                  type="button"
+                  onClick={() => void loadReplies(c.id, true)}
+                  disabled={replyThreadLoadingMore[c.id]}
+                  className="text-xs font-medium text-cyan-400/90 hover:text-cyan-300 disabled:opacity-60"
+                >
+                  {replyThreadLoadingMore[c.id] ? "Loading more replies..." : "Load more replies"}
+                </button>
+              </div>
+            )}
           </div>
-        ))}
+        )})}
+
+        {!commentsLoading && commentsHasMore && (
+          <div className="pt-1 text-center">
+            <button
+              type="button"
+              onClick={() => void loadMoreComments()}
+              disabled={loadingMoreComments}
+              className="text-xs font-medium text-cyan-400/90 hover:text-cyan-300 disabled:opacity-60"
+            >
+              {loadingMoreComments ? "Loading more comments..." : "Load more comments"}
+            </button>
+          </div>
+        )}
       </div>
 
       {currentUserId && (
         <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
-          <input
-            type="text"
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Write a comment..."
-            className="sage-input flex-1 rounded-full px-4 py-2.5 text-sm"
+            rows={1}
+            className="sage-input flex-1 rounded-3xl px-4 py-2.5 text-sm leading-5 min-h-10 max-h-28 resize-none"
           />
           <button
             type="submit"

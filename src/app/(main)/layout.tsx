@@ -15,17 +15,15 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <Header user={navUser} />
 
       <main
-        className="min-h-screen"
+        className="min-h-screen px-[6px] pb-6 pt-[54px] sm:px-[10px]"
         style={{
-          padding: "5px",
-          paddingTop: "50px",
           marginTop: "46px",
           background: "linear-gradient(to bottom, rgba(0,0,0,0.9), rgb(22,40,50), rgba(0,0,0,0.9))",
           backgroundAttachment: "fixed",
         }}
       >
         <div
-          className="grid grid-cols-1 gap-[5px] lg:grid-cols-[25%_50%_25%]"
+          className="grid grid-cols-1 gap-[8px] lg:grid-cols-[25%_minmax(0,620px)_25%] lg:justify-center"
         >
           <div
             className="hidden lg:block"
@@ -34,8 +32,8 @@ export default async function MainLayout({ children }: { children: React.ReactNo
           />
 
           <section
-            className="min-h-screen"
-            style={{ padding: "0" }}
+            className="min-h-screen w-full"
+            style={{ padding: "0", maxWidth: "620px" }}
           >
             {children}
           </section>
