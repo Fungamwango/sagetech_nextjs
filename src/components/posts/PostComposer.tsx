@@ -21,7 +21,7 @@ interface PostComposerProps {
 }
 
 const QUICK_ACTIONS = [
-  { label: "Photo / Video", icon: "fas fa-images", type: "general" },
+  { label: "General", icon: "fas fa-images", type: "general" },
   { label: "Music", icon: "fas fa-music", type: "song" },
   { label: "More", icon: "fas fa-plus", type: "more" },
 ];
@@ -70,7 +70,7 @@ export default function PostComposer({ user, onCreated }: PostComposerProps) {
             onClick={() => openWith("general")}
             className="min-h-[46px] flex-1 rounded-full border border-white/10 bg-white/[0.04] px-4 text-left text-sm text-white/55 transition-colors hover:bg-white/[0.07]"
           >
-            What&apos;s on your mind{user?.username ? `, ${user.username}` : ""}?
+            Share an update, photo, or video{user?.username ? `, ${user.username}` : ""}...
           </button>
         </div>
 

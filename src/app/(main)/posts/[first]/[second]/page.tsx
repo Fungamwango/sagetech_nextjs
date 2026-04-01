@@ -1,3 +1,5 @@
+"use server";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
@@ -13,7 +15,7 @@ import { getPostSeo, getRelatedPostsByType, getVisiblePostById } from "@/lib/pos
 import { getPostPath } from "@/lib/postUrls";
 
 interface PostPageProps {
-  params: Promise<{ slug: string; id: string }>;
+  params: Promise<{ first: string; second: string }>;
 }
 
 function getSiteUrl() {
@@ -24,10 +26,35 @@ function stripHtml(value: string | null | undefined) {
   return (value ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function resolveRouteParts(first: string, second: string) {
+  if (isUuid(second)) {
+    return { id: second, slug: first };
+  }
+
+  if (isUuid(first)) {
+    return { id: first, slug: second };
+  }
+
+  return null;
+}
+
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
-  const { id } = await params;
+  const { first, second } = await params;
+  const resolved = resolveRouteParts(first, second);
+
+  if (!resolved) {
+    return {
+      title: "Post not found | SageTech",
+      robots: { index: false, follow: false },
+    };
+  }
+
   const currentUser = await getCurrentUser();
-  const post = await getVisiblePostById(id, currentUser?.id ?? null);
+  const post = await getVisiblePostById(resolved.id, currentUser?.id ?? null);
 
   if (!post) {
     return {
@@ -63,13 +90,16 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 }
 
 export default async function PostPage({ params }: PostPageProps) {
-  const [{ id, slug }, currentUser] = await Promise.all([params, getCurrentUser()]);
-  const post = await getVisiblePostById(id, currentUser?.id ?? null);
+  const [{ first, second }, currentUser] = await Promise.all([params, getCurrentUser()]);
+  const resolved = resolveRouteParts(first, second);
 
+  if (!resolved) notFound();
+
+  const post = await getVisiblePostById(resolved.id, currentUser?.id ?? null);
   if (!post) notFound();
 
   const canonicalPath = getPostPath(post);
-  const requestedPath = `/posts/${slug}/${id}`;
+  const requestedPath = `/posts/${first}/${second}`;
   if (requestedPath !== canonicalPath) {
     permanentRedirect(canonicalPath);
   }

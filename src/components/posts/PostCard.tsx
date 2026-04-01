@@ -16,6 +16,7 @@ interface PostCardProps {
     id: string;
     postType: string;
     fileType?: string | null;
+    privacy?: string | null;
     fileUrl?: string | null;
     filename?: string | null;
     thumbnailUrl?: string | null;
@@ -152,6 +153,8 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
   const [editingPost, setEditingPost] = useState(false);
   const [editPostText, setEditPostText] = useState(post.blogContent ?? post.generalPost ?? post.postDescription ?? "");
   const [savingPost, setSavingPost] = useState(false);
+  const [updatingPrivacy, setUpdatingPrivacy] = useState<string | null>(null);
+  const [showPrivacyOptions, setShowPrivacyOptions] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingPost, setDeletingPost] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -185,6 +188,12 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (!showMenu) {
+      setShowPrivacyOptions(false);
+    }
+  }, [showMenu]);
 
   const handleLike = async () => {
     if (!currentUserId) {
@@ -348,6 +357,47 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
     setReportingPost(false);
   };
 
+  const handleUpdatePrivacy = async (privacy: "public" | "friends" | "private") => {
+    if (updatingPrivacy || postState.privacy === privacy) {
+      setShowPrivacyOptions(false);
+      setShowMenu(false);
+      return;
+    }
+
+    setUpdatingPrivacy(privacy);
+    const res = await fetch(`/api/posts/${postState.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ privacy }),
+    });
+
+    if (res.ok) {
+      setPostState((current) => ({ ...current, privacy }));
+      setShowPrivacyOptions(false);
+      setShowMenu(false);
+      showToast({
+        type: "success",
+        message:
+          privacy === "public"
+            ? "Post privacy set to Public."
+            : privacy === "friends"
+              ? "Post privacy set to Followers Only."
+              : "Post privacy set to Only Me.",
+      });
+    } else {
+      showToast({ type: "error", message: "Unable to update privacy right now." });
+    }
+
+    setUpdatingPrivacy(null);
+  };
+
+  const privacyOptions = [
+    { value: "public", label: "Public" },
+    { value: "friends", label: "Followers Only" },
+    { value: "private", label: "Only Me" },
+  ] as const;
+  const currentPrivacy = privacyOptions.find((option) => option.value === (postState.privacy ?? "public")) ?? privacyOptions[0];
+
   const getPostTitle = () => {
     switch (postState.postType) {
       case "song": return postState.singer ?? postState.filename;
@@ -456,7 +506,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
           </button>
           {showMenu && (
             <div
-              className="absolute right-0 top-8 rounded-xl shadow-2xl z-20 overflow-hidden"
+              className="absolute right-0 top-8 rounded-xl shadow-2xl z-20 overflow-visible"
               style={{ background: "#0d2535", border: "1px solid rgba(255,255,255,0.1)", minWidth: "160px" }}
             >
               <button onClick={handleShare} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors">
@@ -490,6 +540,48 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
                 >
                   <i className="fas fa-pen w-4" /> Edit
                 </button>
+              )}
+              {currentUserId === postState.userId && (
+                <div className="relative border-t border-white/5 px-4 py-3">
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <i className="fas fa-lock text-[10px]" />
+                    <span>Privacy</span>
+                  </p>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowPrivacyOptions((current) => !current)}
+                      disabled={Boolean(updatingPrivacy)}
+                      className="flex w-full items-center justify-between rounded-lg border border-cyan-400/20 bg-cyan-400/[0.08] px-2 py-1.5 text-[13px] text-white/80 transition-colors hover:bg-cyan-400/[0.12] disabled:opacity-60"
+                    >
+                      <span>{currentPrivacy.label}</span>
+                      <span className="text-[11px] text-cyan-400">
+                        {updatingPrivacy ? <i className="fas fa-spinner fa-spin" /> : <i className={`fas ${showPrivacyOptions ? "fa-chevron-up" : "fa-chevron-down"}`} />}
+                      </span>
+                    </button>
+                    {showPrivacyOptions ? (
+                      <div
+                        className="absolute left-0 right-0 top-[calc(100%-1px)] z-30 overflow-hidden rounded-b-lg border border-white/10 border-t-0 bg-[#071926] shadow-[0_16px_40px_rgba(0,0,0,0.35)]"
+                      >
+                        {privacyOptions
+                          .filter((option) => option.value !== currentPrivacy.value)
+                          .map((option, index, filtered) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => void handleUpdatePrivacy(option.value)}
+                              disabled={Boolean(updatingPrivacy)}
+                              className={`flex w-full items-center justify-between px-2 py-1.5 text-[13px] text-white/72 transition-colors hover:bg-white/5 disabled:opacity-60 ${
+                                index < filtered.length - 1 ? "border-b border-white/6" : ""
+                              }`}
+                            >
+                              <span>{option.label}</span>
+                            </button>
+                          ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               )}
               {currentUserId === postState.userId && (
                 <button

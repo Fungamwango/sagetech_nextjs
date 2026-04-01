@@ -193,7 +193,23 @@ export const postsRouter = new Hono()
     const prefixSearch = `${search ?? ""}%`;
     const fuzzySearch = `%${search ?? ""}%`;
 
-    const conditions = [eq(posts.approved, true), eq(posts.privacy, "public")];
+    const visibilityCondition = session?.userId
+      ? or(
+          eq(posts.privacy, "public"),
+          eq(posts.userId, session.userId),
+          and(
+            eq(posts.privacy, "friends"),
+            sql`EXISTS (
+              SELECT 1
+              FROM follows
+              WHERE follows.follower_id = ${session.userId}
+                AND follows.following_id = ${posts.userId}
+            )`
+          )
+        )
+      : eq(posts.privacy, "public");
+
+    const conditions = [eq(posts.approved, true), visibilityCondition];
 
     if (postType && postType !== "all") {
       conditions.push(eq(posts.postType, postType as typeof posts.postType._.data));

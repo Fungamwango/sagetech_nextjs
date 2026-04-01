@@ -93,6 +93,103 @@ function buildAmountLink(baseLink: string, amount: number) {
   return url.toString();
 }
 
+type CachedCurrencyRates = {
+  base: string;
+  rates: Record<string, number>;
+  updatedAt: string;
+};
+
+const CURRENCY_CACHE_TTL_MS = 5 * 60 * 1000;
+const currencyRatesCache = new Map<string, { expiresAt: number; data: CachedCurrencyRates }>();
+
+async function getCachedCurrencyRates(base: string) {
+  const normalizedBase = base.trim().toUpperCase();
+  const cached = currencyRatesCache.get(normalizedBase);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
+  const url = new URL("https://api.openexchangeapi.com/v1/latest");
+  url.searchParams.set("base", normalizedBase);
+
+  const apiKey = process.env.OPEN_EXCHANGE_API_KEY?.trim();
+  const res = await fetch(url.toString(), {
+    headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+    next: { revalidate: 300 },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch live currency rates.");
+  }
+
+  const payload = (await res.json()) as {
+    base?: string;
+    rates?: Record<string, number>;
+    timestamp?: number;
+    date?: string;
+  };
+
+  if (!payload?.base || !payload?.rates || typeof payload.rates !== "object") {
+    throw new Error("Currency service returned an invalid response.");
+  }
+
+  const updatedAt = payload.date
+    ? new Date(payload.date).toISOString()
+    : payload.timestamp
+      ? new Date(payload.timestamp * 1000).toISOString()
+      : new Date().toISOString();
+
+  const data = {
+    base: payload.base.toUpperCase(),
+    rates: payload.rates,
+    updatedAt,
+  };
+
+  currencyRatesCache.set(normalizedBase, {
+    data,
+    expiresAt: Date.now() + CURRENCY_CACHE_TTL_MS,
+  });
+
+  return data;
+}
+
+app.get("/tools/currency", async (c) => {
+  const base = (c.req.query("base") ?? "USD").toUpperCase();
+  const symbols = (c.req.query("symbols") ?? "")
+    .split(",")
+    .map((symbol) => symbol.trim().toUpperCase())
+    .filter(Boolean);
+
+  if (!/^[A-Z]{3}$/.test(base)) {
+    return c.json({ error: "Invalid base currency." }, 400);
+  }
+
+  if (symbols.some((symbol) => !/^[A-Z]{3}$/.test(symbol))) {
+    return c.json({ error: "Invalid target currency." }, 400);
+  }
+
+  try {
+    const data = await getCachedCurrencyRates(base);
+    const rates = symbols.length
+      ? Object.fromEntries(
+          symbols
+            .filter((symbol) => symbol === base || typeof data.rates[symbol] === "number")
+            .map((symbol) => [symbol, symbol === base ? 1 : data.rates[symbol]])
+        )
+      : data.rates;
+
+    return c.json({
+      success: true,
+      base: data.base,
+      rates,
+      updatedAt: data.updatedAt,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to load live currency rates right now.";
+    return c.json({ error: message }, 502);
+  }
+});
+
 // ── AI helpers ────────────────────────────────────────────────────
 function mdToHtml(raw: string): string {
   if (!raw) return "";

@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, ne, notInArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { posts, users } from "@/lib/db/schema";
+import { follows, posts, users } from "@/lib/db/schema";
 import { getPrimaryMediaUrl } from "@/lib/postMedia";
 import { getPostPath } from "@/lib/postUrls";
 
@@ -93,7 +93,17 @@ export async function getVisiblePostById(id: string, currentUserId?: string | nu
   const isOwner = currentUserId === post.userId;
   const isPublicVisible = post.approved && post.privacy === "public";
 
-  if (!isPublicVisible && !isOwner) return null;
+  let isFollowerVisible = false;
+  if (post.approved && post.privacy === "friends" && currentUserId && !isOwner) {
+    const [follow] = await db
+      .select({ id: follows.id })
+      .from(follows)
+      .where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, post.userId)))
+      .limit(1);
+    isFollowerVisible = Boolean(follow);
+  }
+
+  if (!isPublicVisible && !isFollowerVisible && !isOwner) return null;
   return post;
 }
 

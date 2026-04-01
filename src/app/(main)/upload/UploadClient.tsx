@@ -109,7 +109,7 @@ export default function UploadClient({
   const coverPreviewRef = useRef<string | null>(null);
 
   const [selectedType, setSelectedType] = useState<UploadType | null>((initialType as UploadType) ?? null);
-  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<Record<string, string>>({ privacy: "public" });
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
@@ -137,6 +137,12 @@ export default function UploadClient({
   }, [uploadItems.length, galleryPreviewOpen]);
 
   useEffect(() => {
+    if (!error) return;
+    const timeout = window.setTimeout(() => setError(""), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [error]);
+
+  useEffect(() => {
     return () => {
       uploadItemsRef.current.forEach((item) => {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
@@ -150,6 +156,14 @@ export default function UploadClient({
     if (!uploadItems.length) return 0;
     return Math.round(uploadItems.reduce((sum, item) => sum + item.progress, 0) / uploadItems.length);
   }, [uploadItems]);
+  const generalImageCount = useMemo(
+    () => uploadItems.filter((item) => isImageContentType(item.file.type)).length,
+    [uploadItems]
+  );
+  const generalVideoCount = useMemo(
+    () => uploadItems.filter((item) => isVideoContentType(item.file.type)).length,
+    [uploadItems]
+  );
 
   const canUseMultipleImages = selectedType === "general";
 
@@ -162,7 +176,7 @@ export default function UploadClient({
   const set = (key: string, value: string) => setFormData((prev) => ({ ...prev, [key]: value }));
 
   const resetUploadSurface = () => {
-    setFormData({});
+    setFormData({ privacy: "public" });
     setSelectedType(null);
     setError("");
     setSuccess("");
@@ -565,11 +579,9 @@ export default function UploadClient({
                 <i className={`${currentTypeConfig?.icon} text-cyan-400`} />
                 {currentTypeConfig?.label}
               </h2>
-              <p className="text-sm text-white/50 mt-1">
-                {selectedType === "general"
-                  ? "Share text with multiple images or one video. Multiple images render as a gallery in the feed."
-                  : currentTypeConfig?.description}
-              </p>
+              {selectedType !== "general" ? (
+                <p className="text-sm text-white/50 mt-1">{currentTypeConfig?.description}</p>
+              ) : null}
             </div>
             {uploadItems.length > 0 && (
               <div className="upload-summary-pill">
@@ -582,26 +594,26 @@ export default function UploadClient({
           {error && <div className="upload-alert upload-alert--error">{error}</div>}
           {success && <div className="upload-alert upload-alert--success">{success}</div>}
 
-          <form onSubmit={handleSubmit} className="space-y-5 mt-5">
+          <form onSubmit={handleSubmit} className="space-y-5 mt-3">
             <div className="flex justify-start">
               <PrivacySelect formData={formData} set={set} compact />
             </div>
 
-            <UploadFormFields
-              postType={selectedType}
-              formData={formData}
-              set={set}
-            />
+            {selectedType === "general" ? (
+              <section className="upload-card space-y-4">
+                <UploadFormFields
+                  postType={selectedType}
+                  formData={formData}
+                  set={set}
+                  embedded
+                />
 
-            <section className="upload-card">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-white">Media</p>
-                  <p className="text-xs text-white/50 mt-1">
-                    {selectedType === "general"
-                      ? "Add multiple images or a single video for this post. Uploads continue in the background."
-                      : "Pick the main file for this post type."}
-                  </p>
+                  <p className="text-sm font-semibold text-white">{selectedType === "general" ? "Photos / Video" : "Media"}</p>
+                  {selectedType !== "general" ? (
+                    <p className="text-xs text-white/50 mt-1">Pick the main file for this post type.</p>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -638,7 +650,7 @@ export default function UploadClient({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">
-                    {selectedType === "general" ? "Drop images, or one video, here or browse your device" : "Drop your file here or browse"}
+                    {selectedType === "general" ? "Add photos or one video" : "Drop your file here or browse"}
                   </p>
                   <p className="text-xs text-white/50 mt-1">{getHelperCopy(selectedType)}</p>
                 </div>
@@ -652,7 +664,9 @@ export default function UploadClient({
                         <div>
                           <p className="text-sm font-semibold text-white">Selected media</p>
                           <p className="mt-0.5 text-xs text-white/45">
-                            Tap any image or use the gallery button to review and remove items.
+                            {generalVideoCount > 0
+                              ? "One video selected for this post."
+                              : `${generalImageCount} photo${generalImageCount === 1 ? "" : "s"} selected. Tap any image or use the gallery button to review and remove items.`}
                           </p>
                         </div>
                         <button
@@ -681,7 +695,74 @@ export default function UploadClient({
                   </div>
                 </div>
               )}
-            </section>
+              </section>
+            ) : (
+              <>
+                <UploadFormFields
+                  postType={selectedType}
+                  formData={formData}
+                  set={set}
+                />
+
+                <section className="upload-card">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-white">Media</p>
+                      <p className="text-xs text-white/50 mt-1">Pick the main file for this post type.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="upload-action-chip"
+                    >
+                      <i className="fas fa-folder-open" /> Choose files
+                    </button>
+                  </div>
+
+                  <label
+                    className={`upload-dropzone ${uploadItems.length > 0 ? "upload-dropzone--filled" : ""} ${isDragging ? "upload-dropzone--dragging" : ""}`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      applySelectedFiles(e.dataTransfer.files);
+                    }}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept={getFileAccept(selectedType)}
+                      multiple={canUseMultipleImages}
+                      onChange={(e) => applySelectedFiles(e.target.files)}
+                      className={FILE_INPUT_CLASS}
+                    />
+                    <div className="upload-dropzone__icon">
+                      <i className="fas fa-cloud-upload-alt" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Drop your file here or browse</p>
+                      <p className="text-xs text-white/50 mt-1">{getHelperCopy(selectedType)}</p>
+                    </div>
+                  </label>
+
+                  {uploadItems.length > 0 && (
+                    <div className="space-y-4 mt-4">
+                      <SingleFilePreview item={uploadItems[0]} onRemove={() => removeUploadItem(uploadItems[0].id)} />
+
+                      <div className="space-y-3">
+                        {uploadItems.map((item) => (
+                          <UploadProgressRow key={item.id} item={item} onRemove={() => removeUploadItem(item.id)} removable={!submitting} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </>
+            )}
 
             {selectedType === "song" && (
               <section className="upload-card">
@@ -720,7 +801,7 @@ export default function UploadClient({
                   Uploading in background...
                 </span>
               ) : (
-                "Publish post"
+                selectedType === "general" ? "Post" : "Publish post"
               )}
             </button>
           </form>
@@ -742,10 +823,12 @@ function UploadFormFields({
   postType,
   formData,
   set,
+  embedded = false,
 }: {
   postType: UploadType;
   formData: Record<string, string>;
   set: (key: string, value: string) => void;
+  embedded?: boolean;
 }) {
   const inputClass = "sage-input text-sm py-2.5 mt-1 rounded-2xl";
   const labelClass = "text-xs text-white/60 uppercase tracking-wider";
@@ -753,12 +836,12 @@ function UploadFormFields({
   switch (postType) {
     case "general":
       return (
-        <section className="upload-card">
+        <section className={embedded ? "" : "upload-card"}>
           <label className={labelClass}>Your Post</label>
           <textarea
             value={formData.generalPost ?? ""}
             onChange={(e) => set("generalPost", e.target.value)}
-            placeholder="What do you want to share today?"
+            placeholder="What's happening? Share your thoughts, a link, photos, or one short video..."
             className={`${inputClass} w-full min-h-[120px] resize-none`}
           />
         </section>
@@ -894,9 +977,9 @@ function PrivacySelect({
             : "sage-input text-sm py-2.5 mt-1 w-full rounded-2xl bg-transparent"
         }
       >
-        <option value="public">Public</option>
-        <option value="friends">Friends Only</option>
-        <option value="private">Private</option>
+        <option value="public" className="bg-white text-black">Public</option>
+        <option value="friends" className="bg-white text-black">Followers Only</option>
+        <option value="private" className="bg-white text-black">Only Me</option>
       </select>
     </div>
   );
@@ -915,7 +998,7 @@ function GalleryPreviewGrid({
   const remaining = items.length - limited.length;
 
   return (
-    <div className="upload-gallery-grid">
+    <div className="upload-gallery-grid max-w-[440px]">
       {limited.map((item, index) => (
         <div
           key={item.id}
@@ -1030,8 +1113,8 @@ function GalleryPreviewModal({
 
 function SingleFilePreview({ item, onRemove }: { item: UploadItem; onRemove: () => void }) {
   return (
-    <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/25">
-      <div className="relative h-56 w-full">
+    <div className="max-w-[440px] overflow-hidden rounded-[22px] border border-white/10 bg-black/25">
+      <div className="relative h-40 w-full sm:h-44">
         {item.previewUrl ? (
           <Image src={item.previewUrl} alt={item.file.name} fill className="object-cover" />
         ) : (
@@ -1104,7 +1187,7 @@ function getFileAccept(type: UploadType) {
 function getHelperCopy(type: UploadType) {
   switch (type) {
     case "general":
-      return "General posts support images, videos, and text updates.";
+      return "";
     case "song":
       return "Audio files up to 8MB. Optional cover art is compressed automatically.";
     case "video":
