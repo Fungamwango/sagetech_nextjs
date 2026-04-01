@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { useBackClosable } from "@/hooks/useBackClosable";
 
 const UploadClient = dynamic(() => import("@/app/(main)/upload/UploadClient"), { ssr: false });
 
@@ -30,12 +31,13 @@ export default function PostComposer({ user, onCreated }: PostComposerProps) {
   const [open, setOpen] = useState(false);
   const [initialType, setInitialType] = useState<string | undefined>(undefined);
   const modalRef = useRef<HTMLDivElement>(null);
+  const closeComposer = useBackClosable(open, () => setOpen(false));
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") closeComposer(); };
     if (open) document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open]);
+  }, [closeComposer, open]);
 
   // Prevent body scroll when modal open
   useEffect(() => {
@@ -93,7 +95,7 @@ export default function PostComposer({ user, onCreated }: PostComposerProps) {
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
           style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
-          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeComposer(); }}
         >
           <div
             ref={modalRef}
@@ -112,7 +114,7 @@ export default function PostComposer({ user, onCreated }: PostComposerProps) {
             >
               <span className="text-base font-semibold text-white">Create Post</span>
               <button
-                onClick={() => setOpen(false)}
+                onClick={closeComposer}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-colors"
                 style={{ background: "rgba(255,255,255,0.08)" }}
               >
@@ -126,7 +128,7 @@ export default function PostComposer({ user, onCreated }: PostComposerProps) {
                 user={{ id: user.id, username: user.username ?? "", points: user.points }}
                 initialType={initialType}
                 onSuccess={() => {
-                  setOpen(false);
+                  closeComposer();
                   // Refresh feed by triggering a reload event
                   window.dispatchEvent(new CustomEvent("post-created"));
                 }}

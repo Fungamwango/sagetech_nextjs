@@ -220,7 +220,6 @@ export const DICTIONARY_LANGUAGES = [
   { code: "ti", label: "Tigrinya" },
   { code: "tiv", label: "Tiv" },
   { code: "tpi", label: "Tok Pisin" },
-  { code: "to", label: "Tongan" },
   { code: "lua", label: "Tshiluba" },
   { code: "ts", label: "Tsonga" },
   { code: "tn", label: "Tswana" },

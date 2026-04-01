@@ -23,6 +23,7 @@ interface PostFeedProps {
   showComposer?: boolean;
   gridView?: boolean;
   order?: string;
+  fullContent?: boolean;
 }
 
 export default function PostFeed({
@@ -35,6 +36,7 @@ export default function PostFeed({
   showComposer = true,
   gridView = false,
   order,
+  fullContent = false,
 }: PostFeedProps) {
   const [posts, setPosts] = useState<any[]>([]);
   const [selectedGridPost, setSelectedGridPost] = useState<any | null>(null);
@@ -301,6 +303,7 @@ export default function PostFeed({
               post={post}
               currentUserId={currentUserId}
               onDelete={handlePostDeleted}
+              fullContent={fullContent}
             />
           ))}
         </div>

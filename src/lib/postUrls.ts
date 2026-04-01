@@ -7,6 +7,7 @@ function pickPostHeadline(post: {
   generalPost?: string | null;
   postDescription?: string | null;
   advertTitle?: string | null;
+  linkTitle?: string | null;
 }) {
   return (
     post.blogTitle ||
@@ -15,6 +16,7 @@ function pickPostHeadline(post: {
     post.filename ||
     post.bookTitle ||
     post.advertTitle ||
+    post.linkTitle ||
     post.generalPost ||
     post.postDescription ||
     "post"
@@ -35,5 +37,5 @@ export function getPostSlug(post: Parameters<typeof pickPostHeadline>[0]) {
 }
 
 export function getPostPath(post: { id: string } & Parameters<typeof pickPostHeadline>[0]) {
-  return `/posts/${post.id}/${getPostSlug(post)}`;
+  return `/posts/${getPostSlug(post)}/${post.id}`;
 }

@@ -331,7 +331,7 @@ function slugifyPostText(value: string): string {
     .slice(0, 80) || "post";
 }
 
-// Cloudflare AI account pool — random rotation across 11 accounts
+// Cloudflare AI account pool - random rotation across 11 accounts
 const CF_ACCOUNTS = [
   { accountId: "9f814249d80baa3f7fc398a840a8508b", token: "HU83BHDMxj0D8TI1QxzH7Y5cQ8Ft1mOwFbxskoB3" },
   { accountId: "4f32612e26f36a9a59eb98e97d7bfaba", token: "6wzAWWHF_lZc43Gag5brU5mZ-5Uwqv-xSiM3v7BE" },
@@ -346,7 +346,7 @@ const CF_ACCOUNTS = [
   { accountId: "b6085c5d02be6ccde4f30ef144f8311f", token: "gkkzCNh98O5phMWCd-XhMX0ERbDsT3aSp2d6yVns" },
 ];
 
-// AI Chat (Cloudflare AI) — with language, history and auto-save as blog post
+// AI Chat (Cloudflare AI) - with language, history and auto-save as blog post
 app.post("/ai/chat", async (c) => {
   const body = await c.req.json<{
     message: string;
@@ -388,7 +388,7 @@ app.post("/ai/chat", async (c) => {
             content: `You are SageAI, a knowledgeable assistant on SageTech. Give thorough, well-structured answers.
 RULES:
 - Output clean HTML only. Use <p> for paragraphs. Use <h3> for section headings. Use <strong> only for emphasis within a sentence. Use <ul><li> for lists. No markdown, no code fences.
-- For factual or explanatory questions: write 300–600 words with clear sections and specific details.
+- For factual or explanatory questions: write 300-600 words with clear sections and specific details.
 - For casual greetings like "how are you", respond warmly and briefly in 1–2 sentences, then invite a question.
 - Never cut off mid-answer. Always complete your response fully.`,
           },
@@ -435,7 +435,7 @@ RULES:
       }).returning({ id: posts.id });
       postId = inserted?.id ?? null;
       if (postId) {
-        sharePath = `/posts/${postId}/${slugifyPostText(title)}`;
+        sharePath = `/posts/${slugifyPostText(title)}/${postId}`;
       }
     } else {
       const title = `Guest: ${translatedQ.substring(0, 190)}`;

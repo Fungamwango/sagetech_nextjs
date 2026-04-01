@@ -9,6 +9,7 @@ import PostFeed from "@/components/posts/PostFeed";
 import AdsterraBannerEmbed from "@/components/monetise/AdsterraBannerEmbed";
 import MonetisationSummaryCard from "@/components/monetise/MonetisationSummaryCard";
 import { prepareUploadFile } from "@/lib/client/upload";
+import { useBackClosable } from "@/hooks/useBackClosable";
 
 interface ProfileSummary {
   id: string;
@@ -102,6 +103,8 @@ export default function ProfilePageClient({
   const [activeFilter, setActiveFilter] = useState<PostFilter>("all");
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
+  const closeMoreMenu = useBackClosable(showMoreMenu, () => setShowMoreMenu(false));
+  const closeFullImage = useBackClosable(showFullImage, () => setShowFullImage(false));
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [preview, setPreview] = useState(profile.picture || "/files/default-avatar.svg");
   const [pictureUrl, setPictureUrl] = useState(profile.picture || "/files/default-avatar.svg");
@@ -582,7 +585,7 @@ export default function ProfilePageClient({
       {showMoreMenu && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4"
-          onClick={() => setShowMoreMenu(false)}
+          onClick={closeMoreMenu}
         >
           <div
             className="w-full max-w-md rounded-md bg-[rgb(250,250,255)] px-6 py-5 text-left shadow-2xl"
@@ -602,7 +605,7 @@ export default function ProfilePageClient({
                 </button>
               </li>
               <li>
-                <button onClick={() => setShowMoreMenu(false)} className="rounded-md border border-black/10 px-4 py-2 text-sm text-black/70">
+                <button onClick={closeMoreMenu} className="rounded-md border border-black/10 px-4 py-2 text-sm text-black/70">
                   cancel
                 </button>
               </li>
@@ -614,14 +617,14 @@ export default function ProfilePageClient({
       {showFullImage && (
         <div
           className="fixed inset-0 z-50 bg-black/80 px-3 py-5"
-          onClick={() => setShowFullImage(false)}
+          onClick={closeFullImage}
         >
           <div
             className="mx-auto w-full max-w-3xl rounded-[3px] bg-white p-2"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="text-right">
-              <button onClick={() => setShowFullImage(false)} className="px-3 py-1 text-xl text-black/70">
+              <button onClick={closeFullImage} className="px-3 py-1 text-xl text-black/70">
                 <i className="fas fa-times" />
               </button>
             </div>

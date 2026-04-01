@@ -83,6 +83,10 @@ export const posts = pgTable(
     // General post
     generalPost: text("general_post"),
     postDescription: text("post_description"),
+    linkUrl: text("link_url"),
+    linkTitle: text("link_title"),
+    linkDescription: text("link_description"),
+    linkImage: text("link_image"),
 
     // Song fields
     singer: varchar("singer", { length: 100 }),

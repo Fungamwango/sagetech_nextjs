@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { timeAgo } from "@/lib/utils";
@@ -30,38 +30,83 @@ export default function NotificationsClient() {
   const { showToast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
-    loadNotifications();
-    // Mark all as read
-    fetch("/api/notifications/read", { method: "PUT" });
+    void initialLoad();
   }, []);
 
-  const loadNotifications = async () => {
-    setLoading(true);
-    const res = await fetch("/api/notifications");
+  const getNotificationLink = (notif: Notification) => {
+    if (notif.type === "message" && notif.actorId) return `/messages?user=${notif.actorId}`;
+    if (notif.type === "follow" && notif.actorId) return `/profile/${notif.actorId}`;
+    if (notif.postId) return `/?postId=${notif.postId}`;
+    if (notif.actorId) return `/profile/${notif.actorId}`;
+    return null;
+  };
+
+  const loadNotifications = async (append = false) => {
+    const offset = append ? notifications.length : 0;
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+
+    const res = await fetch(`/api/notifications?offset=${offset}&limit=20`);
     if (res.ok) {
-      const d = await res.json();
-      setNotifications(d.notifications ?? []);
+      const data = await res.json();
+      const incoming = (data.notifications ?? []) as Notification[];
+      setNotifications((current) => {
+        if (!append) return incoming;
+        const existingIds = new Set(current.map((item) => item.id));
+        return [...current, ...incoming.filter((item) => !existingIds.has(item.id))];
+      });
+      setHasMore(!!data.hasMore);
+      setTotalCount(Number(data.totalCount ?? 0));
     } else {
       showToast({ type: "error", message: "Unable to load notifications." });
     }
-    setLoading(false);
+
+    if (append) setLoadingMore(false);
+    else setLoading(false);
+  };
+
+  const markAllAsRead = async (silent = false) => {
+    setMarkingAllRead(true);
+    const res = await fetch("/api/notifications/read", { method: "PUT" });
+    if (res.ok) {
+      setNotifications((current) => current.map((item) => ({ ...item, seen: true })));
+      if (!silent) {
+        showToast({ type: "success", message: "Notifications marked as read." });
+      }
+    } else if (!silent) {
+      showToast({ type: "error", message: "Unable to mark notifications as read." });
+    }
+    setMarkingAllRead(false);
+  };
+
+  const initialLoad = async () => {
+    await loadNotifications(false);
+    await markAllAsRead(true);
   };
 
   const deleteNotif = async (id: string) => {
+    setDeletingId(id);
     const res = await fetch(`/api/notifications/${id}`, { method: "DELETE" });
     if (res.ok) {
-      setNotifications((n) => n.filter((x) => x.id !== id));
+      setNotifications((current) => current.filter((item) => item.id !== id));
+      setTotalCount((current) => Math.max(0, current - 1));
       showToast({ type: "success", message: "Notification deleted." });
     } else {
       showToast({ type: "error", message: "Unable to delete notification." });
     }
+    setDeletingId(null);
   };
 
   if (loading) {
     return (
-      <div className="text-center py-12">
+      <div className="py-12 text-center">
         <div className="modern-list-loader mx-auto" aria-hidden="true">
           <div className="modern-list-loader__core" />
         </div>
@@ -72,83 +117,123 @@ export default function NotificationsClient() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-bold text-white">Notifications</h1>
-        {notifications.length > 0 && (
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold text-white">Notifications</h1>
+          {totalCount > 0 ? (
+            <p className="mt-1 text-xs text-white/45">
+              {totalCount.toLocaleString()} notification{totalCount === 1 ? "" : "s"}
+            </p>
+          ) : null}
+        </div>
+        {notifications.length > 0 ? (
           <button
-            onClick={async () => {
-              const res = await fetch("/api/notifications/read", { method: "PUT" });
-              showToast({
-                type: res.ok ? "success" : "error",
-                message: res.ok ? "Notifications marked as read." : "Unable to mark notifications as read.",
-              });
-            }}
-            className="text-xs text-cyan-400 hover:text-cyan-300"
+            type="button"
+            onClick={() => void markAllAsRead(false)}
+            disabled={markingAllRead}
+            className="text-xs text-cyan-400 hover:text-cyan-300 disabled:opacity-60"
           >
-            Mark all read
+            {markingAllRead ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-1" />
+                Marking...
+              </>
+            ) : (
+              "Mark all read"
+            )}
           </button>
-        )}
+        ) : null}
       </div>
 
-      {notifications.length === 0 && (
-        <div className="text-center py-16">
-          <i className="fas fa-bell-slash text-4xl text-white/20 mb-3" />
-          <p className="text-white/40 text-sm">No notifications yet</p>
+      {notifications.length === 0 ? (
+        <div className="py-16 text-center">
+          <i className="fas fa-bell-slash mb-3 text-4xl text-white/20" />
+          <p className="text-sm text-white/40">No notifications yet</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {notifications.map((notif) => {
+            const { icon, color } = typeIcons[notif.type] ?? typeIcons.system;
+            const destination = getNotificationLink(notif);
+            return (
+              <div
+                key={notif.id}
+                className={`sage-card flex items-start gap-3 fade-in ${
+                  !notif.seen ? "border-cyan-800/40 bg-cyan-900/10" : ""
+                }`}
+              >
+                {notif.actorId ? (
+                  <Link href={`/profile/${notif.actorId}`}>
+                    <Image
+                      src={notif.actorPicture || "/files/default-avatar.svg"}
+                      alt={notif.actorUsername ?? "user"}
+                      width={36}
+                      height={36}
+                      className="h-9 w-9 rounded-full border border-white/20 object-cover"
+                    />
+                  </Link>
+                ) : (
+                  <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/5 ${color}`}>
+                    <i className={icon} />
+                  </div>
+                )}
+
+                <div className="min-w-0 flex-1">
+                  {destination ? (
+                    <Link href={destination} className="text-sm text-white transition-colors hover:text-cyan-300">
+                      {notif.content}
+                    </Link>
+                  ) : (
+                    <p className="text-sm text-white">{notif.content}</p>
+                  )}
+                  <p className="mt-0.5 text-xs text-white/40">{timeAgo(notif.createdAt)}</p>
+                  {destination ? (
+                    <Link href={destination} className="mt-1 inline-block text-xs text-cyan-400 hover:text-cyan-300">
+                      {notif.type === "message"
+                        ? "Open chat ->"
+                        : notif.type === "follow"
+                          ? "View profile ->"
+                          : "View item ->"}
+                    </Link>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-shrink-0 items-center gap-1">
+                  {!notif.seen ? <span className="h-2 w-2 rounded-full bg-cyan-400" /> : null}
+                  <button
+                    type="button"
+                    onClick={() => void deleteNotif(notif.id)}
+                    disabled={deletingId === notif.id}
+                    className="p-1 text-xs text-white/20 transition-colors hover:text-red-400 disabled:opacity-60"
+                  >
+                    {deletingId === notif.id ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-times" />}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <div className="space-y-2">
-        {notifications.map((notif) => {
-          const { icon, color } = typeIcons[notif.type] ?? typeIcons.system;
-          return (
-            <div
-              key={notif.id}
-              className={`sage-card flex items-start gap-3 fade-in ${!notif.seen ? "border-cyan-800/40 bg-cyan-900/10" : ""}`}
-            >
-              {notif.actorId ? (
-                <Link href={`/profile/${notif.actorId}`}>
-                  <Image
-                    src={notif.actorPicture || "/files/default-avatar.svg"}
-                    alt={notif.actorUsername ?? "user"}
-                    width={36}
-                    height={36}
-                    className="rounded-full object-cover border border-white/20 flex-shrink-0"
-                  />
-                </Link>
-              ) : (
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center bg-white/5 flex-shrink-0 ${color}`}>
-                  <i className={icon} />
-                </div>
-              )}
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-white">{notif.content}</p>
-                <p className="text-xs text-white/40 mt-0.5">{timeAgo(notif.createdAt)}</p>
-                {notif.postId && (
-                  <Link
-                    href={`/?postId=${notif.postId}`}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 mt-1 inline-block"
-                  >
-                    View post →
-                  </Link>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {!notif.seen && (
-                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                )}
-                <button
-                  onClick={() => deleteNotif(notif.id)}
-                  className="text-white/20 hover:text-red-400 text-xs p-1 transition-colors"
-                >
-                  <i className="fas fa-times" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {hasMore ? (
+        <div className="pt-4 text-center">
+          <button
+            type="button"
+            onClick={() => void loadNotifications(true)}
+            disabled={loadingMore}
+            className="text-sm font-medium text-cyan-400 hover:text-cyan-300 disabled:opacity-60"
+          >
+            {loadingMore ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-1" />
+                Loading more...
+              </>
+            ) : (
+              "Load more notifications"
+            )}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

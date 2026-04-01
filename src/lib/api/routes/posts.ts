@@ -6,6 +6,7 @@ import { posts, likes, comments, notifications, users, follows } from "@/lib/db/
 import { eq, desc, sql, and, or, ilike, asc, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { getPostTypeCost, getUserLevel } from "@/lib/utils";
+import { fetchLinkPreviewFromText } from "@/lib/linkPreview";
 
 const createPostSchemaBase = z.object({
   postType: z.enum(["general", "song", "video", "photo", "app", "book", "document", "product", "advert", "blog"]),
@@ -166,6 +167,13 @@ const createPostSchema = createPostSchemaBase.superRefine((data, ctx) => {
 const updatePostSchema = createPostSchemaBase.partial().omit({ postType: true, fileResourceType: true });
 const updateCommentSchema = z.object({ content: z.string().min(1).max(1000) });
 
+async function incrementPostViews(postId: string) {
+  await db
+    .update(posts)
+    .set({ views: sql`${posts.views} + 1` })
+    .where(eq(posts.id, postId));
+}
+
 export const postsRouter = new Hono()
 
   // ─── Get posts feed ─────────────────────────────────────────
@@ -232,6 +240,10 @@ export const postsRouter = new Hono()
         thumbnailUrl: posts.thumbnailUrl,
         generalPost: posts.generalPost,
         postDescription: posts.postDescription,
+        linkUrl: posts.linkUrl,
+        linkTitle: posts.linkTitle,
+        linkDescription: posts.linkDescription,
+        linkImage: posts.linkImage,
         singer: posts.singer,
         songType: posts.songType,
         albumCover: posts.albumCover,
@@ -307,15 +319,25 @@ export const postsRouter = new Hono()
     if (!post) return c.json({ error: "Post not found" }, 404);
 
     // Increment views
-    await db
-      .update(posts)
-      .set({ views: sql`${posts.views} + 1` })
-      .where(eq(posts.id, id));
+    await incrementPostViews(id);
 
     return c.json({ post });
   })
 
   // ─── Create post ─────────────────────────────────────────────
+  .post("/:id/view", async (c) => {
+    const id = c.req.param("id");
+    await incrementPostViews(id);
+
+    return c.json({ success: true });
+  })
+
+  .post("/:id/share", async (c) => {
+    const id = c.req.param("id");
+    await incrementPostViews(id);
+    return c.json({ success: true });
+  })
+
   .post("/", zValidator("json", createPostSchema), async (c) => {
     const session = await getSession();
     if (!session) return c.json({ error: "Unauthorized" }, 401);
@@ -367,6 +389,10 @@ export const postsRouter = new Hono()
         ? JSON.stringify(data.galleryUrls)
         : data.fileUrl;
     const fileType = deriveFileType(data.postType, resolvedFileUrl, data.fileResourceType, data.galleryUrls);
+    const linkPreview =
+      data.postType === "general" && !resolvedFileUrl
+        ? await fetchLinkPreviewFromText(data.generalPost)
+        : null;
 
     // Auto-approve general posts, require approval for media
     const autoApprove = data.postType === "general" || data.postType === "blog";
@@ -380,6 +406,10 @@ export const postsRouter = new Hono()
         ...postData,
         fileUrl: resolvedFileUrl,
         fileType,
+        linkUrl: linkPreview?.url,
+        linkTitle: linkPreview?.title,
+        linkDescription: linkPreview?.description,
+        linkImage: linkPreview?.image,
         productPrice: postData.productPrice ? postData.productPrice : undefined,
         approved: autoApprove,
       })

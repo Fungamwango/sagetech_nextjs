@@ -7,6 +7,9 @@ import { timeAgo, formatCount } from "@/lib/utils";
 import { useToast, type AppToast } from "@/components/ui/ToastProvider";
 import { parseMediaUrls } from "@/lib/postMedia";
 import { getPostPath } from "@/lib/postUrls";
+import { isLinkOnlyPostText } from "@/lib/linkPreview";
+import { useBackClosable } from "@/hooks/useBackClosable";
+import { trackPostViewOnce } from "@/lib/client/postViews";
 
 interface PostCardProps {
   post: {
@@ -18,6 +21,10 @@ interface PostCardProps {
     thumbnailUrl?: string | null;
     generalPost?: string | null;
     postDescription?: string | null;
+    linkUrl?: string | null;
+    linkTitle?: string | null;
+    linkDescription?: string | null;
+    linkImage?: string | null;
     singer?: string | null;
     songType?: string | null;
     albumCover?: string | null;
@@ -48,6 +55,7 @@ interface PostCardProps {
   };
   currentUserId?: string | null;
   onDelete?: (id: string) => void;
+  fullContent?: boolean;
 }
 
 // Deterministic waveform heights to avoid flickering
@@ -58,7 +66,78 @@ type DeleteConfirmState = {
   label: string;
 } | null;
 
-export default function PostCard({ post, currentUserId, onDelete }: PostCardProps) {
+const URL_PATTERN = /((?:https?:\/\/|www\.)[^\s<]+)/gi;
+const URL_PART_PATTERN = /^(?:https?:\/\/|www\.)[^\s<]+$/i;
+
+function normaliseHref(value: string) {
+  return value.startsWith("http://") || value.startsWith("https://") ? value : `https://${value}`;
+}
+
+function renderTextWithLinks(text: string, className?: string) {
+  const parts = text.split(URL_PATTERN);
+
+  return (
+    <span className={`whitespace-pre-wrap break-words ${className ?? ""}`}>
+      {parts.map((part, index) => {
+        if (!part) return null;
+        if (URL_PART_PATTERN.test(part)) {
+          const href = normaliseHref(part);
+          return (
+            <a
+              key={`${href}-${index}`}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="break-words text-cyan-400 underline decoration-cyan-400/50 underline-offset-2 hover:text-cyan-300"
+            >
+              {part}
+            </a>
+          );
+        }
+        return <span key={`${index}-${part}`}>{part}</span>;
+      })}
+    </span>
+  );
+}
+
+function LinkPreviewCard({
+  url,
+  title,
+  description,
+  image,
+}: {
+  url: string;
+  title?: string | null;
+  description?: string | null;
+  image?: string | null;
+}) {
+  let hostname = url;
+  try {
+    hostname = new URL(url).hostname.replace(/^www\./i, "");
+  } catch {}
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      className="mt-3 block overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition-colors hover:border-cyan-400/35 hover:bg-white/[0.05]"
+    >
+      {image ? (
+        <div className="relative aspect-[1.91/1] w-full overflow-hidden bg-black/20">
+          <img src={image} alt={title || hostname} className="h-full w-full object-cover" loading="lazy" />
+        </div>
+      ) : null}
+      <div className="space-y-1 px-4 py-3">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-white/35">{hostname}</p>
+        <p className="line-clamp-2 text-[15px] font-semibold text-white">{title || url}</p>
+        {description ? <p className="line-clamp-3 text-sm leading-relaxed text-white/60">{description}</p> : null}
+      </div>
+    </a>
+  );
+}
+
+export default function PostCard({ post, currentUserId, onDelete, fullContent = false }: PostCardProps) {
   const { showToast } = useToast();
   const [postState, setPostState] = useState(post);
   const [liked, setLiked] = useState(post.likedByMe ?? false);
@@ -79,6 +158,12 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
   const [reportReason, setReportReason] = useState("");
   const [reportingPost, setReportingPost] = useState(false);
   const [reportError, setReportError] = useState("");
+  const closeComments = useBackClosable(showComments, () => setShowComments(false));
+  const closeDeleteModal = useBackClosable(deleteModalOpen, () => setDeleteModalOpen(false));
+  const closeReportModal = useBackClosable(reportModalOpen, () => {
+    setReportModalOpen(false);
+    setReportError("");
+  });
   const menuRef = useRef<HTMLDivElement>(null);
   const postPath = getPostPath({
     id: postState.id,
@@ -90,6 +175,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
     generalPost: postState.generalPost,
     postDescription: postState.postDescription,
     advertTitle: postState.advertTitle,
+    linkTitle: postState.linkTitle,
   });
 
   useEffect(() => {
@@ -113,6 +199,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
     try {
       const res = await fetch(`/api/posts/${postState.id}/like`, { method: "POST" });
       if (res.ok) {
+        void trackPostViewOnce(postState.id);
         const d = await res.json();
         setLiked(d.liked);
         setLikeCount((current) => (d.liked ? current + 1 : Math.max(0, current - 1)));
@@ -145,7 +232,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
     setDeletingPost(true);
     const res = await fetch(`/api/posts/${postState.id}`, { method: "DELETE" });
     if (res.ok) {
-      setDeleteModalOpen(false);
+      closeDeleteModal();
       showToast({ type: "success", message: "Post deleted." });
       onDelete?.(postState.id);
     } else {
@@ -185,12 +272,21 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
   const handleShare = async () => {
     const url = `${window.location.origin}${postPath}`;
     const title = postState.blogTitle ?? postState.singer ?? postState.productName ?? postState.generalPost ?? "SageTech post";
+    void trackPostViewOnce(postState.id);
     if (navigator.share) {
       try { await navigator.share({ title, url }); } catch {}
     } else {
-      navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(url);
       showToast({ type: "success", message: "Link copied." });
     }
+    setShowMenu(false);
+  };
+
+  const handleCopyPostLink = async () => {
+    const url = `${window.location.origin}${postPath}`;
+    void trackPostViewOnce(postState.id);
+    await navigator.clipboard.writeText(url);
+    showToast({ type: "success", message: "Link copied." });
     setShowMenu(false);
   };
 
@@ -211,6 +307,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
     });
 
     if (res.ok) {
+      void trackPostViewOnce(postState.id);
       setPostState((current) => ({
         ...current,
         ...payload,
@@ -240,7 +337,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
     });
 
     if (res.ok) {
-      setReportModalOpen(false);
+      closeReportModal();
       setReportReason("");
       setShowMenu(false);
       showToast({ type: "success", message: "Report submitted." });
@@ -266,12 +363,47 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
 
   const postTitle = getPostTitle();
   const textContent = postState.blogContent ?? postState.generalPost ?? postState.postDescription;
+  const isSharedLinkPost =
+    postState.postType === "general" &&
+    !postState.fileUrl &&
+    isLinkOnlyPostText(postState.generalPost) &&
+    !!postState.linkUrl;
+  const shouldShowLinkPreview = postState.postType === "general" && !postState.fileUrl && !!postState.linkUrl;
   const TRUNCATE = 150;
   const [expanded, setExpanded] = useState(false);
-  const needsTruncate = !!textContent && textContent.length > TRUNCATE;
-  const displayText = expanded || !needsTruncate ? textContent : textContent?.slice(0, TRUNCATE) + "...";
+  const needsTruncate = !fullContent && !!textContent && textContent.length > TRUNCATE;
+  const displayText = fullContent || expanded || !needsTruncate ? textContent : textContent?.slice(0, TRUNCATE) + "...";
   const captionOnTopPostTypes = new Set(["photo", "video", "product", "song", "app", "book", "document"]);
   const hasMediaBackedCaption = captionOnTopPostTypes.has(postState.postType) || (!!postState.fileUrl && ["image", "video", "audio", "document"].includes(postState.fileType ?? ""));
+  const canManageGallery = currentUserId === postState.userId;
+
+  const handleRemoveGalleryImage = async (imageUrl: string) => {
+    const currentImages = parseMediaUrls(postState.fileUrl);
+    const nextImages = currentImages.filter((url) => url !== imageUrl);
+    const hasTextFallback = Boolean((postState.generalPost ?? postState.postDescription ?? postState.blogContent ?? "").trim());
+
+    if (nextImages.length === 0 && !hasTextFallback) {
+      showToast({ type: "error", message: "This post needs at least one image or some text content." });
+      return;
+    }
+
+    const nextFileUrl =
+      nextImages.length > 1 ? JSON.stringify(nextImages) : nextImages[0] ?? "";
+
+    const res = await fetch(`/api/posts/${postState.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileUrl: nextFileUrl }),
+    });
+
+    if (!res.ok) {
+      showToast({ type: "error", message: "Unable to remove image right now." });
+      return;
+    }
+
+    setPostState((current) => ({ ...current, fileUrl: nextFileUrl }));
+    showToast({ type: "success", message: "Image removed from post." });
+  };
 
   return (
     <>
@@ -330,17 +462,18 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
               <button onClick={handleShare} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors">
                 <i className="fas fa-share-alt text-cyan-400 w-4" /> Share
               </button>
-              <Link
-                href={`/messages?user=${post.userId}`}
-                className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
-                onClick={() => setShowMenu(false)}
-              >
-                <i className="fas fa-comment-dots text-cyan-400 w-4" /> Chat with sender
-              </Link>
+              {currentUserId && currentUserId !== postState.userId ? (
+                <Link
+                  href={`/messages?user=${post.userId}`}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
+                  onClick={() => setShowMenu(false)}
+                >
+                  <i className="fas fa-comment-dots text-cyan-400 w-4" /> Chat with {postState.username || "user"}
+                </Link>
+              ) : null}
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}${postPath}`);
-                  setShowMenu(false);
+                  void handleCopyPostLink();
                 }}
                 className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
               >
@@ -388,7 +521,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
       </div>
 
       {/* Post type badge */}
-      {postState.postType !== "general" && (
+      {postState.postType !== "general" && postState.postType !== "blog" && (
         <span
           className="text-xs px-2 py-0.5 rounded-full capitalize mb-2 inline-block"
           style={{ background: "rgba(0,180,200,0.12)", color: "#00c8e8", border: "1px solid rgba(0,180,200,0.25)" }}
@@ -431,7 +564,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
             </button>
           </div>
         </div>
-      ) : displayText && (
+      ) : displayText && !isSharedLinkPost && (
         <div className="mt-2">
           {postState.postType === "blog" && /<[a-z][\s\S]*>/i.test(displayText) ? (
             <>
@@ -440,18 +573,20 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
                 dangerouslySetInnerHTML={{ __html: displayText }}
               />
               {needsTruncate && (
-                <button onClick={() => setExpanded(!expanded)} className="text-xs text-cyan-400 mt-1 hover:underline">
-                  {expanded ? "Show less" : "Read more"}
-                </button>
+                <Link href={postPath} className="mt-1 inline-block text-xs text-cyan-400 hover:underline">
+                  Read more
+                </Link>
               )}
             </>
           ) : (
             <>
-              <p className="text-[16px] text-white/85 leading-relaxed">{displayText}</p>
+              <p className="text-[16px] text-white/85 leading-relaxed break-words">
+                {renderTextWithLinks(displayText)}
+              </p>
               {needsTruncate && (
-                <button onClick={() => setExpanded(!expanded)} className="text-xs text-cyan-400 mt-1 hover:underline">
-                  {expanded ? "Show less" : "Read more"}
-                </button>
+                <Link href={postPath} className="mt-1 inline-block text-xs text-cyan-400 hover:underline">
+                  Read more
+                </Link>
               )}
             </>
           )}
@@ -460,19 +595,37 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
 
       {/* Non-text title */}
       {postTitle && postState.postType !== "blog" && (
-        <p className="text-[16px] text-white mt-2 font-medium">{postTitle}</p>
+        <p className="text-[16px] text-white mt-2 font-medium break-words">{renderTextWithLinks(postTitle)}</p>
       )}
       {postState.postDescription && !displayText && !["general", "blog", "advert"].includes(postState.postType) && !editingPost && (
-        <p className="mt-1 text-[16px] text-white/55">{postState.postDescription}</p>
+        <p className="mt-1 text-[16px] text-white/55 break-words">{renderTextWithLinks(postState.postDescription)}</p>
       )}
+      {shouldShowLinkPreview && postState.linkUrl ? (
+        <LinkPreviewCard
+          url={postState.linkUrl}
+          title={postState.linkTitle}
+          description={postState.linkDescription}
+          image={postState.linkImage}
+        />
+      ) : null}
 
       {/* Media content */}
       {hasMediaBackedCaption ? (
         <div className="mt-3">
-          <PostContent post={postState} onDownload={handleDownload} />
+          <PostContent
+            post={postState}
+            onDownload={handleDownload}
+            canManageGallery={canManageGallery}
+            onRemoveGalleryImage={handleRemoveGalleryImage}
+          />
         </div>
       ) : (
-        <PostContent post={postState} onDownload={handleDownload} />
+        <PostContent
+          post={postState}
+          onDownload={handleDownload}
+          canManageGallery={canManageGallery}
+          onRemoveGalleryImage={handleRemoveGalleryImage}
+        />
       )}
 
       {/* Stats bar */}
@@ -503,7 +656,13 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
             <span className="text-xs font-medium">{likeCount}</span>
           </button>
           <button
-            onClick={() => setShowComments(!showComments)}
+            onClick={() => {
+              if (showComments) {
+                closeComments();
+                return;
+              }
+              setShowComments(true);
+            }}
             className={`modern-pill-action flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-sm transition-colors ${showComments ? "text-cyan-400" : "text-white/60 hover:text-cyan-400"}`}
           >
             <i className={`${showComments ? "fas" : "far"} fa-comment`} />
@@ -581,7 +740,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
         loading={deletingPost}
         onConfirm={handleDelete}
         onClose={() => {
-          if (!deletingPost) setDeleteModalOpen(false);
+          if (!deletingPost) closeDeleteModal();
         }}
       />
 
@@ -597,8 +756,7 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
         onSubmit={handleReportPost}
         onClose={() => {
           if (!reportingPost) {
-            setReportModalOpen(false);
-            setReportError("");
+            closeReportModal();
           }
         }}
       />
@@ -607,7 +765,17 @@ export default function PostCard({ post, currentUserId, onDelete }: PostCardProp
 }
 
 // ─── Post Media Content ──────────────────────────────────────────
-function PostContent({ post, onDownload }: { post: PostCardProps["post"]; onDownload: () => void }) {
+function PostContent({
+  post,
+  onDownload,
+  canManageGallery = false,
+  onRemoveGalleryImage,
+}: {
+  post: PostCardProps["post"];
+  onDownload: () => void;
+  canManageGallery?: boolean;
+  onRemoveGalleryImage?: (imageUrl: string) => void | Promise<void>;
+}) {
   const mediaUrls = parseMediaUrls(post.fileUrl);
   const primaryMediaUrl = mediaUrls[0];
 
@@ -618,7 +786,14 @@ function PostContent({ post, onDownload }: { post: PostCardProps["post"]; onDown
     post.postType === "photo" ||
     (["general", "blog", "advert"].includes(post.postType) && primaryMediaUrl && post.fileType === "image")
   ) {
-    return <PhotoGalleryViewer images={mediaUrls} alt={post.postDescription ?? post.blogTitle ?? "Photo"} />;
+    return (
+      <PhotoGalleryViewer
+        images={mediaUrls}
+        alt={post.postDescription ?? post.blogTitle ?? "Photo"}
+        canManage={canManageGallery}
+        onRemoveImage={onRemoveGalleryImage}
+      />
+    );
   }
 
   if (
@@ -1018,27 +1193,64 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
 }
 
 // ─── Photo Viewer with Lightbox ──────────────────────────────────
-function PhotoGalleryViewer({ images, alt }: { images: string[]; alt: string }) {
+function PhotoGalleryViewer({
+  images,
+  alt,
+  canManage = false,
+  onRemoveImage,
+}: {
+  images: string[];
+  alt: string;
+  canManage?: boolean;
+  onRemoveImage?: (imageUrl: string) => void | Promise<void>;
+}) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [removingImage, setRemovingImage] = useState<string | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
   const visible = images.slice(0, 4);
   const remaining = images.length - visible.length;
+  const closeGallery = useBackClosable(openIndex != null, () => setOpenIndex(null));
 
   useEffect(() => {
     if (openIndex == null) return;
 
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenIndex(null);
-      if (e.key === "ArrowRight") setOpenIndex((current) => (current == null ? current : (current + 1) % images.length));
-      if (e.key === "ArrowLeft") setOpenIndex((current) => (current == null ? current : (current - 1 + images.length) % images.length));
+      if (e.key === "Escape") closeGallery();
+      if (e.key === "ArrowRight") showNext();
+      if (e.key === "ArrowLeft") showPrevious();
     };
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [images.length, openIndex]);
+  }, [closeGallery, images.length, openIndex]);
 
   if (images.length <= 1) {
     return images[0] ? <PhotoViewer src={images[0]} alt={alt} /> : null;
   }
+
+  const handleRemove = async (imageUrl: string) => {
+    if (!onRemoveImage || removingImage) return;
+    setRemovingImage(imageUrl);
+    try {
+      await onRemoveImage(imageUrl);
+      setOpenIndex((current) => {
+        if (current == null) return current;
+        if (images.length <= 2) return null;
+        const nextIndex = Math.min(current, images.length - 2);
+        return nextIndex;
+      });
+    } finally {
+      setRemovingImage(null);
+    }
+  };
+
+  const showPrevious = () => {
+    setOpenIndex((current) => (current == null ? current : (current - 1 + images.length) % images.length));
+  };
+
+  const showNext = () => {
+    setOpenIndex((current) => (current == null ? current : (current + 1) % images.length));
+  };
 
   return (
     <>
@@ -1060,35 +1272,29 @@ function PhotoGalleryViewer({ images, alt }: { images: string[]; alt: string }) 
 
       {openIndex != null && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 px-4"
-          onClick={() => setOpenIndex(null)}
+          className="group/gallery fixed inset-0 z-50 flex items-center justify-center bg-black/95 px-4"
+          onClick={closeGallery}
+          onTouchStart={(event) => {
+            touchStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+          }}
+          onTouchEnd={(event) => {
+            const startX = touchStartXRef.current;
+            const endX = event.changedTouches[0]?.clientX ?? null;
+            touchStartXRef.current = null;
+            if (startX == null || endX == null) return;
+            const deltaX = endX - startX;
+            if (Math.abs(deltaX) < 40) return;
+            if (deltaX > 0) showPrevious();
+            else showNext();
+          }}
         >
           <button
             type="button"
-            className="absolute right-4 top-4 text-2xl text-white/70 transition-colors hover:text-white"
-            onClick={() => setOpenIndex(null)}
+            className="post-gallery-close"
+            onClick={closeGallery}
+            aria-label="Close gallery"
           >
             <i className="fas fa-times" />
-          </button>
-          <button
-            type="button"
-            className="post-gallery-nav post-gallery-nav--left"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenIndex((current) => (current == null ? current : (current - 1 + images.length) % images.length));
-            }}
-          >
-            <i className="fas fa-chevron-left" />
-          </button>
-          <button
-            type="button"
-            className="post-gallery-nav post-gallery-nav--right"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenIndex((current) => (current == null ? current : (current + 1) % images.length));
-            }}
-          >
-            <i className="fas fa-chevron-right" />
           </button>
           <Image
             src={images[openIndex]}
@@ -1098,6 +1304,23 @@ function PhotoGalleryViewer({ images, alt }: { images: string[]; alt: string }) 
             className="max-h-[92vh] max-w-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />
+          {canManage && onRemoveImage ? (
+            <button
+              type="button"
+              className="absolute left-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-500/15 text-sm text-red-200 opacity-0 transition-all duration-200 hover:bg-red-500/25 focus:opacity-100 focus:outline-none group-hover/gallery:opacity-100"
+              onClick={(event) => {
+                event.stopPropagation();
+                void handleRemove(images[openIndex]);
+              }}
+              aria-label="Delete image"
+            >
+              {removingImage === images[openIndex] ? (
+                <i className="fas fa-spinner fa-spin" />
+              ) : (
+                <i className="fas fa-trash-alt" />
+              )}
+            </button>
+          ) : null}
         </div>
       )}
     </>
@@ -1106,12 +1329,13 @@ function PhotoGalleryViewer({ images, alt }: { images: string[]; alt: string }) 
 
 function PhotoViewer({ src, alt }: { src: string; alt: string }) {
   const [open, setOpen] = useState(false);
+  const closePhotoViewer = useBackClosable(open, () => setOpen(false));
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") closePhotoViewer(); };
     if (open) document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open]);
+  }, [closePhotoViewer, open]);
 
   return (
     <>
@@ -1138,11 +1362,11 @@ function PhotoViewer({ src, alt }: { src: string; alt: string }) {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: "rgba(0,0,0,0.95)" }}
-          onClick={() => setOpen(false)}
+          onClick={closePhotoViewer}
         >
           <button
             className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl z-10"
-            onClick={() => setOpen(false)}
+            onClick={closePhotoViewer}
           >
             <i className="fas fa-times" />
           </button>
@@ -1346,6 +1570,7 @@ function CommentsSection({
   const [savingComment, setSavingComment] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteConfirmState>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const closeDeleteTargetModal = useBackClosable(!!deleteTarget, () => setDeleteTarget(null));
 
   const mergeUniqueComments = useCallback((current: any[], incoming: any[]) => {
     const map = new Map<string, any>();
@@ -1461,6 +1686,7 @@ function CommentsSection({
       body: JSON.stringify({ content: input }),
     });
     if (res.ok) {
+      void trackPostViewOnce(postId);
       const d = await res.json();
       setComments((current) => mergeUniqueComments(current, [{ ...d.comment, repliesCount: 0 }]));
       setInput("");
@@ -1486,6 +1712,7 @@ function CommentsSection({
       });
 
       if (res.ok) {
+        void trackPostViewOnce(postId);
         const d = await res.json();
         setComments((current) =>
           mergeUniqueComments(
@@ -1536,7 +1763,7 @@ function CommentsSection({
         )
     );
     onCountChange?.(-idsToRemove.size);
-    setDeleteTarget(null);
+    closeDeleteTargetModal();
     setDeletingCommentId(null);
     onToast?.({ type: "success", message: "Item deleted." });
   };
@@ -1637,7 +1864,9 @@ function CommentsSection({
                     </div>
                   </div>
                 ) : (
-                    <p className="mt-0.5 text-[15px] leading-relaxed text-white/80">{c.content}</p>
+                    <p className="mt-0.5 text-[15px] leading-relaxed text-white/80 break-words">
+                      {renderTextWithLinks(c.content)}
+                    </p>
                 )}
                 <div className="mt-2 flex items-center gap-3 text-[11px] text-white/45">
                   {currentUserId && (
@@ -1689,6 +1918,13 @@ function CommentsSection({
                 >
                   {replyThreadLoading[c.id] ? "Loading replies..." : `View replies (${replyCount})`}
                 </button>
+              </div>
+            )}
+
+            {replyThreadLoading[c.id] && (
+              <div className="ml-10 flex items-center gap-2 py-2 text-xs text-white/45">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                Loading replies...
               </div>
             )}
 
@@ -1779,7 +2015,9 @@ function CommentsSection({
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-0.5 text-[14px] leading-relaxed text-white/78">{reply.content}</p>
+                    <p className="mt-0.5 text-[14px] leading-relaxed text-white/78 break-words">
+                      {renderTextWithLinks(reply.content)}
+                    </p>
                   )}
                   <div className="mt-2 flex items-center gap-3 text-[11px] text-white/40">
                     {currentUserId === reply.userId && (
@@ -1867,7 +2105,7 @@ function CommentsSection({
           if (deleteTarget) void handleDeleteComment(deleteTarget.id);
         }}
         onClose={() => {
-          if (!deletingCommentId) setDeleteTarget(null);
+          if (!deletingCommentId) closeDeleteTargetModal();
         }}
       />
     </div>

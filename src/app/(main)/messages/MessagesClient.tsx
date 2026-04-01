@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/ToastProvider";
 import { prepareUploadFile } from "@/lib/client/upload";
+import { useBackClosable } from "@/hooks/useBackClosable";
 
 interface CurrentUser {
   id: string;
@@ -98,6 +99,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ChatMessage | null>(null);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const closeDeleteTarget = useBackClosable(!!deleteTarget, () => setDeleteTarget(null));
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
@@ -772,7 +774,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
         <div className="fixed inset-0 z-[90] flex items-center justify-center px-4">
           <button
             type="button"
-            onClick={() => !deletingMessageId && setDeleteTarget(null)}
+            onClick={() => !deletingMessageId && closeDeleteTarget()}
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
           />
           <div className="relative z-[91] w-full max-w-md rounded-3xl border border-white/10 bg-[#06131c] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
@@ -783,7 +785,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setDeleteTarget(null)}
+                onClick={closeDeleteTarget}
                 disabled={Boolean(deletingMessageId)}
                 className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/65 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50"
               >

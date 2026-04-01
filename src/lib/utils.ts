@@ -1,6 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { formatDistanceToNow } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -8,7 +7,34 @@ export function cn(...inputs: ClassValue[]) {
 
 export function timeAgo(date: Date | string | null): string {
   if (!date) return "";
-  return formatDistanceToNow(new Date(date), { addSuffix: true });
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return "";
+
+  const diffMs = Date.now() - value.getTime();
+  const diffSec = Math.max(0, Math.floor(diffMs / 1000));
+
+  if (diffSec < 60) return `${diffSec || 1} sec ago`;
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min ago`;
+
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay} ${diffDay === 1 ? "day" : "days"} ago`;
+
+  const diffWeek = Math.floor(diffDay / 7);
+  if (diffWeek < 5) return `${diffWeek} wk ago`;
+
+  const diffMonth = Math.floor(diffDay / 30);
+  if (diffMonth < 12) return `${diffMonth} mo ago`;
+
+  const diffYear = Math.floor(diffDay / 365);
+  if (diffYear < 10) return `${diffYear} yr ago`;
+
+  const diffDecade = Math.floor(diffYear / 10);
+  return `${diffDecade} dec ago`;
 }
 
 export function formatPoints(points: string | number | null): string {

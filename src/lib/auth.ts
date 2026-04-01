@@ -69,12 +69,17 @@ export async function destroySession() {
 export async function getCurrentUser() {
   const session = await getSession();
   if (!session?.userId) return null;
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-  return user ?? null;
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, session.userId))
+      .limit(1);
+    return user ?? null;
+  } catch (error) {
+    console.error("getCurrentUser failed", error);
+    return null;
+  }
 }
 
 export async function createAdminSession(adminId: string, username: string) {
@@ -99,12 +104,17 @@ export async function getAdminSession(): Promise<AdminSessionPayload | null> {
 export async function getCurrentAdmin() {
   const session = await getAdminSession();
   if (!session?.adminId) return null;
-  const [admin] = await db
-    .select()
-    .from(admins)
-    .where(eq(admins.id, session.adminId))
-    .limit(1);
-  return admin ?? null;
+  try {
+    const [admin] = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.id, session.adminId))
+      .limit(1);
+    return admin ?? null;
+  } catch (error) {
+    console.error("getCurrentAdmin failed", error);
+    return null;
+  }
 }
 
 export async function destroyAdminSession() {

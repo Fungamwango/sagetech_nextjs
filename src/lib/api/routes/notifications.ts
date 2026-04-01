@@ -12,6 +12,12 @@ export const notificationsRouter = new Hono()
     if (!session) return c.json({ error: "Unauthorized" }, 401);
 
     const offset = parseInt(c.req.query("offset") ?? "0");
+    const limit = Math.min(20, Math.max(1, parseInt(c.req.query("limit") ?? "20")));
+
+    const [result] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(notifications)
+      .where(eq(notifications.userId, session.userId));
 
     const notifs = await db
       .select({
@@ -29,10 +35,14 @@ export const notificationsRouter = new Hono()
       .leftJoin(users, eq(notifications.actorId, users.id))
       .where(eq(notifications.userId, session.userId))
       .orderBy(desc(notifications.createdAt))
-      .limit(20)
+      .limit(limit)
       .offset(offset);
 
-    return c.json({ notifications: notifs });
+    return c.json({
+      notifications: notifs,
+      totalCount: Number(result?.count ?? 0),
+      hasMore: offset + notifs.length < Number(result?.count ?? 0),
+    });
   })
 
   // ─── Unread count ─────────────────────────────────────────────

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
 import { prepareUploadFile } from "@/lib/client/upload";
 import { getUploadRuleMessage, isImageContentType, isVideoContentType } from "@/lib/uploadRules";
+import { useBackClosable } from "@/hooks/useBackClosable";
 
 interface UploadUser {
   id: string;
@@ -38,7 +39,7 @@ type UploadJob = {
 };
 
 const POST_TYPES: Array<{ type: UploadType; label: string; icon: string; cost: number; description: string }> = [
-  { type: "general", label: "General Post", icon: "fas fa-pen", cost: 0, description: "Share text, multiple photos, and quick updates" },
+  { type: "general", label: "General Post", icon: "fas fa-pen", cost: 0, description: "Share text, multiple images, or one video" },
   { type: "song", label: "Song / Music", icon: "fas fa-music", cost: 80, description: "Upload your music with cover art" },
   { type: "video", label: "Video", icon: "fas fa-video", cost: 5, description: "Share a short video" },
   { type: "document", label: "Document File", icon: "fas fa-file-alt", cost: 40, description: "Share PDFs, docs, ebooks, and other files" },
@@ -64,7 +65,7 @@ function validatePostDraft({
   switch (postType) {
     case "general":
       if (!hasValue(formData.generalPost) && uploadItems.length === 0) {
-        return "General posts must include text or at least one image.";
+        return "General posts must include text, image(s), or one video.";
       }
       return null;
     case "song":
@@ -117,6 +118,8 @@ export default function UploadClient({
   const [success, setSuccess] = useState("");
   const [backgroundJobs, setBackgroundJobs] = useState<UploadJob[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [galleryPreviewOpen, setGalleryPreviewOpen] = useState(false);
+  const closeGalleryPreview = useBackClosable(galleryPreviewOpen, () => setGalleryPreviewOpen(false));
   const userPoints = parseFloat(String(user.points ?? 0));
 
   useEffect(() => {
@@ -126,6 +129,12 @@ export default function UploadClient({
   useEffect(() => {
     coverPreviewRef.current = coverPreviewUrl;
   }, [coverPreviewUrl]);
+
+  useEffect(() => {
+    if (uploadItems.length === 0 && galleryPreviewOpen) {
+      setGalleryPreviewOpen(false);
+    }
+  }, [uploadItems.length, galleryPreviewOpen]);
 
   useEffect(() => {
     return () => {
@@ -177,7 +186,32 @@ export default function UploadClient({
     const incoming = Array.from(nextFiles);
     if (!incoming.length) return;
 
-    const files = canUseMultipleImages ? incoming : [incoming[0]];
+    let files = canUseMultipleImages ? incoming : [incoming[0]];
+
+    if (selectedType === "general") {
+      const incomingVideos = files.filter((file) => isVideoContentType(file.type));
+      const incomingImages = files.filter((file) => isImageContentType(file.type));
+
+      if (incomingVideos.length > 0) {
+        files = [incomingVideos[0]];
+        if (incomingVideos.length > 1 || incomingImages.length > 0 || files.length !== incoming.length) {
+          showToast({
+            type: "error",
+            message: "General posts support multiple images or one video only.",
+          });
+        }
+      } else {
+        const existingHasVideo = uploadItemsRef.current.some((item) => isVideoContentType(item.file.type));
+        if (existingHasVideo) {
+          showToast({
+            type: "error",
+            message: "Remove the current video first, or upload images instead.",
+          });
+          return;
+        }
+      }
+    }
+
     const nextItems = files.map<UploadItem>((file) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       file,
@@ -192,6 +226,15 @@ export default function UploadClient({
       current.forEach((item) => {
         if (!canUseMultipleImages && item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       });
+      if (selectedType === "general") {
+        const hasVideo = nextItems.some((item) => isVideoContentType(item.file.type));
+        if (hasVideo) {
+          current.forEach((item) => {
+            if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+          });
+          return nextItems;
+        }
+      }
       return canUseMultipleImages ? [...current, ...nextItems] : nextItems;
     });
     setError("");
@@ -524,7 +567,7 @@ export default function UploadClient({
               </h2>
               <p className="text-sm text-white/50 mt-1">
                 {selectedType === "general"
-                  ? "Multiple photos are supported. They will render as a split gallery in the feed."
+                  ? "Share text with multiple images or one video. Multiple images render as a gallery in the feed."
                   : currentTypeConfig?.description}
               </p>
             </div>
@@ -540,6 +583,10 @@ export default function UploadClient({
           {success && <div className="upload-alert upload-alert--success">{success}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-5">
+            <div className="flex justify-start">
+              <PrivacySelect formData={formData} set={set} compact />
+            </div>
+
             <UploadFormFields
               postType={selectedType}
               formData={formData}
@@ -552,7 +599,7 @@ export default function UploadClient({
                   <p className="text-sm font-semibold text-white">Media</p>
                   <p className="text-xs text-white/50 mt-1">
                     {selectedType === "general"
-                      ? "Drag or pick multiple images. We will compress and upload them in the background."
+                      ? "Add multiple images or a single video for this post. Uploads continue in the background."
                       : "Pick the main file for this post type."}
                   </p>
                 </div>
@@ -591,7 +638,7 @@ export default function UploadClient({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">
-                    {selectedType === "general" ? "Drop photos here or browse your device" : "Drop your file here or browse"}
+                    {selectedType === "general" ? "Drop images, or one video, here or browse your device" : "Drop your file here or browse"}
                   </p>
                   <p className="text-xs text-white/50 mt-1">{getHelperCopy(selectedType)}</p>
                 </div>
@@ -600,7 +647,28 @@ export default function UploadClient({
               {uploadItems.length > 0 && (
                 <div className="space-y-4 mt-4">
                   {selectedType === "general" && (
-                    <GalleryPreviewGrid items={uploadItems} onRemove={removeUploadItem} />
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+                        <div>
+                          <p className="text-sm font-semibold text-white">Selected media</p>
+                          <p className="mt-0.5 text-xs text-white/45">
+                            Tap any image or use the gallery button to review and remove items.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setGalleryPreviewOpen(true)}
+                          className="upload-action-chip"
+                        >
+                          <i className="fas fa-expand" /> View gallery
+                        </button>
+                      </div>
+                      <GalleryPreviewGrid
+                        items={uploadItems}
+                        onRemove={removeUploadItem}
+                        onOpen={() => setGalleryPreviewOpen(true)}
+                      />
+                    </div>
                   )}
                   {selectedType !== "general" && (
                     <SingleFilePreview item={uploadItems[0]} onRemove={() => removeUploadItem(uploadItems[0].id)} />
@@ -658,6 +726,14 @@ export default function UploadClient({
           </form>
         </div>
       )}
+
+      {galleryPreviewOpen && selectedType === "general" && uploadItems.length > 0 && (
+        <GalleryPreviewModal
+          items={uploadItems}
+          onRemove={removeUploadItem}
+          onClose={closeGalleryPreview}
+        />
+      )}
     </div>
   );
 }
@@ -685,9 +761,6 @@ function UploadFormFields({
             placeholder="What do you want to share today?"
             className={`${inputClass} w-full min-h-[120px] resize-none`}
           />
-          <div className="mt-4">
-            <PrivacySelect formData={formData} set={set} />
-          </div>
         </section>
       );
 
@@ -708,7 +781,6 @@ function UploadFormFields({
             </select>
           </div>
           <DescriptionField formData={formData} set={set} inputClass={inputClass} labelClass={labelClass} />
-          <PrivacySelect formData={formData} set={set} />
         </section>
       );
 
@@ -716,9 +788,6 @@ function UploadFormFields({
       return (
         <section className="upload-card">
           <DescriptionField formData={formData} set={set} inputClass={inputClass} labelClass={labelClass} />
-          <div className="mt-4">
-            <PrivacySelect formData={formData} set={set} />
-          </div>
         </section>
       );
 
@@ -805,17 +874,25 @@ function DescriptionField({
 function PrivacySelect({
   formData,
   set,
+  compact = false,
 }: {
   formData: Record<string, string>;
   set: (key: string, value: string) => void;
+  compact?: boolean;
 }) {
   return (
-    <div>
-      <label className="text-xs text-white/60 uppercase tracking-wider">Privacy</label>
+    <div className={compact ? "min-w-[132px]" : ""}>
+      <label className={`uppercase tracking-wider ${compact ? "text-[10px] text-white/38" : "text-xs text-white/60"}`}>
+        Privacy
+      </label>
       <select
         value={formData.privacy ?? "public"}
         onChange={(e) => set("privacy", e.target.value)}
-        className="sage-input text-sm py-2.5 mt-1 w-full rounded-2xl bg-transparent"
+        className={
+          compact
+            ? "mt-1 w-full rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-white/78 outline-none transition-colors hover:border-white/15 focus:border-cyan-400/35"
+            : "sage-input text-sm py-2.5 mt-1 w-full rounded-2xl bg-transparent"
+        }
       >
         <option value="public">Public</option>
         <option value="friends">Friends Only</option>
@@ -828,9 +905,11 @@ function PrivacySelect({
 function GalleryPreviewGrid({
   items,
   onRemove,
+  onOpen,
 }: {
   items: UploadItem[];
   onRemove: (id: string) => void;
+  onOpen: () => void;
 }) {
   const limited = items.slice(0, 4);
   const remaining = items.length - limited.length;
@@ -838,7 +917,19 @@ function GalleryPreviewGrid({
   return (
     <div className="upload-gallery-grid">
       {limited.map((item, index) => (
-        <div key={item.id} className={`upload-gallery-grid__tile upload-gallery-grid__tile--${Math.min(items.length, 4)}-${index + 1}`}>
+        <div
+          key={item.id}
+          onClick={onOpen}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onOpen();
+            }
+          }}
+          className={`upload-gallery-grid__tile upload-gallery-grid__tile--${Math.min(items.length, 4)}-${index + 1}`}
+        >
           {item.previewUrl ? (
             <Image src={item.previewUrl} alt={item.file.name} fill className="object-cover" />
           ) : (
@@ -846,7 +937,15 @@ function GalleryPreviewGrid({
               <i className={`fas ${isVideoContentType(item.file.type) ? "fa-video" : "fa-file-alt"}`} />
             </div>
           )}
-          <button type="button" onClick={() => onRemove(item.id)} className="upload-gallery-grid__remove" aria-label="Remove file">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemove(item.id);
+            }}
+            className="upload-gallery-grid__remove"
+            aria-label="Remove file"
+          >
             <i className="fas fa-times" />
           </button>
           {remaining > 0 && index === limited.length - 1 && (
@@ -854,6 +953,77 @@ function GalleryPreviewGrid({
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function GalleryPreviewModal({
+  items,
+  onRemove,
+  onClose,
+}: {
+  items: UploadItem[];
+  onRemove: (id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(6px)" }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#081722] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div>
+            <p className="text-sm font-semibold text-white">Gallery preview</p>
+            <p className="mt-1 text-xs text-white/45">
+              {items.length} image{items.length === 1 ? "" : "s"} selected
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-colors hover:bg-white/[0.1] hover:text-white"
+            aria-label="Close gallery preview"
+          >
+            <i className="fas fa-times" />
+          </button>
+        </div>
+
+        <div className="max-h-[75vh] overflow-y-auto p-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03]"
+              >
+                <div className="relative aspect-square w-full overflow-hidden bg-black/20">
+                  {item.previewUrl ? (
+                    <Image src={item.previewUrl} alt={item.file.name} fill className="object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-white/30">
+                      <i className={`fas ${isVideoContentType(item.file.type) ? "fa-video" : "fa-file-alt"} text-3xl`} />
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 py-3">
+                  <p className="truncate text-sm text-white/75">{item.file.name}</p>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(item.id)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-300 transition-colors hover:bg-red-500/20 hover:text-red-200"
+                    aria-label={`Remove ${item.file.name}`}
+                  >
+                    <i className="fas fa-trash-alt text-xs" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -917,7 +1087,7 @@ function UploadProgressRow({
 function getFileAccept(type: UploadType) {
   switch (type) {
     case "general":
-      return "image/*";
+      return "image/*,video/*";
     case "song":
       return "audio/*";
     case "video":
@@ -934,7 +1104,7 @@ function getFileAccept(type: UploadType) {
 function getHelperCopy(type: UploadType) {
   switch (type) {
     case "general":
-      return "Facebook-style photo gallery posts supported. Images are compressed to 60KB max.";
+      return "General posts support images, videos, and text updates.";
     case "song":
       return "Audio files up to 8MB. Optional cover art is compressed automatically.";
     case "video":
