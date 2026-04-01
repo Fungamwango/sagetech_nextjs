@@ -8,6 +8,7 @@ interface HomeProps {
 
 export default async function HomePage({ searchParams }: HomeProps) {
   const [user, params] = await Promise.all([getCurrentUser(), searchParams]);
+  const activeQuery = params.q?.trim();
 
   return (
     <div>
@@ -17,9 +18,9 @@ export default async function HomePage({ searchParams }: HomeProps) {
         currentUser={user ? { id: user.id, username: user.username, picture: user.picture, points: user.points } : null}
         postType={params.type}
         postId={params.postId}
-        search={params.q}
+        search={activeQuery}
         showComposer
-        order="random"
+        order={activeQuery ? "search" : "random"}
       />
     </div>
   );

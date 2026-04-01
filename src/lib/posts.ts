@@ -116,7 +116,7 @@ export function getPostSeo(post: NonNullable<Awaited<ReturnType<typeof getPostBy
   return { title, description, image };
 }
 
-export async function getRelatedPostsByType(postId: string, postType: string, limit = 10) {
+export async function getRelatedPostsByType(postId: string, postType: string, limit = 5) {
   const selectShape = {
     id: posts.id,
     postType: posts.postType,

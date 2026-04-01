@@ -183,11 +183,15 @@ export const postsRouter = new Hono()
     const limit = parseInt(url.searchParams.get("limit") ?? "15");
     const offset = parseInt(url.searchParams.get("offset") ?? "0");
     const postType = url.searchParams.get("type");
-    const search = url.searchParams.get("q");
+    const rawSearch = url.searchParams.get("q");
+    const search = rawSearch?.trim();
     const userId = url.searchParams.get("userId");
     const postId = url.searchParams.get("postId");
     const order = url.searchParams.get("order") ?? "latest";
     const seed = url.searchParams.get("seed") ?? "sagetech";
+    const exactSearch = search?.toLowerCase() ?? "";
+    const prefixSearch = `${search ?? ""}%`;
+    const fuzzySearch = `%${search ?? ""}%`;
 
     const conditions = [eq(posts.approved, true), eq(posts.privacy, "public")];
 
@@ -203,20 +207,53 @@ export const postsRouter = new Hono()
     if (search) {
       conditions.push(
         or(
-          ilike(posts.generalPost, `%${search}%`),
-          ilike(posts.postDescription, `%${search}%`),
-          ilike(posts.blogTitle, `%${search}%`),
-          ilike(posts.singer, `%${search}%`),
-          ilike(posts.productName, `%${search}%`),
-          ilike(posts.author, `%${search}%`),
-          ilike(posts.bookTitle, `%${search}%`),
-          ilike(posts.appDeveloper, `%${search}%`)
+          ilike(posts.generalPost, fuzzySearch),
+          ilike(posts.postDescription, fuzzySearch),
+          ilike(posts.blogTitle, fuzzySearch),
+          ilike(posts.blogContent, fuzzySearch),
+          ilike(posts.singer, fuzzySearch),
+          ilike(posts.productName, fuzzySearch),
+          ilike(posts.productType, fuzzySearch),
+          ilike(posts.author, fuzzySearch),
+          ilike(posts.bookTitle, fuzzySearch),
+          ilike(posts.appDeveloper, fuzzySearch),
+          ilike(posts.filename, fuzzySearch),
+          ilike(posts.advertTitle, fuzzySearch),
+          ilike(users.username, fuzzySearch)
         )!
       );
     }
 
+    const searchRank = search
+      ? sql<number>`(
+          CASE WHEN lower(coalesce(${posts.blogTitle}, '')) = ${exactSearch} THEN 180 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.productName}, '')) = ${exactSearch} THEN 170 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.bookTitle}, '')) = ${exactSearch} THEN 170 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.filename}, '')) = ${exactSearch} THEN 160 ELSE 0 END +
+          CASE WHEN lower(coalesce(${users.username}, '')) = ${exactSearch} THEN 150 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.generalPost}, '')) = ${exactSearch} THEN 140 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.postDescription}, '')) = ${exactSearch} THEN 120 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.blogTitle}, '')) LIKE lower(${prefixSearch}) THEN 90 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.productName}, '')) LIKE lower(${prefixSearch}) THEN 85 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.bookTitle}, '')) LIKE lower(${prefixSearch}) THEN 85 ELSE 0 END +
+          CASE WHEN lower(coalesce(${users.username}, '')) LIKE lower(${prefixSearch}) THEN 80 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.generalPost}, '')) LIKE lower(${prefixSearch}) THEN 60 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.postDescription}, '')) LIKE lower(${prefixSearch}) THEN 45 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.blogContent}, '')) LIKE lower(${fuzzySearch}) THEN 28 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.generalPost}, '')) LIKE lower(${fuzzySearch}) THEN 25 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.postDescription}, '')) LIKE lower(${fuzzySearch}) THEN 20 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.singer}, '')) LIKE lower(${fuzzySearch}) THEN 18 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.author}, '')) LIKE lower(${fuzzySearch}) THEN 18 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.appDeveloper}, '')) LIKE lower(${fuzzySearch}) THEN 18 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.advertTitle}, '')) LIKE lower(${fuzzySearch}) THEN 16 ELSE 0 END +
+          CASE WHEN lower(coalesce(${posts.productType}, '')) LIKE lower(${fuzzySearch}) THEN 14 ELSE 0 END
+        )`
+      : null;
+
     const orderBy =
-      order === "random"
+      search && searchRank
+        ? [desc(searchRank), desc(posts.views), desc(posts.createdAt)]
+        : order === "random"
         ? [
             sql`CASE
               WHEN ${posts.createdAt} >= NOW() - INTERVAL '1 day' THEN 0

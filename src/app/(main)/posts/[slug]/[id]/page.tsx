@@ -80,7 +80,7 @@ export default async function PostPage({ params }: PostPageProps) {
   const imageUrl = seo.image.startsWith("http") ? seo.image : `${siteUrl}${seo.image}`;
   let monetiseStats = null;
   const isOwnerViewing = currentUser?.id === post.userId;
-  const relatedPosts = await getRelatedPostsByType(post.id, post.postType, 10);
+  const relatedPosts = await getRelatedPostsByType(post.id, post.postType, 5);
 
   if (
     isOwnerViewing &&

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useBackClosable } from "@/hooks/useBackClosable";
 
 interface NavUser {
   id: string;
@@ -59,6 +60,7 @@ const allSidebarLinks = [
 export default function Header({ user }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showSearch, setShowSearch] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,6 +68,8 @@ export default function Header({ user }: HeaderProps) {
   const [msgCount, setMsgCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeMenu = useBackClosable(showMenu, () => setShowMenu(false));
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -75,18 +79,27 @@ export default function Header({ user }: HeaderProps) {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
+      const target = e.target as Node;
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        !menuButtonRef.current?.contains(target)
+      ) {
+        closeMenu();
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [closeMenu]);
 
   useEffect(() => {
     setShowMenu(false);
     setShowSearch(false);
   }, [pathname]);
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get("q") ?? "");
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -114,11 +127,10 @@ export default function Header({ user }: HeaderProps) {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/?q=${encodeURIComponent(searchQuery)}`);
-      setShowSearch(false);
-      setSearchQuery("");
-    }
+    const query = searchQuery.trim();
+    if (!query) return;
+    router.push(`/?q=${encodeURIComponent(query)}`);
+    setShowSearch(false);
   };
 
   const handleLogout = async () => {
@@ -231,7 +243,14 @@ export default function Header({ user }: HeaderProps) {
         </li>
         <li className="text-center">
           <button
-            onClick={() => setShowMenu((v) => !v)}
+            ref={menuButtonRef}
+            onClick={() => {
+              if (showMenu) {
+                closeMenu();
+                return;
+              }
+              setShowMenu(true);
+            }}
             className={cn(
               "hidden w-full min-w-0 items-center justify-center gap-[10px] rounded-full px-3 py-[6px] text-[13.5px] capitalize text-white transition-all max-[995px]:flex",
               showMenu ? "active-link text-cyan-400" : "min-[650px]:hover:active-link"
@@ -252,15 +271,21 @@ export default function Header({ user }: HeaderProps) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="type here..."
+            placeholder="Search posts..."
             className="sage-input flex-1 rounded-none py-2 text-sm"
             autoFocus
             style={{ width: "80%", borderRadius: "18px 0 0 18px" }}
           />
           <button
             type="submit"
+            disabled={!searchQuery.trim()}
             className="border border-white/30 bg-black/20 px-4 text-sm text-white transition-colors hover:text-cyan-400"
-            style={{ width: "20%", borderRadius: "0 18px 18px 0" }}
+            style={{
+              width: "20%",
+              borderRadius: "0 18px 18px 0",
+              opacity: searchQuery.trim() ? 1 : 0.45,
+              cursor: searchQuery.trim() ? "pointer" : "not-allowed",
+            }}
           >
             Search
           </button>

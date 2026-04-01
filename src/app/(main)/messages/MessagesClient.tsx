@@ -408,7 +408,13 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
     if (msg.fileType === "image") {
       return (
         <Link href={msg.fileUrl} target="_blank" className="mb-1 block">
-          <Image src={msg.fileUrl} alt="Shared image" width={260} height={180} className="rounded-xl object-cover" />
+          <Image
+            src={msg.fileUrl}
+            alt="Shared image"
+            width={260}
+            height={180}
+            className="h-auto max-w-full rounded-xl object-cover"
+          />
         </Link>
       );
     }
@@ -424,7 +430,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
     if (msg.fileType === "audio") {
       return (
         <div className="mb-1 rounded-xl bg-black/20 p-2">
-          <audio controls className="w-full">
+          <audio controls className="w-full max-w-full">
             <source src={msg.fileUrl} />
           </audio>
         </div>
@@ -435,12 +441,12 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
       <Link
         href={msg.fileUrl}
         target="_blank"
-        className="mb-1 flex items-center gap-3 rounded-xl border border-white/10 bg-black/15 px-3 py-2 hover:bg-black/25"
+        className="mb-1 flex max-w-full items-center gap-3 rounded-xl border border-white/10 bg-black/15 px-3 py-2 hover:bg-black/25"
       >
         <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/85">
           <i className="fas fa-file-alt" />
         </span>
-        <span className="min-w-0 flex-1">
+        <span className="min-w-0 flex-1 overflow-hidden">
           <span className="block truncate text-sm font-medium text-white">{getFileLabel(msg.fileUrl)}</span>
           <span className="text-xs text-white/55">Open document</span>
         </span>
@@ -450,18 +456,18 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
 
   return (
     <>
-      <div className="flex h-[calc(100vh-130px)] min-h-[500px]" style={{ background: "#0b141a" }}>
-        <div className={`w-full md:w-2/5 flex flex-col ${activeChatId ? "hidden md:flex" : "flex"}`} style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}>
+      <div className="flex h-[calc(100vh-130px)] min-h-[500px] min-w-0 overflow-x-hidden" style={{ background: "#0b141a" }}>
+        <div className={`min-w-0 w-full md:w-2/5 flex flex-col ${activeChatId ? "hidden md:flex" : "flex"}`} style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}>
           <div className="p-3" style={{ background: "#1f2c34", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
             <h2 className="text-base font-bold mb-2" style={{ color: "#e9edef" }}>Messages</h2>
             <div className="relative">
-              <input
-                type="text"
-                value={searchUser}
-                onChange={(e) => searchUsers(e.target.value)}
-                placeholder="Search people..."
-                className="sage-input rounded-full py-2 pl-4 pr-10 text-sm"
-              />
+                <input
+                  type="text"
+                  value={searchUser}
+                  onChange={(e) => searchUsers(e.target.value)}
+                  placeholder="Search people..."
+                  className="sage-input min-w-0 rounded-full py-2 pl-4 pr-10 text-sm"
+                />
               {searchLoading ? (
                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/35">
                   <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
@@ -578,8 +584,8 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
         </div>
 
         {activeChatId ? (
-          <div className="flex-1 flex flex-col" style={{ background: "#0b141a" }}>
-            <div className="flex items-center gap-3 px-4 py-3" style={{ background: "#1f2c34" }}>
+          <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden" style={{ background: "#0b141a" }}>
+            <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:px-4" style={{ background: "#1f2c34" }}>
               <button
                 onClick={() => setActiveChatId(null)}
                 className="md:hidden mr-1"
@@ -607,7 +613,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-2" style={{ background: "#0b141a" }}>
+            <div className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 space-y-2" style={{ background: "#0b141a" }}>
               {chatLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70">
@@ -624,7 +630,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                 const deleting = deletingMessageId === msg.id;
                 return (
                   <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                    <div className="group relative max-w-[70%]">
+                    <div className="group relative w-fit max-w-[85vw] sm:max-w-[75%]">
                       <div
                         className="px-3 py-2 text-sm rounded-md"
                         style={{
@@ -634,7 +640,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                         }}
                       >
                         {renderAttachment(msg)}
-                        {msg.content && <p className="break-words pr-7">{msg.content}</p>}
+                        {msg.content && <p className="break-words whitespace-pre-wrap pr-7">{msg.content}</p>}
                         <p className="text-xs mt-0.5 text-right" style={{ color: "rgba(233,237,239,0.6)" }}>
                           {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </p>
@@ -657,7 +663,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
               <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={sendMessage} className="space-y-2 p-3" style={{ background: "#1f2c34" }}>
+            <form onSubmit={sendMessage} className="min-w-0 space-y-2 p-2.5 sm:p-3" style={{ background: "#1f2c34" }}>
               {pendingAttachment ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                   <div className="flex items-start gap-3">
@@ -693,7 +699,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                 </div>
               ) : null}
 
-              <div className="flex gap-2">
+              <div className="flex min-w-0 items-end gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -746,7 +752,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                   }, 1200);
                 }}
                 placeholder="Type a message..."
-                className="flex-1 rounded-full text-sm py-2 px-4 outline-none border-0"
+                className="min-w-0 flex-1 rounded-full text-sm py-2 px-4 outline-none border-0"
                 style={{ background: "#2a3942", color: "#e9edef" }}
               />
               <button

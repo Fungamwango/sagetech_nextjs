@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import { getPrimaryMediaUrl } from "@/lib/postMedia";
@@ -38,6 +39,8 @@ export default function PostFeed({
   order,
   fullContent = false,
 }: PostFeedProps) {
+  const activeSearch = search?.trim() ?? "";
+  const isSearchMode = activeSearch.length > 0;
   const [posts, setPosts] = useState<any[]>([]);
   const [selectedGridPost, setSelectedGridPost] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,12 +64,12 @@ export default function PostFeed({
       if (postType) params.set("type", postType);
       if (userId) params.set("userId", userId);
       if (postId) params.set("postId", postId);
-      if (search) params.set("q", search);
+      if (activeSearch) params.set("q", activeSearch);
       if (order) params.set("order", order);
       if (order === "random" && randomSeed) params.set("seed", randomSeed);
       return `/api/posts?${params}`;
     },
-    [postType, userId, postId, search, order, randomSeed]
+    [postType, userId, postId, activeSearch, order, randomSeed]
   );
 
   const fetchPosts = useCallback(async (reset = false) => {
@@ -115,7 +118,7 @@ export default function PostFeed({
   useEffect(() => {
     if (order !== "random") return;
     setRandomSeed(Math.random().toString(36).slice(2, 12));
-  }, [order, postType, userId, postId, search]);
+  }, [order, postType, userId, postId, activeSearch]);
 
   // Initial load + reset on filter change
   useEffect(() => {
@@ -129,7 +132,7 @@ export default function PostFeed({
     scrollTriggerLockedRef.current = false;
     fetchPosts(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postType, userId, postId, search, order, randomSeed]);
+  }, [postType, userId, postId, activeSearch, order, randomSeed]);
 
   useEffect(() => {
     const handler = () => {
@@ -196,6 +199,23 @@ export default function PostFeed({
         <PostComposer user={currentUser ?? null} onCreated={handlePostCreated} />
       )}
 
+      {isSearchMode && (
+        <div className="mb-3 mt-2 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-400/75">Post search</p>
+            <p className="truncate text-sm text-white">
+              Results for <span className="font-semibold text-cyan-300">&quot;{activeSearch}&quot;</span>
+            </p>
+          </div>
+          <Link
+            href="/"
+            className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/75 transition-colors hover:border-cyan-400/30 hover:text-cyan-300"
+          >
+            Clear search
+          </Link>
+        </div>
+      )}
+
       {loading && (
         <div className="text-center py-12">
           <div className="modern-list-loader mx-auto" aria-hidden="true">
@@ -232,7 +252,7 @@ export default function PostFeed({
         <div className="text-center py-16">
           <i className="fas fa-inbox text-4xl text-white/20 mb-3" />
           <p className="text-white/40 text-sm">
-            {search ? `Nothing found for "${search}"` : "No posts available"}
+            {isSearchMode ? `No posts found for "${activeSearch}"` : "No posts available"}
           </p>
         </div>
       )}
