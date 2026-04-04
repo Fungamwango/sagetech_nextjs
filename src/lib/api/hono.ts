@@ -6,6 +6,7 @@ import { usersRouter } from "./routes/users";
 import { messagesRouter } from "./routes/messages";
 import { notificationsRouter } from "./routes/notifications";
 import { adminRouter } from "./routes/admin";
+import { businessRouter } from "./routes/business";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { promises as fs } from "fs";
@@ -35,6 +36,7 @@ app.route("/users", usersRouter);
 app.route("/messages", messagesRouter);
 app.route("/notifications", notificationsRouter);
 app.route("/admin", adminRouter);
+app.route("/business", businessRouter);
 
 // Leaderboard
 app.get("/leaderboard", async (c) => {

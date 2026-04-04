@@ -43,6 +43,10 @@ export default function NotificationsClient() {
   const getNotificationLink = (notif: Notification) => {
     if (notif.type === "message" && notif.actorId) return `/messages?user=${notif.actorId}`;
     if (notif.type === "follow" && notif.actorId) return `/profile/${notif.actorId}`;
+    if (notif.type === "system") {
+      if (notif.content.includes("requested to buy")) return "/business?section=requests";
+      if (notif.content.includes("was accepted") || notif.content.includes("was rejected")) return "/business?section=history";
+    }
     if (notif.postId) return `/?postId=${notif.postId}`;
     if (notif.actorId) return `/profile/${notif.actorId}`;
     return null;
@@ -193,6 +197,8 @@ export default function NotificationsClient() {
                         ? "Open chat ->"
                         : notif.type === "follow"
                           ? "View profile ->"
+                          : notif.type === "system"
+                            ? "Open business ->"
                           : "View item ->"}
                     </Link>
                   ) : null}

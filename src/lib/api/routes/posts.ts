@@ -7,6 +7,32 @@ import { eq, desc, sql, and, or, ilike, asc, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { getPostTypeCost, getUserLevel } from "@/lib/utils";
 import { fetchLinkPreviewFromText } from "@/lib/linkPreview";
+import { slugifyPostText } from "@/lib/postUrls";
+
+function pickPostHeadline(post: {
+  blogTitle?: string | null;
+  productName?: string | null;
+  singer?: string | null;
+  filename?: string | null;
+  bookTitle?: string | null;
+  generalPost?: string | null;
+  postDescription?: string | null;
+  advertTitle?: string | null;
+  linkTitle?: string | null;
+}) {
+  return (
+    post.blogTitle ||
+    post.productName ||
+    post.filename ||
+    post.singer ||
+    post.bookTitle ||
+    post.advertTitle ||
+    post.linkTitle ||
+    post.generalPost ||
+    post.postDescription ||
+    "post"
+  );
+}
 
 const createPostSchemaBase = z.object({
   postType: z.enum(["general", "song", "video", "photo", "app", "book", "document", "product", "advert", "blog"]),
@@ -68,11 +94,25 @@ const createPostSchema = createPostSchemaBase.superRefine((data, ctx) => {
           path: ["fileUrl"],
         });
       }
+      if (!hasText(data.filename)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Song title is required.",
+          path: ["filename"],
+        });
+      }
       if (!hasText(data.singer)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Singer / artist is required.",
           path: ["singer"],
+        });
+      }
+      if (!hasText(data.albumCover)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Song posts require cover art.",
+          path: ["albumCover"],
         });
       }
       break;
@@ -118,10 +158,10 @@ const createPostSchema = createPostSchemaBase.superRefine((data, ctx) => {
       }
       break;
     case "product":
-      if (!hasSingleFile) {
+      if (!hasSingleFile && !hasGallery) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Product posts require an image.",
+          message: "Product posts require at least one image.",
           path: ["fileUrl"],
         });
       }
@@ -183,6 +223,7 @@ export const postsRouter = new Hono()
     const limit = parseInt(url.searchParams.get("limit") ?? "15");
     const offset = parseInt(url.searchParams.get("offset") ?? "0");
     const postType = url.searchParams.get("type");
+    const productCategory = url.searchParams.get("category")?.trim();
     const rawSearch = url.searchParams.get("q");
     const search = rawSearch?.trim();
     const userId = url.searchParams.get("userId");
@@ -212,7 +253,19 @@ export const postsRouter = new Hono()
     const conditions = [eq(posts.approved, true), visibilityCondition];
 
     if (postType && postType !== "all") {
-      conditions.push(eq(posts.postType, postType as typeof posts.postType._.data));
+      if (postType === "video") {
+        conditions.push(eq(posts.fileType, "video"));
+        conditions.push(ilike(posts.fileUrl, "%.mp4%"));
+      } else if (postType === "song") {
+        conditions.push(eq(posts.fileType, "audio"));
+      } else if (postType === "photo") {
+        conditions.push(eq(posts.fileType, "image"));
+      } else {
+        conditions.push(eq(posts.postType, postType as typeof posts.postType._.data));
+      }
+    }
+    if (productCategory) {
+      conditions.push(eq(posts.productType, productCategory));
     }
     if (userId) {
       conditions.push(eq(posts.userId, userId));
@@ -286,6 +339,7 @@ export const postsRouter = new Hono()
       .select({
         id: posts.id,
         postType: posts.postType,
+        slug: posts.slug,
         fileType: posts.fileType,
         privacy: posts.privacy,
         fileUrl: posts.fileUrl,
@@ -447,16 +501,38 @@ export const postsRouter = new Hono()
         ? await fetchLinkPreviewFromText(data.generalPost)
         : null;
 
-    // Auto-approve general posts, require approval for media
-    const autoApprove = data.postType === "general" || data.postType === "blog";
+    // Auto-approve quick social content so it appears immediately in the app.
+      const autoApprove =
+        data.postType === "general" ||
+        data.postType === "blog" ||
+        data.postType === "song" ||
+        data.postType === "video" ||
+        data.postType === "product" ||
+        data.postType === "document";
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { fileResourceType: _frt, galleryUrls: _galleryUrls, ...postData } = data;
+    const stableSlug = slugifyPostText(
+      pickPostHeadline({
+        ...data,
+        generalPost: data.generalPost,
+        postDescription: data.postDescription,
+        filename: data.filename,
+        singer: data.singer,
+        blogTitle: data.blogTitle,
+        productName: data.productName,
+        bookTitle: data.bookTitle,
+        advertTitle: data.advertTitle,
+        linkTitle: linkPreview?.title,
+      })
+    );
+
     const [newPost] = await db
       .insert(posts)
       .values({
         userId: session.userId,
         ...postData,
+        slug: stableSlug,
         fileUrl: resolvedFileUrl,
         fileType,
         linkUrl: linkPreview?.url,
@@ -478,7 +554,19 @@ export const postsRouter = new Hono()
 
     const id = c.req.param("id");
     const [post] = await db
-      .select({ userId: posts.userId })
+      .select({
+        userId: posts.userId,
+        slug: posts.slug,
+        blogTitle: posts.blogTitle,
+        productName: posts.productName,
+        singer: posts.singer,
+        filename: posts.filename,
+        bookTitle: posts.bookTitle,
+        generalPost: posts.generalPost,
+        postDescription: posts.postDescription,
+        advertTitle: posts.advertTitle,
+        linkTitle: posts.linkTitle,
+      })
       .from(posts)
       .where(eq(posts.id, id))
       .limit(1);
@@ -497,7 +585,19 @@ export const postsRouter = new Hono()
 
     const id = c.req.param("id");
     const [post] = await db
-      .select({ userId: posts.userId })
+      .select({
+        userId: posts.userId,
+        slug: posts.slug,
+        blogTitle: posts.blogTitle,
+        productName: posts.productName,
+        singer: posts.singer,
+        filename: posts.filename,
+        bookTitle: posts.bookTitle,
+        generalPost: posts.generalPost,
+        postDescription: posts.postDescription,
+        advertTitle: posts.advertTitle,
+        linkTitle: posts.linkTitle,
+      })
       .from(posts)
       .where(eq(posts.id, id))
       .limit(1);
@@ -509,9 +609,25 @@ export const postsRouter = new Hono()
     const cleaned = Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
     if (Object.keys(cleaned).length === 0) return c.json({ error: "No changes provided" }, 400);
 
+    const nextSlug = post.slug?.trim()
+      ? undefined
+      : slugifyPostText(
+          pickPostHeadline({
+            blogTitle: post.blogTitle,
+            productName: post.productName,
+            singer: post.singer,
+            filename: post.filename,
+            bookTitle: post.bookTitle,
+            generalPost: post.generalPost,
+            postDescription: post.postDescription,
+            advertTitle: post.advertTitle,
+            linkTitle: post.linkTitle,
+          })
+        );
+
     const [updatedPost] = await db
       .update(posts)
-      .set({ ...cleaned, updatedAt: new Date() })
+      .set({ ...cleaned, ...(nextSlug ? { slug: nextSlug } : {}), updatedAt: new Date() })
       .where(eq(posts.id, id))
       .returning();
 

@@ -10,11 +10,14 @@ import { getPostPath } from "@/lib/postUrls";
 import { isLinkOnlyPostText } from "@/lib/linkPreview";
 import { useBackClosable } from "@/hooks/useBackClosable";
 import { trackPostViewOnce } from "@/lib/client/postViews";
+import { prepareUploadFile } from "@/lib/client/upload";
+import { trackSongPlayOnce } from "@/lib/client/songPlays";
 
 interface PostCardProps {
   post: {
     id: string;
     postType: string;
+    slug?: string | null;
     fileType?: string | null;
     privacy?: string | null;
     fileUrl?: string | null;
@@ -57,6 +60,18 @@ interface PostCardProps {
   currentUserId?: string | null;
   onDelete?: (id: string) => void;
   fullContent?: boolean;
+  musicQueue?: Array<{
+    id: string;
+    fileUrl?: string | null;
+    singer?: string | null;
+    songType?: string | null;
+    albumCover?: string | null;
+    filename?: string | null;
+    views?: number | null;
+    downloadsCount?: number | null;
+    likesCount?: number | null;
+  }>;
+  musicQueueIndex?: number;
 }
 
 // Deterministic waveform heights to avoid flickering
@@ -72,6 +87,63 @@ const URL_PART_PATTERN = /^(?:https?:\/\/|www\.)[^\s<]+$/i;
 
 function normaliseHref(value: string) {
   return value.startsWith("http://") || value.startsWith("https://") ? value : `https://${value}`;
+}
+
+function stripFileExtension(value?: string | null) {
+  return value ? value.replace(/\.[^.]+$/, "") : "";
+}
+
+function getFileExtensionFromUrl(fileUrl?: string | null) {
+  if (!fileUrl) return "";
+  try {
+    const pathname = new URL(fileUrl).pathname;
+    const match = pathname.match(/\.([a-z0-9]+)$/i);
+    return match ? `.${match[1].toLowerCase()}` : "";
+  } catch {
+    const match = fileUrl.match(/\.([a-z0-9]+)(?:\?|#|$)/i);
+    return match ? `.${match[1].toLowerCase()}` : "";
+  }
+}
+
+function sanitizeDownloadName(value: string) {
+  return value
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatMoney(value: number | string) {
+  const amount = typeof value === "number" ? value : Number(value || 0);
+  return new Intl.NumberFormat("en-ZM", {
+    style: "currency",
+    currency: "ZMW",
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+
+function buildDownloadFilename({
+  fileUrl,
+  fallbackBase,
+  extensionFallback,
+}: {
+  fileUrl?: string | null;
+  fallbackBase: string;
+  extensionFallback: string;
+}) {
+  const extension = getFileExtensionFromUrl(fileUrl) || extensionFallback;
+  const base = sanitizeDownloadName(stripFileExtension(fallbackBase) || "download");
+  return `${base}${extension}`;
+}
+
+function triggerFileDownload(fileUrl: string, downloadName: string) {
+  const link = document.createElement("a");
+  link.href = fileUrl;
+  link.download = downloadName;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function renderTextWithLinks(text: string, className?: string) {
@@ -122,7 +194,7 @@ function LinkPreviewCard({
       href={url}
       target="_blank"
       rel="noopener noreferrer nofollow"
-      className="mt-3 block overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition-colors hover:border-cyan-400/35 hover:bg-white/[0.05]"
+      className="mt-3 block overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] transition-colors hover:border-cyan-400/35 hover:bg-white/[0.05]"
     >
       {image ? (
         <div className="relative aspect-[1.91/1] w-full overflow-hidden bg-black/20">
@@ -138,7 +210,7 @@ function LinkPreviewCard({
   );
 }
 
-export default function PostCard({ post, currentUserId, onDelete, fullContent = false }: PostCardProps) {
+export default function PostCard({ post, currentUserId, onDelete, fullContent = false, musicQueue, musicQueueIndex }: PostCardProps) {
   const { showToast } = useToast();
   const [postState, setPostState] = useState(post);
   const [liked, setLiked] = useState(post.likedByMe ?? false);
@@ -152,6 +224,13 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
   const [showMenu, setShowMenu] = useState(false);
   const [editingPost, setEditingPost] = useState(false);
   const [editPostText, setEditPostText] = useState(post.blogContent ?? post.generalPost ?? post.postDescription ?? "");
+  const [editSongTitle, setEditSongTitle] = useState(post.filename ?? "");
+  const [editSongArtist, setEditSongArtist] = useState(post.singer ?? "");
+  const [editSongGenre, setEditSongGenre] = useState(post.songType ?? "");
+  const [editSongDescription, setEditSongDescription] = useState(post.postDescription ?? "");
+  const [editSongFile, setEditSongFile] = useState<File | null>(null);
+  const [editSongCoverFile, setEditSongCoverFile] = useState<File | null>(null);
+  const [editSongCoverPreview, setEditSongCoverPreview] = useState<string | null>(null);
   const [savingPost, setSavingPost] = useState(false);
   const [updatingPrivacy, setUpdatingPrivacy] = useState<string | null>(null);
   const [showPrivacyOptions, setShowPrivacyOptions] = useState(false);
@@ -161,15 +240,27 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
   const [reportReason, setReportReason] = useState("");
   const [reportingPost, setReportingPost] = useState(false);
   const [reportError, setReportError] = useState("");
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [purchaseQuantity, setPurchaseQuantity] = useState("1");
+  const [purchaseNote, setPurchaseNote] = useState("");
+  const [submittingPurchase, setSubmittingPurchase] = useState(false);
   const closeComments = useBackClosable(showComments, () => setShowComments(false));
   const closeDeleteModal = useBackClosable(deleteModalOpen, () => setDeleteModalOpen(false));
   const closeReportModal = useBackClosable(reportModalOpen, () => {
     setReportModalOpen(false);
     setReportError("");
   });
+  const closePurchaseModal = useBackClosable(purchaseModalOpen, () => {
+    setPurchaseModalOpen(false);
+    setPurchaseQuantity("1");
+    setPurchaseNote("");
+  });
   const menuRef = useRef<HTMLDivElement>(null);
+  const editSongFileInputRef = useRef<HTMLInputElement | null>(null);
+  const editSongCoverInputRef = useRef<HTMLInputElement | null>(null);
   const postPath = getPostPath({
     id: postState.id,
+    slug: postState.slug,
     blogTitle: postState.blogTitle,
     productName: postState.productName,
     singer: postState.singer,
@@ -194,6 +285,27 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       setShowPrivacyOptions(false);
     }
   }, [showMenu]);
+
+  useEffect(() => {
+    return () => {
+      if (editSongCoverPreview) {
+        URL.revokeObjectURL(editSongCoverPreview);
+      }
+    };
+  }, [editSongCoverPreview]);
+
+  const resetSongEditState = useCallback(() => {
+    setEditSongTitle(postState.filename ?? "");
+    setEditSongArtist(postState.singer ?? "");
+    setEditSongGenre(postState.songType ?? "");
+    setEditSongDescription(postState.postDescription ?? "");
+    setEditSongFile(null);
+    setEditSongCoverFile(null);
+    setEditSongCoverPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+  }, [postState.filename, postState.postDescription, postState.singer, postState.songType]);
 
   const handleLike = async () => {
     if (!currentUserId) {
@@ -254,6 +366,38 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
     await fetch(`/api/posts/${postState.id}/download`, { method: "POST" });
   };
 
+  const handleInlineFileDownload = async (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!postState.fileUrl) return;
+    event.preventDefault();
+    await handleDownload();
+
+    const fallbackBase =
+      postState.filename ||
+      postState.bookTitle ||
+      postState.productName ||
+      postState.appType ||
+      postState.author ||
+      postState.postDescription ||
+      "file";
+
+    const extensionFallback =
+      postState.postType === "song"
+        ? ".mp3"
+        : postState.postType === "app"
+          ? ".apk"
+          : postState.postType === "book" || postState.postType === "document"
+            ? ".pdf"
+            : "";
+
+    const downloadName = buildDownloadFilename({
+      fileUrl: postState.fileUrl,
+      fallbackBase,
+      extensionFallback,
+    });
+
+    triggerFileDownload(postState.fileUrl, downloadName);
+  };
+
   const handleFollowAuthor = async () => {
     if (!currentUserId) {
       showToast({ type: "error", message: "Login is required to follow users." });
@@ -299,35 +443,134 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
     setShowMenu(false);
   };
 
-  const handleSavePost = async () => {
-    const content = editPostText.trim();
-    if (!content) return;
+  const handleSubmitPurchaseRequest = async () => {
+    if (!currentUserId) {
+        showToast({ type: "error", message: "Sign in to send a purchase request." });
+      return;
+    }
+    if (currentUserId === postState.userId) {
+      showToast({ type: "error", message: "You cannot request your own product." });
+      return;
+    }
 
-    const payload: Record<string, string> = {};
-    if (postState.postType === "blog") payload.blogContent = content;
-    else if (postState.postType === "general") payload.generalPost = content;
-    else payload.postDescription = content;
+    const quantity = Number(purchaseQuantity);
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      showToast({ type: "error", message: "Enter a valid quantity." });
+      return;
+    }
 
-    setSavingPost(true);
-    const res = await fetch(`/api/posts/${postState.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    setSubmittingPurchase(true);
+    try {
+      const res = await fetch("/api/business/purchase-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postId: postState.id,
+          quantity,
+          note: purchaseNote.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Unable to send purchase request.");
+      closePurchaseModal();
+      showToast({ type: "success", message: "Purchase request sent." });
+    } catch (error) {
+      showToast({ type: "error", message: error instanceof Error ? error.message : "Unable to send purchase request." });
+    } finally {
+      setSubmittingPurchase(false);
+    }
+  };
+
+  const uploadEditedMedia = async (file: File) => {
+    const { file: preparedFile } = await prepareUploadFile(file);
+    const payload = new FormData();
+    payload.append("file", preparedFile);
+
+    const res = await fetch("/api/upload/file", {
+      method: "POST",
+      body: payload,
     });
 
-    if (res.ok) {
-      void trackPostViewOnce(postState.id);
-      setPostState((current) => ({
-        ...current,
-        ...payload,
-      }));
-      setEditingPost(false);
-      setShowMenu(false);
-      showToast({ type: "success", message: "Post updated." });
-    } else {
-      showToast({ type: "error", message: "Unable to update post." });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error ?? "Failed to upload file");
     }
-    setSavingPost(false);
+
+    const data = await res.json();
+    return data.fileUrl as string;
+  };
+
+  const handleSavePost = async () => {
+    const payload: Record<string, string> = {};
+
+    if (postState.postType === "song") {
+      const title = editSongTitle.trim();
+      const artist = editSongArtist.trim();
+      const genre = editSongGenre.trim();
+      const description = editSongDescription.trim();
+
+      if (!title) {
+        showToast({ type: "error", message: "Song title is required." });
+        return;
+      }
+      if (!artist) {
+        showToast({ type: "error", message: "Artist / singer is required." });
+        return;
+      }
+      if (description.length < 20) {
+        showToast({ type: "error", message: "Description must be at least 20 characters." });
+        return;
+      }
+
+      payload.filename = title;
+      payload.singer = artist;
+      payload.songType = genre;
+      payload.postDescription = description;
+    } else {
+      const content = editPostText.trim();
+      if (!content) return;
+
+      if (postState.postType === "blog") payload.blogContent = content;
+      else if (postState.postType === "general") payload.generalPost = content;
+      else payload.postDescription = content;
+    }
+
+    setSavingPost(true);
+    try {
+      if (postState.postType === "song" && editSongFile) {
+        payload.fileUrl = await uploadEditedMedia(editSongFile);
+      }
+      if (postState.postType === "song" && editSongCoverFile) {
+        payload.albumCover = await uploadEditedMedia(editSongCoverFile);
+      }
+
+      const res = await fetch(`/api/posts/${postState.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        void trackPostViewOnce(postState.id);
+        setPostState((current) => ({
+          ...current,
+          ...payload,
+        }));
+        setEditingPost(false);
+        setShowMenu(false);
+        if (postState.postType === "song") {
+          resetSongEditState();
+        }
+        showToast({ type: "success", message: "Post updated." });
+      } else {
+        showToast({ type: "error", message: "Unable to update post." });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update post.";
+      showToast({ type: "error", message });
+    } finally {
+      setSavingPost(false);
+    }
   };
 
   const handleReportPost = async () => {
@@ -398,13 +641,13 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
   ] as const;
   const currentPrivacy = privacyOptions.find((option) => option.value === (postState.privacy ?? "public")) ?? privacyOptions[0];
 
-  const getPostTitle = () => {
-    switch (postState.postType) {
-      case "song": return postState.singer ?? postState.filename;
-      case "video": return postState.filename ?? postState.postDescription;
-      case "blog": return postState.blogTitle;
-      case "product": return postState.productName;
-      case "app": return postState.filename ?? postState.appType;
+    const getPostTitle = () => {
+      switch (postState.postType) {
+        case "song": return postState.filename ?? postState.singer;
+        case "video": return postState.filename ?? null;
+        case "blog": return postState.blogTitle;
+        case "product": return postState.productName;
+        case "app": return postState.filename ?? postState.appType;
       case "book": return postState.bookTitle ?? postState.author;
       case "advert": return postState.advertTitle ?? postState.postDescription;
       default: return null;
@@ -532,7 +775,11 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
               {currentUserId === postState.userId && (
                 <button
                   onClick={() => {
-                    setEditPostText(postState.blogContent ?? postState.generalPost ?? postState.postDescription ?? "");
+                    if (postState.postType === "song") {
+                      resetSongEditState();
+                    } else {
+                      setEditPostText(postState.blogContent ?? postState.generalPost ?? postState.postDescription ?? "");
+                    }
                     setEditingPost(true);
                     setShowMenu(false);
                   }}
@@ -630,16 +877,146 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       {/* Text content with truncation */}
       {editingPost ? (
         <div className="mt-2 space-y-2">
-          <textarea
-            value={editPostText}
-            onChange={(e) => setEditPostText(e.target.value)}
-            className="sage-input w-full text-sm min-h-28 rounded-2xl px-4 py-3"
-            placeholder="Edit your post..."
-          />
+          {postState.postType === "song" ? (
+            <div className="space-y-4">
+              <div className="grid gap-4 rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+                <div>
+                  <label className="text-xs text-white/60 uppercase tracking-wider">Song Title</label>
+                  <input
+                    type="text"
+                    value={editSongTitle}
+                    onChange={(e) => setEditSongTitle(e.target.value)}
+                    placeholder="Song title"
+                    className="sage-input mt-1 w-full rounded-2xl py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-white/60 uppercase tracking-wider">Artist / Singer</label>
+                  <input
+                    type="text"
+                    value={editSongArtist}
+                    onChange={(e) => setEditSongArtist(e.target.value)}
+                    placeholder="Artist name"
+                    className="sage-input mt-1 w-full rounded-2xl py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-white/60 uppercase tracking-wider">Genre</label>
+                  <select
+                    value={editSongGenre}
+                    onChange={(e) => setEditSongGenre(e.target.value)}
+                    className="sage-input mt-1 w-full rounded-2xl bg-transparent py-2.5 text-sm"
+                  >
+                    <option value="" className="bg-white text-black">Select genre</option>
+                    {["Afrobeats", "Gospel", "Hip Hop", "R&B", "Reggae", "Pop", "Traditional", "Background Music", "Instrumental", "Other"].map((genre) => (
+                      <option key={genre} value={genre.toLowerCase()} className="bg-white text-black">
+                        {genre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-white/60 uppercase tracking-wider">Description</label>
+                  <textarea
+                    value={editSongDescription}
+                    onChange={(e) => setEditSongDescription(e.target.value)}
+                    placeholder="Add a description..."
+                    className="sage-input mt-1 min-h-[90px] w-full resize-none rounded-2xl py-2.5 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Song file</p>
+                    <p className="mt-1 text-xs text-white/45">
+                      {editSongFile ? `New file: ${editSongFile.name}` : `Current file: ${postState.filename ?? "Song file"}`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => editSongFileInputRef.current?.click()}
+                    className="upload-action-chip"
+                  >
+                    <i className="fas fa-music" /> Choose song
+                  </button>
+                </div>
+                <input
+                  ref={editSongFileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const nextFile = e.target.files?.[0] ?? null;
+                    setEditSongFile(nextFile);
+                    if (nextFile && !editSongTitle.trim()) {
+                      setEditSongTitle(stripFileExtension(nextFile.name));
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Cover art</p>
+                    <p className="mt-1 text-xs text-white/45">
+                      {editSongCoverFile ? `New cover: ${editSongCoverFile.name}` : "Keep current cover or choose a new one"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => editSongCoverInputRef.current?.click()}
+                    className="upload-action-chip"
+                  >
+                    <i className="fas fa-image" /> Choose cover
+                  </button>
+                </div>
+                <input
+                  ref={editSongCoverInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const nextFile = e.target.files?.[0] ?? null;
+                    setEditSongCoverFile(nextFile);
+                    setEditSongCoverPreview((current) => {
+                      if (current) URL.revokeObjectURL(current);
+                      return nextFile ? URL.createObjectURL(nextFile) : null;
+                    });
+                  }}
+                />
+                {(editSongCoverPreview || postState.albumCover) ? (
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                    <Image
+                      src={editSongCoverPreview || postState.albumCover || "/files/default-avatar.svg"}
+                      alt="Song cover"
+                      width={1200}
+                      height={600}
+                      className="h-48 w-full object-cover"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <textarea
+              value={editPostText}
+              onChange={(e) => setEditPostText(e.target.value)}
+              className="sage-input w-full text-sm min-h-28 rounded-2xl px-4 py-3"
+              placeholder="Edit your post..."
+            />
+          )}
           <div className="flex items-center gap-2">
             <button
               onClick={handleSavePost}
-              disabled={savingPost || !editPostText.trim()}
+              disabled={
+                savingPost ||
+                (postState.postType === "song"
+                  ? !editSongTitle.trim() || !editSongArtist.trim() || editSongDescription.trim().length < 20
+                  : !editPostText.trim())
+              }
               className="text-xs px-3 py-2 rounded-full font-semibold disabled:opacity-50"
               style={{ background: "linear-gradient(135deg,#00a884,#00c8e8)", color: "white" }}
             >
@@ -648,7 +1025,11 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             <button
               onClick={() => {
                 setEditingPost(false);
-                setEditPostText(postState.blogContent ?? postState.generalPost ?? postState.postDescription ?? "");
+                if (postState.postType === "song") {
+                  resetSongEditState();
+                } else {
+                  setEditPostText(postState.blogContent ?? postState.generalPost ?? postState.postDescription ?? "");
+                }
               }}
               className="text-xs px-3 py-2 rounded-full text-white/70 border border-white/10 hover:bg-white/5"
             >
@@ -686,9 +1067,9 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       )}
 
       {/* Non-text title */}
-      {postTitle && postState.postType !== "blog" && (
-        <p className="text-[16px] text-white mt-2 font-medium break-words">{renderTextWithLinks(postTitle)}</p>
-      )}
+        {postTitle && postState.postType !== "blog" && postState.postType !== "product" && (
+          <p className="text-[16px] text-white mt-2 font-medium break-words">{renderTextWithLinks(postTitle)}</p>
+        )}
       {postState.postDescription && !displayText && !["general", "blog", "advert"].includes(postState.postType) && !editingPost && (
         <p className="mt-1 text-[16px] text-white/55 break-words">{renderTextWithLinks(postState.postDescription)}</p>
       )}
@@ -709,6 +1090,8 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             onDownload={handleDownload}
             canManageGallery={canManageGallery}
             onRemoveGalleryImage={handleRemoveGalleryImage}
+            musicQueue={musicQueue}
+            musicQueueIndex={musicQueueIndex}
           />
         </div>
       ) : (
@@ -717,6 +1100,8 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
           onDownload={handleDownload}
           canManageGallery={canManageGallery}
           onRemoveGalleryImage={handleRemoveGalleryImage}
+          musicQueue={musicQueue}
+          musicQueueIndex={musicQueueIndex}
         />
       )}
 
@@ -760,33 +1145,44 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             <i className={`${showComments ? "fas" : "far"} fa-comment`} />
             <span className="text-xs font-medium">{postState.commentsCount ?? 0}</span>
           </button>
-          <span className="modern-pill-action flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs text-white/45">
-            <i className="far fa-eye" />
-            <span>{postState.views ?? 0}</span>
-          </span>
+            {postState.postType !== "song" && postState.postType !== "document" && (
+              <span className="modern-pill-action flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs text-white/45">
+                <i className="far fa-eye" />
+                <span>{postState.views ?? 0}</span>
+              </span>
+            )}
 
         {["song", "app", "book", "document"].includes(postState.postType) && postState.fileUrl && (
-          <a
-            href={postState.fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleDownload}
-            className="flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-sm transition-colors"
-            style={{ color: "#00c8e8", border: "1px solid rgba(0,200,220,0.3)", background: "rgba(0,200,220,0.06)" }}
-          >
-            <i className="fas fa-download" />
-            <span>{postState.downloadsCount ?? 0}</span>
-          </a>
-        )}
+            <a
+                href={postState.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleInlineFileDownload}
+                className="flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-sm transition-colors"
+                style={{ color: "#00c8e8", border: "1px solid rgba(0,200,220,0.3)", background: "rgba(0,200,220,0.06)" }}
+              >
+              <i className="fas fa-download" />
+              {(postState.downloadsCount ?? 0) > 0 ? (
+                <span>{postState.postType === "document" ? `${postState.downloadsCount ?? 0} downloads` : postState.downloadsCount ?? 0}</span>
+              ) : null}
+            </a>
+          )}
 
-        {postState.postType === "product" && postState.postDescription && (
-          <a
-            href={`/messages?user=${postState.userId}&product=${postState.id}`}
+        {postState.postType === "product" && currentUserId !== postState.userId && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!currentUserId) {
+                  showToast({ type: "error", message: "Sign in to send a purchase request." });
+                return;
+              }
+              setPurchaseModalOpen(true);
+            }}
             className="flex items-center justify-center text-xs px-4 py-1.5 rounded-sm font-semibold transition-colors"
             style={{ background: "#034", color: "white" }}
           >
-            Buy now
-          </a>
+            Request to buy
+          </button>
         )}
 
         {postState.postType === "advert" && postState.advertUrl && (
@@ -852,6 +1248,19 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
           }
         }}
       />
+
+      <PurchaseRequestModal
+        open={purchaseModalOpen}
+        productName={postState.productName ?? "Product"}
+        unitPrice={postState.productPrice ? Number(postState.productPrice) : null}
+        quantity={purchaseQuantity}
+        note={purchaseNote}
+        loading={submittingPurchase}
+        onQuantityChange={setPurchaseQuantity}
+        onNoteChange={setPurchaseNote}
+        onSubmit={handleSubmitPurchaseRequest}
+        onClose={closePurchaseModal}
+      />
     </>
   );
 }
@@ -862,16 +1271,41 @@ function PostContent({
   onDownload,
   canManageGallery = false,
   onRemoveGalleryImage,
+  musicQueue,
+  musicQueueIndex,
 }: {
   post: PostCardProps["post"];
   onDownload: () => void;
   canManageGallery?: boolean;
   onRemoveGalleryImage?: (imageUrl: string) => void | Promise<void>;
+  musicQueue?: PostCardProps["musicQueue"];
+  musicQueueIndex?: number;
 }) {
   const mediaUrls = parseMediaUrls(post.fileUrl);
   const primaryMediaUrl = mediaUrls[0];
+  const handleStructuredFileDownload = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!primaryMediaUrl) return;
+    event.preventDefault();
+    onDownload();
+    const fallbackBase =
+      post.filename ||
+      post.bookTitle ||
+      post.appType ||
+      post.author ||
+      "file";
+    const extensionFallback =
+      post.postType === "app" ? ".apk" : post.postType === "book" ? ".pdf" : post.postType === "document" ? ".pdf" : "";
+    const downloadName = buildDownloadFilename({
+      fileUrl: primaryMediaUrl,
+      fallbackBase,
+      extensionFallback,
+    });
+    triggerFileDownload(primaryMediaUrl, downloadName);
+  };
 
-  if (post.postType === "song" && post.fileUrl) return <MusicPlayer post={post} />;
+  if (post.postType === "song" && post.fileUrl) {
+    return <MusicPlayer post={post} queue={musicQueue} queueIndex={musicQueueIndex} />;
+  }
   if (post.postType === "video" && post.fileUrl) return <VideoPlayer post={post} />;
 
   if (
@@ -895,31 +1329,36 @@ function PostContent({
   }
 
   if (post.postType === "product" && primaryMediaUrl) {
-    return (
-      <div className="my-2">
-        <div className="relative rounded-xl overflow-hidden" style={{ maxHeight: "280px" }}>
-          <Image
-            src={primaryMediaUrl}
-            alt={post.productName ?? "Product"}
-            width={500}
-            height={280}
-            className="w-full object-cover"
-          />
-          <div
-            className="absolute bottom-0 left-0 right-0 px-3 py-2"
-            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}
-          >
-            <p className="text-white font-bold text-sm">{post.productName}</p>
-            {post.productPrice && (
-              <p className="text-cyan-400 font-bold">K{post.productPrice}
-                {post.productType && <span className="text-white/50 font-normal ml-2 text-xs capitalize">{post.productType}</span>}
-              </p>
-            )}
+      return (
+        <div className="my-2">
+          <div className="overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03]">
+            <div className="px-3 py-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-[17px] font-semibold text-white">{post.productName ?? "Product"}</p>
+                  {post.productType ? (
+                    <p className="mt-1 text-xs uppercase tracking-[0.12em] text-white/45">{post.productType}</p>
+                  ) : null}
+                </div>
+                {post.productPrice ? (
+                  <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-sm font-semibold text-cyan-300">
+                    K{post.productPrice}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className="border-t border-white/[0.04] px-3 pb-3 pt-3">
+              <PhotoGalleryViewer
+                images={mediaUrls}
+                alt={post.productName ?? "Product"}
+                canManage={canManageGallery}
+                onRemoveImage={onRemoveGalleryImage}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
   if (["app", "book", "document"].includes(post.postType) && primaryMediaUrl) {
     const icon = post.postType === "app" ? "fas fa-mobile-alt" : post.postType === "book" ? "fas fa-book-open" : "fas fa-file-alt";
@@ -945,7 +1384,7 @@ function PostContent({
           href={primaryMediaUrl}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={onDownload}
+          onClick={handleStructuredFileDownload}
           className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-semibold transition-colors"
           style={{ background: `${color}22`, color, border: `1px solid ${color}44` }}
         >
@@ -959,22 +1398,49 @@ function PostContent({
 }
 
 // ─── Music Player ────────────────────────────────────────────────
-function MusicPlayer({ post }: { post: PostCardProps["post"] }) {
+function MusicPlayer({
+  post,
+  queue,
+  queueIndex,
+}: {
+  post: PostCardProps["post"];
+  queue?: PostCardProps["musicQueue"];
+  queueIndex?: number;
+}) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(queueIndex ?? 0);
   const [plays, setPlays] = useState(post.views ?? 0);
-  const playTracked = useRef(false);
+  const [downloads, setDownloads] = useState(post.downloadsCount ?? 0);
 
-  const trackPlay = useCallback(() => {
-    if (playTracked.current) return;
-    playTracked.current = true;
-    setPlays((p) => p + 1);
-    fetch(`/api/posts/${post.id}/play`, { method: "POST" }).catch(() => {});
-  }, [post.id]);
+  const playlist = queue && queue.length > 0 ? queue : [post];
+  const currentTrack = playlist[activeIndex] ?? post;
+  const hasPrevious = activeIndex > 0;
+  const hasNext = activeIndex < playlist.length - 1;
+
+  useEffect(() => {
+    setActiveIndex(queueIndex ?? 0);
+  }, [queueIndex, queue]);
+
+  useEffect(() => {
+    setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
+    setPlays(currentTrack.views ?? 0);
+    setDownloads(currentTrack.downloadsCount ?? 0);
+  }, [currentTrack]);
+
+  const trackPlay = useCallback((trackId: string) => {
+    void trackSongPlayOnce(trackId).then((counted) => {
+      if (counted) {
+        setPlays((p) => p + 1);
+      }
+    });
+  }, []);
 
   const toggle = () => {
     const a = audioRef.current;
@@ -985,7 +1451,12 @@ function MusicPlayer({ post }: { post: PostCardProps["post"] }) {
     } else {
       setLoading(true);
       a.play()
-        .then(() => { setPlaying(true); setLoading(false); trackPlay(); })
+        .then(() => {
+          setPlaying(true);
+          setLoading(false);
+          window.dispatchEvent(new CustomEvent("sage-music-play", { detail: { id: currentTrack.id } }));
+          trackPlay(currentTrack.id);
+        })
         .catch(() => setLoading(false));
     }
   };
@@ -999,35 +1470,96 @@ function MusicPlayer({ post }: { post: PostCardProps["post"] }) {
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<{ id?: string }>;
+      if (!customEvent.detail?.id || customEvent.detail.id === currentTrack.id) return;
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.pause();
+      setPlaying(false);
+    };
+
+    window.addEventListener("sage-music-play", handler as EventListener);
+    return () => window.removeEventListener("sage-music-play", handler as EventListener);
+  }, [currentTrack.id]);
+
+  const playTrackAt = (nextIndex: number) => {
+    if (!playlist[nextIndex]) return;
+    setActiveIndex(nextIndex);
+    setLoading(true);
+    window.setTimeout(() => {
+      const audio = audioRef.current;
+      if (!audio) {
+        setLoading(false);
+        return;
+      }
+      audio.currentTime = 0;
+      void audio.play()
+        .then(() => {
+          setPlaying(true);
+          setLoading(false);
+          window.dispatchEvent(new CustomEvent("sage-music-play", { detail: { id: playlist[nextIndex].id } }));
+          trackPlay(playlist[nextIndex].id);
+        })
+        .catch(() => setLoading(false));
+    }, 0);
+  };
+
+  const handlePrevious = () => {
+    if (!hasPrevious) return;
+    playTrackAt(activeIndex - 1);
+  };
+
+  const handleNext = () => {
+    if (!hasNext) return;
+    playTrackAt(activeIndex + 1);
+  };
+
+  const handleDownload = async () => {
+    await fetch(`/api/posts/${currentTrack.id}/download`, { method: "POST" }).catch(() => {});
+    setDownloads((value) => value + 1);
+    if (!currentTrack.fileUrl) return;
+
+    const downloadName = buildDownloadFilename({
+      fileUrl: currentTrack.fileUrl,
+      fallbackBase: currentTrack.filename || currentTrack.singer || "song",
+      extensionFallback: ".mp3",
+    });
+
+    triggerFileDownload(currentTrack.fileUrl, downloadName);
+  };
+
   return (
-    <div className="my-2 rounded-2xl overflow-hidden relative" style={{ background: "rgba(0,0,0,0.4)" }}>
+    <div className="my-2 rounded-2xl overflow-hidden relative" style={{ background: "rgba(4,12,20,0.88)" }}>
       {/* Blurred background */}
-      {post.albumCover && (
+      {currentTrack.albumCover && (
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `url(${post.albumCover})`,
+            backgroundImage: `url(${currentTrack.albumCover})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            filter: "blur(30px) brightness(0.25)",
+            filter: "blur(24px) brightness(0.18)",
             transform: "scale(1.1)",
+            opacity: 0.72,
           }}
         />
       )}
 
       <div className="relative flex items-center gap-4 p-4">
         {/* Spinning disc */}
-        <div className="relative flex-shrink-0" style={{ width: 64, height: 64 }}>
+        <div className="relative flex-shrink-0" style={{ width: 84, height: 84 }}>
           <div
-            className="w-16 h-16 rounded-full overflow-hidden"
+            className="h-[84px] w-[84px] rounded-full overflow-hidden"
             style={{
               border: "3px solid rgba(0,200,220,0.3)",
               animation: playing ? "spin 8s linear infinite" : "none",
-              boxShadow: playing ? "0 0 20px rgba(0,200,220,0.4)" : "none",
-            }}
-          >
-            {post.albumCover ? (
-              <Image src={post.albumCover} alt="Album" fill className="object-cover" />
+            boxShadow: playing ? "0 0 20px rgba(0,200,220,0.4)" : "none",
+          }}
+        >
+            {currentTrack.albumCover ? (
+              <Image src={currentTrack.albumCover} alt="Album" fill className="object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center" style={{ background: "radial-gradient(circle at 40% 40%, #1a5a7a, #0a1a2a)" }}>
                 <i className="fas fa-music text-cyan-400 text-xl" />
@@ -1041,13 +1573,27 @@ function MusicPlayer({ post }: { post: PostCardProps["post"] }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-base font-bold text-white truncate">{post.singer ?? "Unknown Artist"}</p>
-          <p className="text-xs text-cyan-400/80 capitalize truncate">{post.songType ?? "Music"}</p>
+          <p className="text-base font-bold text-white/95 truncate">
+            {stripFileExtension(currentTrack.filename) || currentTrack.singer || "Song"}
+          </p>
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-white/72">
+            <span className="truncate text-white/78">{currentTrack.singer ?? "Unknown artist"}</span>
+            <span className="text-white/20">•</span>
+            <span className="truncate capitalize text-cyan-300/90">{currentTrack.songType ?? "Music"}</span>
+            {playlist.length > 1 && (
+              <>
+                <span className="text-white/20">•</span>
+                <span className="text-white/58">
+                  {activeIndex + 1}/{playlist.length}
+                </span>
+              </>
+            )}
+          </div>
 
           {/* Progress bar */}
           <div
             className="mt-3 h-1.5 rounded-full cursor-pointer relative group"
-            style={{ background: "rgba(255,255,255,0.1)" }}
+            style={{ background: "rgba(255,255,255,0.14)" }}
             onClick={seek}
           >
             <div
@@ -1060,28 +1606,50 @@ function MusicPlayer({ post }: { post: PostCardProps["post"] }) {
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-white/40">{fmt(currentTime)}</span>
-            <span className="text-xs text-white/40">{duration ? fmt(duration) : "--:--"}</span>
+            <span className="text-xs text-white/58">{fmt(currentTime)}</span>
+            <span className="text-xs text-white/58">{duration ? fmt(duration) : "--:--"}</span>
           </div>
         </div>
 
         {/* Play/Pause */}
-        <button
-          onClick={toggle}
-          className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all"
-          style={{
-            background: "linear-gradient(135deg,#00a884,#00c8e8)",
-            boxShadow: playing ? "0 0 24px rgba(0,170,132,0.6)" : "0 4px 12px rgba(0,0,0,0.4)",
-          }}
-        >
-          {loading ? (
-            <i className="fas fa-spinner fa-spin text-white" />
-          ) : playing ? (
-            <i className="fas fa-pause text-white" />
-          ) : (
-            <i className="fas fa-play text-white ml-0.5" />
+        <div className="flex shrink-0 items-center gap-2">
+          {playlist.length > 1 && (
+            <button
+              type="button"
+              onClick={handlePrevious}
+              disabled={!hasPrevious}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-white/85 transition-colors hover:bg-white/[0.12] hover:text-white disabled:opacity-25"
+            >
+              <i className="fas fa-backward-step text-xs" />
+            </button>
           )}
-        </button>
+          <button
+            onClick={toggle}
+            className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all"
+            style={{
+              background: "linear-gradient(135deg,#00a884,#00c8e8)",
+              boxShadow: playing ? "0 0 24px rgba(0,170,132,0.6)" : "0 4px 12px rgba(0,0,0,0.4)",
+            }}
+          >
+            {loading ? (
+              <i className="fas fa-spinner fa-spin text-white" />
+            ) : playing ? (
+              <i className="fas fa-pause text-white" />
+            ) : (
+              <i className="fas fa-play text-white ml-0.5" />
+            )}
+          </button>
+          {playlist.length > 1 && (
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!hasNext}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-white/85 transition-colors hover:bg-white/[0.12] hover:text-white disabled:opacity-25"
+            >
+              <i className="fas fa-forward-step text-xs" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Waveform */}
@@ -1091,9 +1659,13 @@ function MusicPlayer({ post }: { post: PostCardProps["post"] }) {
             key={i}
             className="rounded-full flex-1"
             style={{
-              background: playing ? "linear-gradient(to top,#00a884,#00c8e8)" : "rgba(255,255,255,0.1)",
+              background: playing ? "linear-gradient(to top,#00a884,#00c8e8)" : "rgba(255,255,255,0.18)",
               height: playing ? `${h}%` : "30%",
-              animation: playing ? `waveBar ${0.3 + (i % 5) * 0.1}s ease-in-out infinite alternate` : "none",
+              animationName: playing ? "waveBar" : "none",
+              animationDuration: playing ? `${0.3 + (i % 5) * 0.1}s` : "0s",
+              animationTimingFunction: "ease-in-out",
+              animationIterationCount: "infinite",
+              animationDirection: "alternate",
               animationDelay: playing ? `${i * 0.04}s` : "0s",
               transition: "background 0.3s",
             }}
@@ -1102,28 +1674,31 @@ function MusicPlayer({ post }: { post: PostCardProps["post"] }) {
       </div>
 
       {/* Stats bar */}
-      <div className="flex items-center gap-4 px-4 pb-3 pt-1">
-        <span className="flex items-center gap-1.5 text-xs text-white/40">
-          <i className="fas fa-play-circle text-cyan-500/60" />
+      <div
+        className="flex items-center gap-4 px-4 pb-3 pt-2"
+        style={{
+          background: "rgba(6,14,22,0.68)",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          backdropFilter: "blur(2px)",
+        }}
+      >
+        <span className="flex items-center gap-1.5 rounded-full bg-black/22 px-2.5 py-1 text-[12px] text-white/88">
+          <i className="fas fa-play-circle text-cyan-300/90" />
           <span>{formatCount(plays)} plays</span>
         </span>
-        {(post.downloadsCount ?? 0) > 0 && (
-          <span className="flex items-center gap-1.5 text-xs text-white/40">
-            <i className="fas fa-download text-white/30" />
-            <span>{formatCount(post.downloadsCount)} downloads</span>
-          </span>
-        )}
-        {post.likesCount != null && post.likesCount > 0 && (
-          <span className="flex items-center gap-1.5 text-xs text-white/40">
-            <i className="fas fa-heart text-pink-500/50" />
-            <span>{formatCount(post.likesCount)}</span>
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="flex items-center gap-1.5 rounded-full bg-black/22 px-2.5 py-1 text-[12px] text-white/88 transition-colors hover:bg-white/[0.09] hover:text-cyan-100"
+        >
+          <i className="fas fa-download text-cyan-200/82" />
+          {downloads > 0 ? <span>{formatCount(downloads)} downloads</span> : null}
+        </button>
       </div>
 
       <audio
         ref={audioRef}
-        src={post.fileUrl!}
+        src={currentTrack.fileUrl!}
         onTimeUpdate={() => {
           const a = audioRef.current;
           if (!a) return;
@@ -1131,7 +1706,14 @@ function MusicPlayer({ post }: { post: PostCardProps["post"] }) {
           setProgress(a.duration ? (a.currentTime / a.duration) * 100 : 0);
         }}
         onLoadedMetadata={() => setDuration(audioRef.current?.duration ?? 0)}
-        onEnded={() => { setPlaying(false); setProgress(0); setCurrentTime(0); }}
+        onEnded={() => {
+          setPlaying(false);
+          setProgress(0);
+          setCurrentTime(0);
+          if (hasNext) {
+            playTrackAt(activeIndex + 1);
+          }
+        }}
         onWaiting={() => setLoading(true)}
         onPlaying={() => setLoading(false)}
       />
@@ -1146,9 +1728,14 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isPortraitVideo, setIsPortraitVideo] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [muted, setMuted] = useState(false);
   const [views, setViews] = useState(post.views ?? 0);
+  const [downloads, setDownloads] = useState(post.downloadsCount ?? 0);
+  const [buffering, setBuffering] = useState(false);
+  const [pipSupported, setPipSupported] = useState(false);
+  const [pipActive, setPipActive] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playTracked = useRef(false);
 
@@ -1167,11 +1754,45 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
     if (playing) hideTimer.current = setTimeout(() => setShowControls(false), 2500);
   }, [playing]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const canUsePip =
+      typeof document !== "undefined" &&
+      "pictureInPictureEnabled" in document &&
+      !(video as HTMLVideoElement & { disablePictureInPicture?: boolean }).disablePictureInPicture;
+
+    setPipSupported(Boolean(canUsePip));
+
+    const handleEnterPip = () => setPipActive(true);
+    const handleLeavePip = () => setPipActive(false);
+
+    video.addEventListener("enterpictureinpicture", handleEnterPip);
+    video.addEventListener("leavepictureinpicture", handleLeavePip);
+
+    return () => {
+      video.removeEventListener("enterpictureinpicture", handleEnterPip);
+      video.removeEventListener("leavepictureinpicture", handleLeavePip);
+    };
+  }, []);
+
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
-    if (playing) { v.pause(); setPlaying(false); }
-    else { v.play(); setPlaying(true); trackPlay(); }
+    if (playing) {
+      v.pause();
+      setPlaying(false);
+    } else {
+      setBuffering(true);
+      void v.play().then(() => {
+        setPlaying(true);
+        setBuffering(false);
+        trackPlay();
+      }).catch(() => {
+        setBuffering(false);
+      });
+    }
     revealControls();
   };
 
@@ -1193,32 +1814,80 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
     if (v.requestFullscreen) v.requestFullscreen();
   };
 
+  const togglePictureInPicture = async () => {
+    const video = videoRef.current;
+    if (!video || !pipSupported) return;
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await video.requestPictureInPicture();
+      }
+    } catch {
+      // no-op
+    }
+  };
+
+  const handleVideoDownload = async () => {
+    try {
+      await fetch(`/api/posts/${post.id}/download`, { method: "POST" });
+      setDownloads((current) => current + 1);
+      if (!post.fileUrl) return;
+
+      const downloadName = buildDownloadFilename({
+        fileUrl: post.fileUrl,
+        fallbackBase: post.filename || post.postDescription || post.blogTitle || "video",
+        extensionFallback: ".mp4",
+      });
+
+      triggerFileDownload(post.fileUrl, downloadName);
+    } catch {
+      // no-op
+    }
+  };
+
   return (
     <div
-      className="my-2 rounded-xl overflow-hidden relative bg-black group"
+      className="my-2 relative overflow-hidden rounded-[12px] bg-black group"
       style={{ maxHeight: "340px" }}
       onMouseMove={revealControls}
       onMouseEnter={revealControls}
     >
-      <video
-        ref={videoRef}
-        src={post.fileUrl!}
-        poster={post.thumbnailUrl ?? post.albumCover ?? undefined}
-        className="w-full object-contain"
-        style={{ maxHeight: "300px", display: "block" }}
-        onTimeUpdate={() => {
-          const v = videoRef.current;
-          if (!v) return;
-          setCurrentTime(v.currentTime);
-          setProgress(v.duration ? (v.currentTime / v.duration) * 100 : 0);
-        }}
-        onLoadedMetadata={() => setDuration(videoRef.current?.duration ?? 0)}
-        onEnded={() => { setPlaying(false); setProgress(0); setCurrentTime(0); setShowControls(true); }}
-        onClick={togglePlay}
-      />
+      <div
+        className={isPortraitVideo ? "mx-auto w-full max-w-[260px] sm:max-w-[300px]" : "w-full"}
+      >
+        <video
+          ref={videoRef}
+          src={post.fileUrl!}
+          poster={post.thumbnailUrl ?? post.albumCover ?? undefined}
+          className="w-full object-contain"
+          style={{ maxHeight: isPortraitVideo ? "460px" : "300px", display: "block" }}
+          onTimeUpdate={() => {
+            const v = videoRef.current;
+            if (!v) return;
+            setCurrentTime(v.currentTime);
+            setProgress(v.duration ? (v.currentTime / v.duration) * 100 : 0);
+          }}
+          onLoadedMetadata={() => {
+            const video = videoRef.current;
+            setDuration(video?.duration ?? 0);
+            if (video) {
+              setIsPortraitVideo(video.videoHeight > video.videoWidth);
+            }
+          }}
+          onEnded={() => { setPlaying(false); setProgress(0); setCurrentTime(0); setShowControls(true); setBuffering(false); }}
+          onWaiting={() => setBuffering(true)}
+          onPlaying={() => { setPlaying(true); setBuffering(false); }}
+          onPause={() => setPlaying(false)}
+          onCanPlay={() => setBuffering(false)}
+          onClick={togglePlay}
+          playsInline
+        />
+      </div>
 
       {/* Center play overlay */}
-      {!playing && (
+      {!playing && !buffering && (
         <div
           className="absolute inset-0 flex items-center justify-center cursor-pointer"
           onClick={togglePlay}
@@ -1230,6 +1899,18 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
           >
             <i className="fas fa-play text-white text-xl ml-1" />
           </div>
+        </div>
+      )}
+
+      {buffering && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+          style={{ background: "rgba(0,0,0,0.38)" }}
+        >
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-cyan-400/25 bg-cyan-400/12 text-cyan-300">
+            <i className="fas fa-spinner fa-spin text-lg" />
+          </span>
+          <span className="text-xs font-medium tracking-[0.14em] text-white/80 uppercase">Buffering video</span>
         </div>
       )}
 
@@ -1260,17 +1941,31 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
         <div className="flex items-center gap-3">
           <button onClick={togglePlay} className="text-white w-7 flex items-center justify-center">
             <i className={`fas fa-${playing ? "pause" : "play"}`} />
-          </button>
-          <span className="text-xs text-white/70">{fmt(currentTime)} / {duration ? fmt(duration) : "--:--"}</span>
-          <span className="flex-1" />
-          {/* Stats inline */}
-          <span className="flex items-center gap-1 text-xs text-white/50">
-            <i className="fas fa-eye" /> {formatCount(views)}
-          </span>
-          {(post.likesCount ?? 0) > 0 && (
-            <span className="flex items-center gap-1 text-xs text-white/50">
-              <i className="fas fa-heart" /> {formatCount(post.likesCount)}
-            </span>
+            </button>
+            <span className="text-xs text-white/70">{fmt(currentTime)} / {duration ? fmt(duration) : "--:--"}</span>
+            <span className="flex-1" />
+            {post.fileUrl && (
+              <a
+                href={post.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={post.filename ?? undefined}
+                onClick={handleVideoDownload}
+                className="flex items-center gap-1 text-white/70 hover:text-white text-sm transition-colors"
+                aria-label="Download video"
+              >
+                <i className="fas fa-download" />
+                {downloads > 0 ? <span className="text-[11px] leading-none text-white/62">{formatCount(downloads)}</span> : null}
+              </a>
+            )}
+          {pipSupported && (
+            <button
+              onClick={togglePictureInPicture}
+              className={`text-sm transition-colors ${pipActive ? "text-cyan-300" : "text-white/70 hover:text-white"}`}
+              aria-label="Picture in picture"
+            >
+              <i className="fas fa-clone" />
+            </button>
           )}
           <button onClick={toggleMute} className="text-white/70 hover:text-white text-sm transition-colors">
             <i className={`fas fa-volume-${muted ? "mute" : "up"}`} />
@@ -1432,7 +2127,7 @@ function PhotoViewer({ src, alt }: { src: string; alt: string }) {
   return (
     <>
       <div
-        className="my-2 rounded-xl overflow-hidden cursor-zoom-in relative group"
+        className="my-2 relative overflow-hidden rounded-[14px] cursor-zoom-in group"
         onClick={() => setOpen(true)}
       >
         <Image
@@ -1622,6 +2317,101 @@ function ReportPostModal({
             style={{ background: "linear-gradient(135deg,#d97706,#f59e0b)" }}
           >
             {loading ? <i className="fas fa-spinner fa-spin" /> : "Submit report"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PurchaseRequestModal({
+  open,
+  productName,
+  unitPrice,
+  quantity,
+  note,
+  loading,
+  onQuantityChange,
+  onNoteChange,
+  onSubmit,
+  onClose,
+}: {
+  open: boolean;
+  productName: string;
+  unitPrice: number | null;
+  quantity: string;
+  note: string;
+  loading: boolean;
+  onQuantityChange: (value: string) => void;
+  onNoteChange: (value: string) => void;
+  onSubmit: () => void;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center px-4"
+      style={{ background: "rgba(2,8,15,0.72)", backdropFilter: "blur(8px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-3xl p-5 shadow-2xl"
+        style={{
+          background: "linear-gradient(180deg, rgba(10,23,34,0.98), rgba(4,12,20,0.98))",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="h-11 w-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(0,200,220,0.12)", color: "#67e8f9", border: "1px solid rgba(103,232,249,0.18)" }}
+          >
+            <i className="fas fa-shopping-bag" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-base font-semibold text-white">Request to buy</p>
+            <p className="mt-1 text-sm text-white/55 leading-relaxed">
+              Send a purchase request for <span className="text-white/80">{productName}</span>{unitPrice !== null ? ` at ${formatMoney(unitPrice)} each.` : "."}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3">
+          <input
+            value={quantity}
+            onChange={(e) => onQuantityChange(e.target.value)}
+            type="number"
+            min="1"
+            placeholder="Quantity"
+            className="sage-input text-sm"
+          />
+          <textarea
+            value={note}
+            onChange={(e) => onNoteChange(e.target.value)}
+            placeholder="Optional note for the seller"
+            className="sage-input min-h-24 resize-none text-sm"
+          />
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 rounded-full text-sm text-white/70 border border-white/10 hover:bg-white/5 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={loading}
+            className="px-4 py-2 rounded-full text-sm font-semibold text-slate-950 disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg,#67e8f9,#22d3ee)" }}
+          >
+            {loading ? <i className="fas fa-spinner fa-spin" /> : "Send request"}
           </button>
         </div>
       </div>

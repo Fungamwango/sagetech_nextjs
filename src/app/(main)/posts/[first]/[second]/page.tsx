@@ -3,6 +3,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
+import Image from "next/image";
 import { notFound, permanentRedirect } from "next/navigation";
 import PostFeed from "@/components/posts/PostFeed";
 import PostShareBar from "@/components/posts/PostShareBar";
@@ -13,6 +14,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { canUseAdsterraStats, fetchAdsterraStats } from "@/lib/adsterra";
 import { getPostSeo, getRelatedPostsByType, getVisiblePostById } from "@/lib/posts";
 import { getPostPath } from "@/lib/postUrls";
+import { getPrimaryMediaUrl } from "@/lib/postMedia";
 
 interface PostPageProps {
   params: Promise<{ first: string; second: string }>;
@@ -24,6 +26,10 @@ function getSiteUrl() {
 
 function stripHtml(value: string | null | undefined) {
   return (value ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function stripFileExtension(value: string | null | undefined) {
+  return (value ?? "").replace(/\.[^.]+$/, "").trim();
 }
 
 function isUuid(value: string) {
@@ -182,8 +188,8 @@ export default async function PostPage({ params }: PostPageProps) {
               const title =
                 related.blogTitle ||
                 related.productName ||
-                related.singer ||
                 related.filename ||
+                related.singer ||
                 related.bookTitle ||
                 related.advertTitle ||
                 related.linkTitle ||
@@ -195,6 +201,103 @@ export default async function PostPage({ params }: PostPageProps) {
                 stripHtml(related.generalPost) ||
                 stripHtml(related.blogContent) ||
                 stripHtml(title);
+              const mediaUrl = getPrimaryMediaUrl(related.fileUrl) || related.thumbnailUrl || related.albumCover;
+
+              if (related.postType === "song") {
+                return (
+                  <Link
+                    key={related.id}
+                    href={getPostPath(related)}
+                    className="block rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3 transition-colors hover:border-cyan-400/18 hover:bg-white/[0.05]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-[60px] w-[60px] flex-shrink-0 overflow-hidden rounded-2xl border border-white/8 bg-black/20">
+                        {mediaUrl ? (
+                          <Image src={mediaUrl} alt={title} fill className="object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-cyan-300/70">
+                            <i className="fas fa-music text-lg" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate text-sm font-semibold text-white/90">
+                            {stripFileExtension(related.filename) || related.singer || "Song"}
+                          </p>
+                          <span className="whitespace-nowrap text-[11px] text-white/36">{related.views ?? 0} plays</span>
+                        </div>
+                        <p className="mt-1 truncate text-xs text-white/62">{related.singer || "Unknown artist"}</p>
+                        <p className="mt-1 truncate text-[11px] uppercase tracking-[0.12em] text-cyan-300/72">
+                          {related.songType || "Music"}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              }
+
+              if (related.postType === "video") {
+                return (
+                  <Link
+                    key={related.id}
+                    href={getPostPath(related)}
+                    className="block overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] transition-colors hover:border-cyan-400/18 hover:bg-white/[0.05]"
+                  >
+                    <div className="flex gap-3 p-3">
+                      <div className="relative h-[78px] w-[132px] flex-shrink-0 overflow-hidden rounded-xl border border-white/8 bg-black/20">
+                        {mediaUrl ? (
+                          <Image src={mediaUrl} alt={title} fill className="object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-cyan-300/70">
+                            <i className="fas fa-video text-lg" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white">
+                            <i className="fas fa-play text-xs ml-0.5" />
+                          </span>
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="line-clamp-2 text-sm font-semibold text-white/90">{title}</p>
+                          <span className="whitespace-nowrap text-[11px] text-white/36">{related.views ?? 0} views</span>
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-white/58">{excerpt}</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              }
+
+              if (related.postType === "document") {
+                return (
+                  <Link
+                    key={related.id}
+                    href={getPostPath(related)}
+                    className="block rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3 transition-colors hover:border-cyan-400/18 hover:bg-white/[0.05]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center rounded-2xl border border-blue-400/18 bg-blue-400/10 text-blue-300">
+                        <i className="fas fa-file-alt text-sm" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate text-sm font-semibold text-white/90">
+                            {related.filename || related.bookTitle || "Document"}
+                          </p>
+                          <span className="whitespace-nowrap text-[11px] text-white/36">{related.downloadsCount ?? 0} downloads</span>
+                        </div>
+                        <p className="mt-1 truncate text-xs text-white/58">
+                          {related.author || related.bookCategory || "Document file"}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/52">{excerpt}</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              }
 
               return (
                 <Link

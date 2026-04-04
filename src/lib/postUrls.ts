@@ -1,4 +1,5 @@
 function pickPostHeadline(post: {
+  slug?: string | null;
   blogTitle?: string | null;
   productName?: string | null;
   singer?: string | null;
@@ -12,8 +13,8 @@ function pickPostHeadline(post: {
   return (
     post.blogTitle ||
     post.productName ||
-    post.singer ||
     post.filename ||
+    post.singer ||
     post.bookTitle ||
     post.advertTitle ||
     post.linkTitle ||
@@ -33,6 +34,7 @@ export function slugifyPostText(value: string) {
 }
 
 export function getPostSlug(post: Parameters<typeof pickPostHeadline>[0]) {
+  if (post.slug?.trim()) return post.slug.trim();
   return slugifyPostText(pickPostHeadline(post));
 }
 

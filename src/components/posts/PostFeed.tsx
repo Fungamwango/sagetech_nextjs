@@ -6,6 +6,7 @@ import Link from "next/link";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import { getPrimaryMediaUrl } from "@/lib/postMedia";
+import { getPostPath } from "@/lib/postUrls";
 
 interface CurrentUser {
   id: string;
@@ -18,6 +19,7 @@ interface PostFeedProps {
   currentUserId?: string | null;
   currentUser?: CurrentUser | null;
   postType?: string;
+  productCategory?: string;
   userId?: string;
   postId?: string;
   search?: string;
@@ -27,10 +29,23 @@ interface PostFeedProps {
   fullContent?: boolean;
 }
 
+type MusicQueueItem = {
+  id: string;
+  fileUrl?: string | null;
+  singer?: string | null;
+  songType?: string | null;
+  albumCover?: string | null;
+  filename?: string | null;
+  views?: number | null;
+  downloadsCount?: number | null;
+  likesCount?: number | null;
+};
+
 export default function PostFeed({
   currentUserId,
   currentUser,
   postType,
+  productCategory,
   userId,
   postId,
   search,
@@ -57,11 +72,25 @@ export default function PostFeed({
   const scrollTriggerLockedRef = useRef(false);
   const noMoreNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const LIMIT = 15;
+  const musicQueue = postType === "song"
+    ? posts.map((post) => ({
+        id: post.id,
+        fileUrl: post.fileUrl,
+        singer: post.singer,
+        songType: post.songType,
+        albumCover: post.albumCover,
+        filename: post.filename,
+        views: post.views,
+        downloadsCount: post.downloadsCount,
+        likesCount: post.likesCount,
+      })) as MusicQueueItem[]
+    : [];
 
   const buildUrl = useCallback(
     (o: number) => {
       const params = new URLSearchParams({ limit: String(LIMIT), offset: String(o) });
       if (postType) params.set("type", postType);
+      if (productCategory) params.set("category", productCategory);
       if (userId) params.set("userId", userId);
       if (postId) params.set("postId", postId);
       if (activeSearch) params.set("q", activeSearch);
@@ -69,7 +98,7 @@ export default function PostFeed({
       if (order === "random" && randomSeed) params.set("seed", randomSeed);
       return `/api/posts?${params}`;
     },
-    [postType, userId, postId, activeSearch, order, randomSeed]
+    [postType, productCategory, userId, postId, activeSearch, order, randomSeed]
   );
 
   const fetchPosts = useCallback(async (reset = false) => {
@@ -132,7 +161,7 @@ export default function PostFeed({
     scrollTriggerLockedRef.current = false;
     fetchPosts(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postType, userId, postId, activeSearch, order, randomSeed]);
+  }, [postType, productCategory, userId, postId, activeSearch, order, randomSeed]);
 
   useEffect(() => {
     const handler = () => {
@@ -262,38 +291,80 @@ export default function PostFeed({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: postType === "photo" ? "repeat(auto-fill,minmax(6rem,1fr))" : "repeat(auto-fill,minmax(10rem,1fr))",
-              gap: "4px",
+              gridTemplateColumns:
+                postType === "photo"
+                  ? "repeat(auto-fill,minmax(6rem,1fr))"
+                  : postType === "product"
+                    ? "repeat(auto-fill,minmax(14rem,1fr))"
+                    : "repeat(auto-fill,minmax(10rem,1fr))",
+              gap: postType === "product" ? "12px" : "4px",
             }}
           >
-            {posts.map((post) => (
-              <button
-                key={post.id}
-                onClick={() => setSelectedGridPost(post)}
-                className="relative group overflow-hidden"
-                style={{ aspectRatio: "1", background: "#111" }}
-              >
-                {getPrimaryMediaUrl(post.fileUrl) ? (
-                  <Image
-                    src={getPrimaryMediaUrl(post.fileUrl)!}
-                    alt={post.postDescription ?? post.filename ?? ""}
-                    fill
-                    sizes="10rem"
-                    className="object-cover group-hover:opacity-80 transition-opacity"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <i className="fas fa-film text-white/20 text-2xl" />
+            {posts.map((post) => {
+              if (postType === "product") {
+                return (
+                  <Link
+                    key={post.id}
+                    className="group overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] text-left transition-colors hover:border-cyan-400/25 hover:bg-white/[0.05]"
+                    href={getPostPath(post)}
+                  >
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[#111]">
+                      {getPrimaryMediaUrl(post.fileUrl) ? (
+                        <Image
+                          src={getPrimaryMediaUrl(post.fileUrl)!}
+                          alt={post.productName ?? post.postDescription ?? "Product"}
+                          fill
+                          sizes="14rem"
+                          className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <i className="fas fa-store text-white/20 text-2xl" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1 px-3 py-3">
+                      <p className="truncate text-sm font-semibold text-white">{post.productName ?? "Product"}</p>
+                      {post.productType ? (
+                        <p className="truncate text-[11px] uppercase tracking-[0.12em] text-white/45">{post.productType}</p>
+                      ) : null}
+                      {post.productPrice ? (
+                        <p className="text-sm font-semibold text-cyan-300">K{post.productPrice}</p>
+                      ) : null}
+                    </div>
+                  </Link>
+                );
+              }
+
+              return (
+                <button
+                  key={post.id}
+                  onClick={() => setSelectedGridPost(post)}
+                  className="relative group overflow-hidden"
+                  style={{ aspectRatio: "1", background: "#111" }}
+                >
+                  {getPrimaryMediaUrl(post.fileUrl) ? (
+                    <Image
+                      src={getPrimaryMediaUrl(post.fileUrl)!}
+                      alt={post.postDescription ?? post.filename ?? ""}
+                      fill
+                      sizes="10rem"
+                      className="object-cover group-hover:opacity-80 transition-opacity"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <i className="fas fa-film text-white/20 text-2xl" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <i className={`${postType === "photo" ? "fas fa-expand" : "fas fa-play"} text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity`} />
                   </div>
-                )}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                  <i className={`${postType === "photo" ? "fas fa-expand" : "fas fa-play"} text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity`} />
-                </div>
-                <p className="absolute bottom-0 left-0 right-0 text-xs text-white/80 px-1 py-0.5 truncate bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {post.filename ?? post.postDescription ?? post.singer ?? ""}
-                </p>
-              </button>
-            ))}
+                  <p className="absolute bottom-0 left-0 right-0 text-xs text-white/80 px-1 py-0.5 truncate bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {post.filename ?? post.postDescription ?? post.singer ?? ""}
+                  </p>
+                </button>
+              );
+            })}
           </div>
 
           {/* Grid post modal */}
@@ -316,15 +387,18 @@ export default function PostFeed({
           )}
         </>
       ) : (
-        <div className="space-y-0">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              currentUserId={currentUserId}
-              onDelete={handlePostDeleted}
-              fullContent={fullContent}
-            />
+        <div className={postType === "song" ? "space-y-2" : "space-y-0"}>
+          {posts.map((post, index) => (
+            <div key={post.id} className={postType === "song" ? "rounded-[22px] border border-white/8 bg-white/[0.02] px-2 py-2" : ""}>
+              <PostCard
+                post={post}
+                currentUserId={currentUserId}
+                onDelete={handlePostDeleted}
+                fullContent={fullContent}
+                musicQueue={postType === "song" ? musicQueue : undefined}
+                musicQueueIndex={postType === "song" ? index : undefined}
+              />
+            </div>
           ))}
         </div>
       )}

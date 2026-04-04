@@ -75,6 +75,7 @@ export const posts = pgTable(
     fileType: fileTypeEnum("file_type").default("none"),
     privacy: privacyEnum("privacy").default("public"),
     approved: boolean("approved").default(false),
+    slug: varchar("slug", { length: 120 }),
     fileUrl: text("file_url"),
     filename: text("filename"),
     thumbnailUrl: text("thumbnail_url"),
@@ -224,6 +225,113 @@ export const rechargeRequests = pgTable("recharge_requests", {
   createdAt: timestamp("created_at").defaultNow(),
   processedAt: timestamp("processed_at"),
 });
+
+// ============ BUSINESS ============ 
+export const businessItems = pgTable(
+  "business_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 150 }).notNull(),
+    sku: varchar("sku", { length: 80 }),
+    category: varchar("category", { length: 80 }),
+    supplier: varchar("supplier", { length: 120 }),
+    unit: varchar("unit", { length: 40 }).default("item"),
+    stockQuantity: integer("stock_quantity").default(0).notNull(),
+    lowStockThreshold: integer("low_stock_threshold").default(5).notNull(),
+    costPrice: decimal("cost_price", { precision: 10, scale: 2 }).default("0"),
+    sellPrice: decimal("sell_price", { precision: 10, scale: 2 }).default("0"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("business_items_user_idx").on(t.userId),
+    nameIdx: index("business_items_name_idx").on(t.name),
+  })
+);
+
+export const businessSales = pgTable(
+  "business_sales",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    itemId: uuid("item_id").references(() => businessItems.id, { onDelete: "set null" }),
+    itemName: varchar("item_name", { length: 150 }).notNull(),
+    quantity: integer("quantity").notNull(),
+    unitCost: decimal("unit_cost", { precision: 10, scale: 2 }).default("0").notNull(),
+    unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+    totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+    profitAmount: decimal("profit_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+    customerName: varchar("customer_name", { length: 120 }),
+    notes: text("notes"),
+    soldAt: timestamp("sold_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("business_sales_user_idx").on(t.userId),
+    itemIdx: index("business_sales_item_idx").on(t.itemId),
+    soldAtIdx: index("business_sales_sold_at_idx").on(t.soldAt),
+  })
+);
+
+export const businessExpenses = pgTable(
+  "business_expenses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 150 }).notNull(),
+    category: varchar("category", { length: 80 }),
+    amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+    notes: text("notes"),
+    expenseDate: timestamp("expense_date").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("business_expenses_user_idx").on(t.userId),
+    expenseDateIdx: index("business_expenses_date_idx").on(t.expenseDate),
+  })
+);
+
+export const businessPurchaseRequests = pgTable(
+  "business_purchase_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sellerId: uuid("seller_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    buyerId: uuid("buyer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    buyerName: varchar("buyer_name", { length: 120 }).notNull(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    itemId: uuid("item_id").references(() => businessItems.id, { onDelete: "set null" }),
+    saleId: uuid("sale_id").references(() => businessSales.id, { onDelete: "set null" }),
+    productName: varchar("product_name", { length: 150 }).notNull(),
+    quantity: integer("quantity").notNull(),
+    requestedUnitPrice: decimal("requested_unit_price", { precision: 10, scale: 2 }).notNull(),
+    totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+    note: text("note"),
+    sellerResponse: text("seller_response"),
+    status: varchar("status", { length: 20 }).default("pending").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    sellerIdx: index("business_purchase_requests_seller_idx").on(t.sellerId),
+    buyerIdx: index("business_purchase_requests_buyer_idx").on(t.buyerId),
+    postIdx: index("business_purchase_requests_post_idx").on(t.postId),
+    statusIdx: index("business_purchase_requests_status_idx").on(t.status),
+  })
+);
 
 // ============ ADMIN ============
 export const admins = pgTable("admins", {

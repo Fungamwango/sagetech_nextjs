@@ -42,10 +42,31 @@ const POST_TYPES: Array<{ type: UploadType; label: string; icon: string; cost: n
   { type: "general", label: "General Post", icon: "fas fa-pen", cost: 0, description: "Share text, multiple images, or one video" },
   { type: "song", label: "Song / Music", icon: "fas fa-music", cost: 80, description: "Upload your music with cover art" },
   { type: "video", label: "Video", icon: "fas fa-video", cost: 5, description: "Share a short video" },
-  { type: "document", label: "Document File", icon: "fas fa-file-alt", cost: 40, description: "Share PDFs, docs, ebooks, and other files" },
+  { type: "document", label: "Document", icon: "fas fa-file-alt", cost: 40, description: "Share PDFs, docs, ebooks, and other files" },
   { type: "product", label: "Product", icon: "fas fa-store", cost: 40, description: "Sell products with a clean card preview" },
   { type: "advert", label: "Advertisement", icon: "fas fa-ad", cost: 100, description: "Run an advert with image or video media" },
 ];
+
+const PRODUCT_CATEGORIES = [
+  "Electronics",
+  "Phones & Tablets",
+  "Computers",
+  "Fashion",
+  "Shoes",
+  "Beauty",
+  "Health",
+  "Home & Kitchen",
+  "Furniture",
+  "Groceries",
+  "Baby Products",
+  "Books & Stationery",
+  "Sports & Outdoors",
+  "Automotive",
+  "Tools & Hardware",
+  "Agriculture",
+  "Services",
+  "Other",
+] as const;
 
 const FILE_INPUT_CLASS = "hidden";
 
@@ -57,10 +78,12 @@ function validatePostDraft({
   postType,
   formData,
   uploadItems,
+  coverFile,
 }: {
   postType: UploadType;
   formData: Record<string, string>;
   uploadItems: UploadItem[];
+  coverFile?: File | null;
 }) {
   switch (postType) {
     case "general":
@@ -70,22 +93,32 @@ function validatePostDraft({
       return null;
     case "song":
       if (uploadItems.length === 0) return "Please choose an audio file before submitting this post.";
+      if (!hasValue(formData.filename)) return "Please enter the song title.";
       if (!hasValue(formData.singer)) return "Please enter the artist / singer name.";
+      if (!coverFile) return "Please choose cover art for this song.";
+      if ((formData.postDescription ?? "").trim().length < 20) return "Description must be at least 20 characters.";
       return null;
     case "video":
-      return uploadItems.length === 0 ? "Please choose a video before submitting this post." : null;
+      if (uploadItems.length === 0) return "Please choose a video before submitting this post.";
+      if ((formData.postDescription ?? "").trim().length < 20) return "Description must be at least 20 characters.";
+      return null;
     case "document":
-      if (uploadItems.length === 0) return "Please choose a document file before submitting this post.";
+      if (uploadItems.length === 0) return "Please choose a document before submitting this post.";
       if (!hasValue(formData.filename)) return "Please enter the document title.";
       return null;
     case "product":
-      if (uploadItems.length === 0) return "Please choose a product image before submitting this post.";
+      if (uploadItems.length === 0) return "Please choose at least one product image before submitting this post.";
       if (!hasValue(formData.productName)) return "Please enter the product name.";
+      if (!hasValue(formData.productPrice)) return "Please enter the product price.";
+      if (formData.syncToStock === "1") {
+        if (!hasValue(formData.stockQuantity)) return "Please enter the stock quantity.";
+        if (!hasValue(formData.stockCostPrice)) return "Please enter the stock cost price.";
+      }
       return null;
     case "advert":
-      if (uploadItems.length === 0 && !hasValue(formData.postDescription) && !hasValue(formData.advertUrl)) {
-        return "Adverts need media or at least a description.";
-      }
+      if (!hasValue(formData.advertTitle)) return "Please enter the advert title.";
+      if (!hasValue(formData.advertUrl)) return "Please enter the destination URL.";
+      if (uploadItems.length === 0 && !hasValue(formData.postDescription)) return "Please add advert media or a short description.";
       return null;
     default:
       return null;
@@ -165,7 +198,7 @@ export default function UploadClient({
     [uploadItems]
   );
 
-  const canUseMultipleImages = selectedType === "general";
+  const canUseMultipleImages = selectedType === "general" || selectedType === "product";
 
   const updateJob = (jobId: string, patch: Partial<UploadJob>) => {
     setBackgroundJobs((current) =>
@@ -224,17 +257,23 @@ export default function UploadClient({
           return;
         }
       }
-    }
+    } else if (selectedType === "product") {
+        files = files.filter((file) => isImageContentType(file.type));
+        if (!files.length) {
+          showToast({ type: "error", message: "Product listings support images only." });
+          return;
+        }
+      }
 
-    const nextItems = files.map<UploadItem>((file) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      file,
-      previewUrl: isImageContentType(file.type) ? URL.createObjectURL(file) : null,
-      progress: 0,
-      status: "queued",
-      notice: getUploadRuleMessage(file.type),
-      error: "",
-    }));
+      const nextItems = files.map<UploadItem>((file) => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        file,
+        previewUrl: (isImageContentType(file.type) || isVideoContentType(file.type) || file.type.startsWith("audio/")) ? URL.createObjectURL(file) : null,
+        progress: 0,
+        status: "queued",
+        notice: getUploadRuleMessage(file.type),
+        error: "",
+      }));
 
     setUploadItems((current) => {
       current.forEach((item) => {
@@ -251,6 +290,12 @@ export default function UploadClient({
       }
       return canUseMultipleImages ? [...current, ...nextItems] : nextItems;
     });
+    if (selectedType === "song" && !hasValue(formData.filename) && nextItems[0]) {
+      const baseName = nextItems[0].file.name.replace(/\.[^.]+$/, "").trim();
+      if (baseName) {
+        set("filename", baseName);
+      }
+    }
     setError("");
   };
 
@@ -292,17 +337,50 @@ export default function UploadClient({
 
     return await new Promise<{ url: string; key: string; resourceType: string }>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+      let settleTimer: ReturnType<typeof setInterval> | null = null;
+      let settleProgress = 0;
+
+      const stopSettling = () => {
+        if (settleTimer) {
+          clearInterval(settleTimer);
+          settleTimer = null;
+        }
+      };
+
+      const startSettling = (fromProgress: number) => {
+        stopSettling();
+        settleProgress = fromProgress;
+        settleTimer = setInterval(() => {
+          settleProgress = Math.min(97, settleProgress + 1);
+          onProgress(settleProgress);
+          if (settleProgress >= 97) {
+            stopSettling();
+          }
+        }, 140);
+      };
+
       xhr.open("POST", "/api/upload/file");
 
       xhr.upload.onprogress = (event) => {
         if (!event.lengthComputable) return;
-        onProgress(Math.max(8, Math.min(98, Math.round((event.loaded / event.total) * 100))));
+        const uploadProgress = Math.max(6, Math.min(92, Math.round((event.loaded / event.total) * 92)));
+        onProgress(uploadProgress);
       };
 
-      xhr.onerror = () => reject(new Error("Upload failed. Please try again."));
+      xhr.upload.onload = () => {
+        onProgress(93);
+        startSettling(93);
+      };
+
+      xhr.onerror = () => {
+        stopSettling();
+        reject(new Error("Upload failed. Please try again."));
+      };
       xhr.onload = () => {
+        stopSettling();
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
+            onProgress(100);
             const response = JSON.parse(xhr.responseText) as { fileUrl: string; key: string };
             resolve({ url: response.fileUrl, key: response.key, resourceType });
           } catch {
@@ -331,7 +409,7 @@ export default function UploadClient({
     setError("");
     setSuccess("");
 
-    const validationError = validatePostDraft({ postType: selectedType, formData, uploadItems });
+    const validationError = validatePostDraft({ postType: selectedType, formData, uploadItems, coverFile });
     if (validationError) {
       setError(validationError);
       showToast({ type: "error", message: validationError });
@@ -404,6 +482,7 @@ export default function UploadClient({
                   ...item,
                   status: "done",
                   progress: 100,
+                  notice: "Upload complete",
                   uploadedUrl: uploaded.url,
                   key: uploaded.key,
                   resourceType: uploaded.resourceType,
@@ -411,11 +490,18 @@ export default function UploadClient({
               : item
           )
         );
+        updateJob(jobId, {
+          progress: Math.round(((uploadedResults.length / Math.max(uploadItems.length, 1)) * 88)),
+          detail:
+            uploadedResults.length < uploadItems.length
+              ? `Preparing ${Math.min(uploadedResults.length + 1, uploadItems.length)} of ${uploadItems.length} files...`
+              : "Finalizing uploaded files...",
+        });
       }
 
       let coverUrl: string | undefined;
       if (coverFile) {
-        updateJob(jobId, { detail: "Uploading cover image..." });
+        updateJob(jobId, { progress: Math.max(90, overallProgress), detail: "Uploading cover image..." });
         const uploadedCover = await uploadWithProgress(
           {
             id: "cover",
@@ -426,13 +512,17 @@ export default function UploadClient({
             notice: "",
             error: "",
           },
-          (progress) => updateJob(jobId, { progress: Math.max(overallProgress, progress), detail: "Uploading cover image..." }),
+          (progress) =>
+            updateJob(jobId, {
+              progress: Math.max(90, Math.min(96, progress)),
+              detail: "Uploading cover image...",
+            }),
           () => {}
         );
         coverUrl = uploadedCover.url;
       }
 
-      updateJob(jobId, { progress: 100, detail: "Publishing post..." });
+      updateJob(jobId, { progress: 98, detail: "Publishing post..." });
 
       const galleryUrls = uploadedResults
         .filter((item) => item.resourceType === "image")
@@ -460,10 +550,48 @@ export default function UploadClient({
         throw new Error(data.error ?? "Upload failed");
       }
 
+      let stockSyncMessage = "";
+      if (selectedType === "product" && formData.syncToStock === "1") {
+        const stockRes = await fetch("/api/business/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.productName ?? "",
+            sku: formData.stockSku ?? "",
+            category: formData.productType ?? "",
+            supplier: formData.stockSupplier ?? "",
+            unit: "item",
+            stockQuantity: formData.stockQuantity ?? "0",
+            lowStockThreshold: formData.stockLowStockThreshold ?? "5",
+            costPrice: formData.stockCostPrice ?? "0",
+            sellPrice: formData.productPrice ?? "0",
+            notes: formData.postDescription ?? "",
+          }),
+        });
+
+        if (stockRes.ok) {
+          stockSyncMessage = " Added to Stock Manager too.";
+        } else {
+          const stockData = await stockRes.json().catch(() => ({}));
+          showToast({
+            type: "error",
+            message: stockData.error ?? "Product posted, but Stock Manager sync failed.",
+          });
+        }
+      }
+
       const message =
         galleryUrls.length > 1
           ? `Gallery uploaded. ${galleryUrls.length} images are being published now.`
-          : "Post submitted! It will be reviewed and published shortly.";
+          : selectedType === "song"
+            ? "Song posted successfully."
+            : selectedType === "video"
+              ? "Video posted successfully."
+              : selectedType === "product"
+                ? `Product posted successfully.${stockSyncMessage}`
+                : selectedType === "advert"
+                  ? "Advert posted successfully."
+            : "Post submitted! It will be reviewed and published shortly.";
 
       setSuccess(message);
       showToast({ type: "success", message });
@@ -599,7 +727,7 @@ export default function UploadClient({
               <PrivacySelect formData={formData} set={set} compact />
             </div>
 
-            {selectedType === "general" ? (
+              {selectedType === "general" ? (
               <section className="upload-card space-y-4">
                 <UploadFormFields
                   postType={selectedType}
@@ -684,7 +812,7 @@ export default function UploadClient({
                       />
                     </div>
                   )}
-                  {selectedType !== "general" && (
+                  {selectedType !== "general" && selectedType !== "document" && (
                     <SingleFilePreview item={uploadItems[0]} onRemove={() => removeUploadItem(uploadItems[0].id)} />
                   )}
 
@@ -707,15 +835,31 @@ export default function UploadClient({
                 <section className="upload-card">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-white">Media</p>
-                      <p className="text-xs text-white/50 mt-1">Pick the main file for this post type.</p>
+                      <p className="text-sm font-semibold text-white">
+                        {selectedType === "song"
+                          ? "Song file"
+                          : selectedType === "product"
+                            ? "Product image"
+                            : selectedType === "advert"
+                              ? "Advert media"
+                              : "Media"}
+                      </p>
+                      <p className="text-xs text-white/50 mt-1">
+                        {selectedType === "song"
+                          ? "Add the song file and cover art in one place."
+                          : selectedType === "product"
+                            ? "Use one clear product image for the listing."
+                            : selectedType === "advert"
+                              ? "Use one image or one short video for your advert."
+                            : "Pick the main file for this post type."}
+                      </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       className="upload-action-chip"
                     >
-                      <i className="fas fa-folder-open" /> Choose files
+                      <i className="fas fa-folder-open" /> {selectedType === "song" ? "Choose song" : selectedType === "product" ? "Choose image" : selectedType === "document" ? "Choose document" : selectedType === "advert" ? "Choose media" : "Choose files"}
                     </button>
                   </div>
 
@@ -744,14 +888,47 @@ export default function UploadClient({
                       <i className="fas fa-cloud-upload-alt" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Drop your file here or browse</p>
+                      <p className="text-sm font-semibold text-white">
+                        {selectedType === "product"
+                          ? "Drop or browse your product image here"
+                          : selectedType === "document"
+                            ? "Drop or browse your document here"
+                            : selectedType === "advert"
+                              ? "Drop or browse your advert media here"
+                              : "Drop your file here or browse"}
+                      </p>
                       <p className="text-xs text-white/50 mt-1">{getHelperCopy(selectedType)}</p>
                     </div>
                   </label>
 
                   {uploadItems.length > 0 && (
                     <div className="space-y-4 mt-4">
-                      <SingleFilePreview item={uploadItems[0]} onRemove={() => removeUploadItem(uploadItems[0].id)} />
+                      {selectedType === "product" ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+                            <div>
+                              <p className="text-sm font-semibold text-white">Selected images</p>
+                              <p className="mt-0.5 text-xs text-white/45">
+                                {uploadItems.length} product image{uploadItems.length === 1 ? "" : "s"} selected.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setGalleryPreviewOpen(true)}
+                              className="upload-action-chip"
+                            >
+                              <i className="fas fa-expand" /> View gallery
+                            </button>
+                          </div>
+                          <GalleryPreviewGrid
+                            items={uploadItems}
+                            onRemove={removeUploadItem}
+                            onOpen={() => setGalleryPreviewOpen(true)}
+                          />
+                        </div>
+                      ) : (
+                        <SingleFilePreview item={uploadItems[0]} onRemove={() => removeUploadItem(uploadItems[0].id)} />
+                      )}
 
                       <div className="space-y-3">
                         {uploadItems.map((item) => (
@@ -760,38 +937,40 @@ export default function UploadClient({
                       </div>
                     </div>
                   )}
+                  {selectedType === "song" && (
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold text-white">Cover art</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => coverInputRef.current?.click()}
+                          className="upload-action-chip"
+                        >
+                          <i className="fas fa-image" /> Choose cover
+                        </button>
+                      </div>
+                      <input
+                        ref={coverInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleCoverChange(e.target.files)}
+                        className={FILE_INPUT_CLASS}
+                      />
+                      {coverPreviewUrl ? (
+                        <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                          <Image src={coverPreviewUrl} alt="Album cover preview" width={1200} height={600} className="h-48 w-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-2xl border border-dashed border-white/10 px-4 py-5 text-center text-xs text-white/45">
+                          Add cover art for your song
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
               </>
-            )}
-
-            {selectedType === "song" && (
-              <section className="upload-card">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-white">Album cover</p>
-                    <p className="text-xs text-white/50 mt-1">Optional cover image for the music player.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => coverInputRef.current?.click()}
-                    className="upload-action-chip"
-                  >
-                    <i className="fas fa-image" /> Choose cover
-                  </button>
-                </div>
-                <input
-                  ref={coverInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleCoverChange(e.target.files)}
-                  className={FILE_INPUT_CLASS}
-                />
-                {coverPreviewUrl && (
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
-                    <Image src={coverPreviewUrl} alt="Album cover preview" width={1200} height={600} className="h-48 w-full object-cover" />
-                  </div>
-                )}
-              </section>
             )}
 
             <button type="submit" disabled={submitting} className="upload-submit-btn">
@@ -801,14 +980,24 @@ export default function UploadClient({
                   Uploading in background...
                 </span>
               ) : (
-                selectedType === "general" ? "Post" : "Publish post"
+                selectedType === "general"
+                  ? "Post"
+                  : selectedType === "song"
+                    ? "Post song"
+                    : selectedType === "product"
+                      ? "Post product"
+                      : selectedType === "advert"
+                        ? "Post advert"
+                      : selectedType === "document"
+                        ? "Post document"
+                        : "Publish post"
               )}
             </button>
           </form>
         </div>
       )}
 
-      {galleryPreviewOpen && selectedType === "general" && uploadItems.length > 0 && (
+      {galleryPreviewOpen && (selectedType === "general" || selectedType === "product") && uploadItems.length > 0 && (
         <GalleryPreviewModal
           items={uploadItems}
           onRemove={removeUploadItem}
@@ -851,15 +1040,26 @@ function UploadFormFields({
       return (
         <section className="upload-card grid gap-4">
           <div>
+            <label className={labelClass}>Song Title</label>
+            <input
+              type="text"
+              value={formData.filename ?? ""}
+              onChange={(e) => set("filename", e.target.value)}
+              placeholder="Song title"
+              className={`${inputClass} w-full`}
+              required
+            />
+          </div>
+          <div>
             <label className={labelClass}>Artist / Singer</label>
             <input type="text" value={formData.singer ?? ""} onChange={(e) => set("singer", e.target.value)} placeholder="Artist name" className={`${inputClass} w-full`} required />
           </div>
           <div>
             <label className={labelClass}>Genre</label>
             <select value={formData.songType ?? ""} onChange={(e) => set("songType", e.target.value)} className={`${inputClass} w-full bg-transparent`}>
-              <option value="">Select genre</option>
-              {["Afrobeats", "Gospel", "Hip Hop", "R&B", "Reggae", "Pop", "Traditional", "Other"].map((g) => (
-                <option key={g} value={g.toLowerCase()}>{g}</option>
+              <option value="" className="bg-white text-black">Select genre</option>
+              {["Afrobeats", "Gospel", "Hip Hop", "R&B", "Reggae", "Pop", "Traditional", "Background Music", "Instrumental", "Other"].map((g) => (
+                <option key={g} value={g.toLowerCase()} className="bg-white text-black">{g}</option>
               ))}
             </select>
           </div>
@@ -876,54 +1076,144 @@ function UploadFormFields({
 
     case "product":
       return (
-        <section className="upload-card grid gap-4 md:grid-cols-2">
+          <section className="upload-card grid gap-4 md:grid-cols-2">
           <div>
             <label className={labelClass}>Product Name</label>
             <input type="text" value={formData.productName ?? ""} onChange={(e) => set("productName", e.target.value)} placeholder="Product name" className={`${inputClass} w-full`} required />
-          </div>
-          <div>
-            <label className={labelClass}>Category</label>
-            <input type="text" value={formData.productType ?? ""} onChange={(e) => set("productType", e.target.value)} placeholder="Electronics, fashion..." className={`${inputClass} w-full`} />
-          </div>
+            </div>
+            <div>
+              <label className={labelClass}>Category</label>
+              <select
+                value={formData.productType ?? ""}
+                onChange={(e) => set("productType", e.target.value)}
+                className={`${inputClass} w-full bg-transparent`}
+              >
+                <option value="" disabled className="bg-slate-900 text-white">Select category</option>
+                {PRODUCT_CATEGORIES.map((category) => (
+                  <option key={category} value={category} className="bg-slate-900 text-white">
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
           <div className="md:col-span-2">
-            <label className={labelClass}>Price (K)</label>
-            <input type="number" value={formData.productPrice ?? ""} onChange={(e) => set("productPrice", e.target.value)} placeholder="0.00" className={`${inputClass} w-full`} />
-          </div>
-          <div className="md:col-span-2">
-            <DescriptionField formData={formData} set={set} inputClass={inputClass} labelClass={labelClass} />
-          </div>
-        </section>
-      );
+              <label className={labelClass}>Price (K)</label>
+              <input type="number" value={formData.productPrice ?? ""} onChange={(e) => set("productPrice", e.target.value)} placeholder="0.00" className={`${inputClass} w-full`} required />
+            </div>
+            <div className="md:col-span-2">
+              <DescriptionField formData={formData} set={set} inputClass={inputClass} labelClass={labelClass} />
+            </div>
+            <div className="md:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <label className="flex items-center gap-3 text-sm text-white">
+                <input
+                  type="checkbox"
+                  checked={formData.syncToStock === "1"}
+                  onChange={(e) => set("syncToStock", e.target.checked ? "1" : "")}
+                  className="h-4 w-4 rounded border-white/20 bg-transparent"
+                />
+                <span>Add this listing to Stock Manager too</span>
+              </label>
+              {formData.syncToStock === "1" ? (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className={labelClass}>Stock Quantity</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.stockQuantity ?? ""}
+                      onChange={(e) => set("stockQuantity", e.target.value)}
+                      placeholder="0"
+                      className={`${inputClass} w-full`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Cost Price (K)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.stockCostPrice ?? ""}
+                      onChange={(e) => set("stockCostPrice", e.target.value)}
+                      placeholder="0.00"
+                      className={`${inputClass} w-full`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Low Stock Alert</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.stockLowStockThreshold ?? "5"}
+                      onChange={(e) => set("stockLowStockThreshold", e.target.value)}
+                      placeholder="5"
+                      className={`${inputClass} w-full`}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Supplier</label>
+                    <input
+                      type="text"
+                      value={formData.stockSupplier ?? ""}
+                      onChange={(e) => set("stockSupplier", e.target.value)}
+                      placeholder="Supplier name"
+                      className={`${inputClass} w-full`}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        );
 
     case "document":
       return (
-        <section className="upload-card grid gap-4">
-          <div>
-            <label className={labelClass}>Document Title</label>
-            <input type="text" value={formData.filename ?? ""} onChange={(e) => set("filename", e.target.value)} className={`${inputClass} w-full`} required />
-          </div>
-          <div>
-            <label className={labelClass}>Author / Source</label>
-            <input type="text" value={formData.author ?? ""} onChange={(e) => set("author", e.target.value)} className={`${inputClass} w-full`} />
-          </div>
-          <div>
-            <label className={labelClass}>Category</label>
-            <input type="text" value={formData.bookCategory ?? ""} onChange={(e) => set("bookCategory", e.target.value)} placeholder="Guide, notes, PDF, ebook..." className={`${inputClass} w-full`} />
-          </div>
-          <DescriptionField formData={formData} set={set} inputClass={inputClass} labelClass={labelClass} />
-        </section>
-      );
+          <section className="upload-card grid gap-4">
+            <div>
+              <label className={labelClass}>Title</label>
+              <input
+                type="text"
+                value={formData.filename ?? ""}
+                onChange={(e) => set("filename", e.target.value)}
+                placeholder="Document title"
+                className={`${inputClass} w-full`}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Short Note</label>
+              <textarea
+                value={formData.postDescription ?? ""}
+                onChange={(e) => set("postDescription", e.target.value)}
+                placeholder="Optional short note about this document..."
+                className={`${inputClass} w-full min-h-[96px] resize-none`}
+              />
+            </div>
+          </section>
+        );
 
     case "advert":
       return (
         <section className="upload-card grid gap-4">
           <div>
+            <label className={labelClass}>Advert Title</label>
+            <input
+              type="text"
+              value={formData.advertTitle ?? ""}
+              onChange={(e) => set("advertTitle", e.target.value)}
+              placeholder="Advert title"
+              className={`${inputClass} w-full`}
+              required
+            />
+          </div>
+          <div>
             <label className={labelClass}>Advert Description</label>
-            <textarea value={formData.postDescription ?? ""} onChange={(e) => set("postDescription", e.target.value)} placeholder="Describe your advert..." className={`${inputClass} w-full min-h-[100px] resize-none`} required />
+            <textarea value={formData.postDescription ?? ""} onChange={(e) => set("postDescription", e.target.value)} placeholder="Describe your advert..." className={`${inputClass} w-full min-h-[100px] resize-none`} />
           </div>
           <div>
             <label className={labelClass}>Destination URL</label>
-            <input type="url" value={formData.advertUrl ?? ""} onChange={(e) => set("advertUrl", e.target.value)} placeholder="https://yoursite.com" className={`${inputClass} w-full`} />
+            <input type="url" value={formData.advertUrl ?? ""} onChange={(e) => set("advertUrl", e.target.value)} placeholder="https://yoursite.com" className={`${inputClass} w-full`} required />
           </div>
         </section>
       );
@@ -1112,20 +1402,55 @@ function GalleryPreviewModal({
 }
 
 function SingleFilePreview({ item, onRemove }: { item: UploadItem; onRemove: () => void }) {
+  const isAudio = item.file.type.startsWith("audio/");
+  const isVideo = isVideoContentType(item.file.type);
+
   return (
-    <div className="max-w-[440px] overflow-hidden rounded-[22px] border border-white/10 bg-black/25">
-      <div className="relative h-40 w-full sm:h-44">
-        {item.previewUrl ? (
-          <Image src={item.previewUrl} alt={item.file.name} fill className="object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-white/30">
-            <i className={`fas ${isVideoContentType(item.file.type) ? "fa-video" : "fa-file-alt"} text-3xl`} />
+      <div className="max-w-[360px] overflow-hidden rounded-[20px] border border-white/10 bg-black/25">
+      {isAudio ? (
+        <div className="relative p-4">
+          <button type="button" onClick={onRemove} className="upload-gallery-grid__remove" aria-label="Remove file">
+            <i className="fas fa-times" />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/15 bg-cyan-400/10 text-cyan-300">
+              <i className="fas fa-music text-xl" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{item.file.name}</p>
+              <p className="mt-1 text-xs text-white/45">{(item.file.size / (1024 * 1024)).toFixed(2)} MB</p>
+            </div>
+          </div>
+          {item.previewUrl ? (
+            <audio controls className="mt-4 w-full">
+              <source src={item.previewUrl} type={item.file.type} />
+            </audio>
+          ) : null}
+        </div>
+      ) : (
+          <div className="relative h-[180px] w-full overflow-hidden bg-black">
+          {item.previewUrl ? (
+            isVideo ? (
+              <video
+                src={item.previewUrl}
+                controls
+                playsInline
+                preload="metadata"
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <Image src={item.previewUrl} alt={item.file.name} fill className="object-cover" />
+            )
+          ) : (
+              <div className="flex h-full w-full items-center justify-center text-white/30">
+               <i className={`fas ${isVideo ? "fa-video" : "fa-file-alt"} text-3xl`} />
+              </div>
+            )}
+            <button type="button" onClick={onRemove} className="upload-gallery-grid__remove" aria-label="Remove file">
+              <i className="fas fa-times" />
+            </button>
           </div>
         )}
-        <button type="button" onClick={onRemove} className="upload-gallery-grid__remove" aria-label="Remove file">
-          <i className="fas fa-times" />
-        </button>
-      </div>
     </div>
   );
 }
@@ -1189,15 +1514,15 @@ function getHelperCopy(type: UploadType) {
     case "general":
       return "";
     case "song":
-      return "Audio files up to 8MB. Optional cover art is compressed automatically.";
+      return "Drop or browse your song file here (mp3).";
     case "video":
       return "Short videos only: up to 60 seconds and 15MB.";
     case "document":
-      return "Documents and files are limited to 8MB.";
+        return "PDF, DOC, DOCX, and EPUB files up to 8MB.";
     case "product":
-      return "Use a strong product image and description for better clicks.";
+        return "Add one clear product image for your listing.";
     case "advert":
-      return "Advert media supports image or short video uploads.";
+      return "Use one image or one short video for your advert.";
   }
 }
 

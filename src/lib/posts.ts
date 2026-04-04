@@ -2,9 +2,10 @@ import { and, desc, eq, gte, ne, notInArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { follows, posts, users } from "@/lib/db/schema";
 import { getPrimaryMediaUrl } from "@/lib/postMedia";
-import { getPostPath } from "@/lib/postUrls";
+import { getPostPath, slugifyPostText } from "@/lib/postUrls";
 
 function pickPostHeadline(post: {
+  slug?: string | null;
   blogTitle?: string | null;
   productName?: string | null;
   singer?: string | null;
@@ -29,11 +30,16 @@ function pickPostHeadline(post: {
   );
 }
 
+function resolveStoredSlug(post: Parameters<typeof pickPostHeadline>[0]) {
+  return post.slug?.trim() || slugifyPostText(pickPostHeadline(post));
+}
+
 export async function getPostById(id: string) {
   const [post] = await db
     .select({
       id: posts.id,
       postType: posts.postType,
+      slug: posts.slug,
       fileType: posts.fileType,
       privacy: posts.privacy,
       approved: posts.approved,
@@ -109,17 +115,38 @@ export async function getVisiblePostById(id: string, currentUserId?: string | nu
 
 export function getPostSeo(post: NonNullable<Awaited<ReturnType<typeof getPostById>>>) {
   const titleBase = pickPostHeadline(post);
-  const title = `${titleBase} | SageTech`;
-  const description = (
+  let title = `${titleBase} | SageTech`;
+  let description = (
     post.linkDescription ||
     post.postDescription ||
     post.generalPost ||
     post.blogContent ||
-    (post.postType === "song" ? `Listen to ${post.singer ?? post.filename ?? "this song"} on SageTech.` : "") ||
-    (post.postType === "video" ? `Watch this video on SageTech.` : "") ||
     (post.postType === "product" ? `View ${post.productName ?? "this product"} on SageTech.` : "") ||
     `View this ${post.postType} on SageTech.`
-  ).slice(0, 180);
+  );
+
+  if (post.postType === "song") {
+    const songTitle = post.filename || titleBase || "Song";
+    const singer = post.singer || "Unknown artist";
+    const songType = post.songType || "music";
+    title = `${songTitle} by ${singer} - Download & Stream Mp3 Song now | ${songType}`;
+    description = `${songTitle} by ${singer} - Download & Stream Mp3 Song now | ${songType}${post.postDescription ? ` - ${post.postDescription}` : ""}`;
+  } else if (post.postType === "product") {
+    const productName = post.productName || titleBase || "Product";
+    const productCategory = post.productType || "Marketplace";
+    title = `${productName} - Buy Now | ${productCategory} | SageTech`;
+    description = `${productName} available for purchase on SageTech.${post.postDescription ? ` ${post.postDescription}` : ""}`;
+  } else if (post.postType === "video") {
+    title = `${titleBase} - Watch & Download video Now`;
+    description = `${titleBase} - Watch & Download video Now${post.postDescription ? ` - ${post.postDescription}` : ""}`;
+  } else if (post.postType === "document") {
+    const documentTitle = post.filename || "Document";
+    const documentDescription = post.postDescription || "Document file";
+    title = `${documentTitle} / ${documentDescription} - Download Now`;
+    description = `${documentTitle} / ${documentDescription} - Download Now`;
+  }
+
+  description = description.slice(0, 180);
 
   const image = post.linkImage || getPrimaryMediaUrl(post.fileUrl) || post.thumbnailUrl || post.albumCover || "/files/sagetech_icon.jpg";
 
@@ -129,7 +156,12 @@ export function getPostSeo(post: NonNullable<Awaited<ReturnType<typeof getPostBy
 export async function getRelatedPostsByType(postId: string, postType: string, limit = 5) {
   const selectShape = {
     id: posts.id,
+    slug: posts.slug,
     postType: posts.postType,
+    fileUrl: posts.fileUrl,
+    thumbnailUrl: posts.thumbnailUrl,
+    albumCover: posts.albumCover,
+    songType: posts.songType,
     blogTitle: posts.blogTitle,
     blogContent: posts.blogContent,
     generalPost: posts.generalPost,
@@ -138,10 +170,13 @@ export async function getRelatedPostsByType(postId: string, postType: string, li
     singer: posts.singer,
     filename: posts.filename,
     bookTitle: posts.bookTitle,
+    author: posts.author,
+    bookCategory: posts.bookCategory,
     advertTitle: posts.advertTitle,
     linkTitle: posts.linkTitle,
     createdAt: posts.createdAt,
     views: posts.views,
+    downloadsCount: posts.downloadsCount,
     userId: posts.userId,
     username: users.username,
   } as const;

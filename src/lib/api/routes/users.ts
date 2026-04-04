@@ -4,7 +4,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users, follows, posts, notifications } from "@/lib/db/schema";
-import { eq, sql, and, ne, ilike, desc, inArray } from "drizzle-orm";
+import { eq, sql, and, ne, ilike, desc, inArray, exists } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { getMonetiseMinPosts } from "@/lib/websiteSettings";
 
@@ -326,6 +326,22 @@ export const usersRouter = new Hono()
     const session = await getSession();
     const q = c.req.query("q") ?? "";
     const offset = parseInt(c.req.query("offset") ?? "0");
+    const filter = (c.req.query("filter") ?? "all").toLowerCase();
+    const limit = 20;
+
+    const whereConditions = [
+      q ? ilike(users.username, `%${q}%`) : undefined,
+      session?.userId ? ne(users.id, session.userId) : undefined,
+      filter === "online" ? ONLINE_WINDOW_SQL : undefined,
+      filter === "following" && session?.userId
+        ? exists(
+            db
+              .select({ id: follows.id })
+              .from(follows)
+              .where(and(eq(follows.followerId, session.userId), eq(follows.followingId, users.id)))
+          )
+        : undefined,
+    ].filter(Boolean);
 
     const result = await db
       .select({
@@ -337,19 +353,14 @@ export const usersRouter = new Hono()
         points: users.points,
       })
       .from(users)
-      .where(
-        q
-          ? and(ilike(users.username, `%${q}%`), session?.userId ? ne(users.id, session.userId) : undefined)
-          : session?.userId
-            ? ne(users.id, session.userId)
-          : undefined
-      )
+      .where(whereConditions.length ? and(...whereConditions) : undefined)
       .orderBy(desc(users.points))
-      .limit(20)
+      .limit(limit)
       .offset(offset);
 
     if (!session?.userId || result.length === 0) {
       return c.json({
+        hasMore: result.length === limit,
         users: result.map((user) => ({
           ...user,
           isFollowing: false,
@@ -371,6 +382,7 @@ export const usersRouter = new Hono()
     const followingSet = new Set(followingRows.map((row) => row.followingId));
 
     return c.json({
+      hasMore: result.length === limit,
       users: result.map((user) => ({
         ...user,
         isFollowing: followingSet.has(user.id),
