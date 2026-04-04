@@ -86,7 +86,7 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
       className="fixed top-0 hidden h-full overflow-y-auto pb-48 text-white lg:block"
       style={{
         background: "linear-gradient(to bottom, rgba(0,0,0,0.9), rgb(22,40,50), rgba(0,0,0,0.9))",
-        marginTop: "45px",
+        marginTop: "var(--app-header-offset, 45px)",
         left: "0px",
         width: "calc((100vw - 650px) / 2 - 10px)",
       }}
@@ -101,9 +101,9 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
                   <Image
                     src={user.picture || "/files/default-avatar.svg"}
                     alt={user.username}
-                    width={130}
-                    height={130}
-                    className="mx-auto h-[130px] w-[130px] rounded-full border-2 border-white/40 object-cover"
+                    width={168}
+                    height={168}
+                    className="mx-auto h-[168px] w-[168px] rounded-full border-2 border-white/40 object-cover"
                   />
                 </Link>
                 <Link
@@ -134,9 +134,9 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
                       href={href}
                       target="_blank"
                       rel="noreferrer"
-                      className="grid grid-cols-[10%_80%] gap-1 items-center py-3 ml-4 border-b border-white/10 text-sm cursor-pointer hover:text-cyan-400 transition-colors"
+                      className="ml-4 grid grid-cols-[10%_80%] items-center gap-2 border-b border-white/10 py-4 text-[15px] cursor-pointer transition-colors hover:text-cyan-400"
                     >
-                      <i className={`${link.icon} text-xs`} />
+                      <i className={`${link.icon} text-[13px]`} />
                       <span style={{ wordSpacing: "2px" }}>{link.label}</span>
                     </a>
                   </li>
@@ -147,11 +147,11 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
                 <Link
                   href={href}
                   className={cn(
-                    "grid grid-cols-[10%_80%] gap-1 items-center py-3 ml-4 border-b border-white/10 text-sm capitalize cursor-pointer hover:text-cyan-400 transition-colors",
+                    "ml-4 grid grid-cols-[10%_80%] items-center gap-2 border-b border-white/10 py-4 text-[15px] capitalize cursor-pointer transition-colors hover:text-cyan-400",
                     pathname === href && "text-cyan-400"
                   )}
                 >
-                  <i className={`${link.icon} text-xs`} />
+                  <i className={`${link.icon} text-[13px]`} />
                   <span style={{ wordSpacing: "2px" }}>{link.label}</span>
                 </Link>
               </li>
@@ -160,9 +160,9 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
             <li>
               <button
                 onClick={() => setLogoutModalOpen(true)}
-                className="grid grid-cols-[10%_80%] gap-1 items-center py-3 ml-4 border-b border-white/10 text-sm capitalize cursor-pointer hover:text-red-400 transition-colors text-red-300 w-full text-left"
+                className="ml-4 grid w-full grid-cols-[10%_80%] items-center gap-2 border-b border-white/10 py-4 text-left text-[15px] capitalize cursor-pointer text-red-300 transition-colors hover:text-red-400"
               >
-                <i className="fas fa-sign-out-alt text-xs" />
+                <i className="fas fa-sign-out-alt text-[13px]" />
                 <span>Logout</span>
               </button>
             </li>
@@ -210,9 +210,9 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
                       href={href}
                       target="_blank"
                       rel="noreferrer"
-                      className="ml-4 grid grid-cols-[10%_80%] items-center gap-1 border-b border-white/10 py-2 text-sm transition-colors hover:text-cyan-400"
+                      className="ml-4 grid grid-cols-[10%_80%] items-center gap-2 border-b border-white/10 py-3 text-[15px] transition-colors hover:text-cyan-400"
                     >
-                      <i className={`${link.icon} text-xs`} />
+                      <i className={`${link.icon} text-[13px]`} />
                       <span style={{ wordSpacing: "2px" }}>{link.label}</span>
                     </a>
                   </li>
@@ -222,9 +222,9 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
               <li key={link.label}>
                 <Link
                   href={href}
-                  className="ml-4 grid grid-cols-[10%_80%] items-center gap-1 border-b border-white/10 py-2 text-sm capitalize transition-colors hover:text-cyan-400"
+                  className="ml-4 grid grid-cols-[10%_80%] items-center gap-2 border-b border-white/10 py-3 text-[15px] capitalize transition-colors hover:text-cyan-400"
                 >
-                  <i className={`${link.icon} text-xs`} />
+                  <i className={`${link.icon} text-[13px]`} />
                   <span style={{ wordSpacing: "2px" }}>{link.label}</span>
                 </Link>
               </li>

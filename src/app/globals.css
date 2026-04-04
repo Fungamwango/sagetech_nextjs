@@ -35,9 +35,9 @@ html, body {
 /* Active nav link */
 .active-link {
   color: aqua !important;
-  border-bottom: 1px solid white;
-  border-radius: 20px;
-  box-shadow: 0 2px 4px 0 rgba(0,0,0,0.8);
+  border-bottom: 1px solid rgba(0,255,255,0.45);
+  border-radius: 5px;
+  box-shadow: none;
 }
 
 @media (max-width: 649px) {

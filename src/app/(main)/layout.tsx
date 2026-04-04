@@ -20,7 +20,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <main
         className="min-h-screen px-0 pb-6 pt-[54px] sm:px-[10px]"
         style={{
-          marginTop: "46px",
+          marginTop: "var(--app-header-offset, 45px)",
           background: "linear-gradient(to bottom, rgba(0,0,0,0.9), rgb(22,40,50), rgba(0,0,0,0.9))",
           backgroundAttachment: "fixed",
         }}

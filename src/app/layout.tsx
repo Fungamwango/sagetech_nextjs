@@ -3,11 +3,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import NavigationLoader from "@/components/ui/NavigationLoader";
+import PwaInstall from "@/components/ui/PwaInstall";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sageteche.com"),
   title: "SageTech | Make money, find friends, post & download songs, videos, apps, books, sell products, earn points",
   description: "Connect with friends, Make money, Chat, Upload and download songs, free apps, free books, free videos, sell products, earn points and more on SageTech",
+  manifest: "/manifest.webmanifest",
   keywords: "SageTech, download, songs, videos, apps, books, social, earn points, sell products",
   openGraph: {
     siteName: "SageTech",
@@ -34,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <ToastProvider>{children}</ToastProvider>
+        <PwaInstall />
         <Suspense fallback={null}>
           <NavigationLoader />
         </Suspense>

@@ -19,6 +19,13 @@ interface HeaderProps {
   user: NavUser | null;
 }
 
+declare global {
+  interface Window {
+    _pwaInstall?: () => Promise<void>;
+    __pwaInstallAvailable?: boolean;
+  }
+}
+
 const navLinks = [
   { href: "/", icon: "fas fa-home", label: "home", id: "home-link" },
   { href: "/messages", icon: "fas fa-envelope", label: "messages", id: "messages-link" },
@@ -70,6 +77,7 @@ export default function Header({ user }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [installAvailable, setInstallAvailable] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeMenu = useBackClosable(showMenu, () => setShowMenu(false));
@@ -82,6 +90,14 @@ export default function Header({ user }: HeaderProps) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--app-header-offset", scrolled ? "45px" : "58px");
+    return () => {
+      root.style.setProperty("--app-header-offset", "45px");
+    };
+  }, [scrolled]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -106,6 +122,18 @@ export default function Header({ user }: HeaderProps) {
   useEffect(() => {
     setSearchQuery(searchParams.get("q") ?? "");
   }, [searchParams]);
+
+  useEffect(() => {
+    setInstallAvailable(Boolean(window.__pwaInstallAvailable));
+
+    const onAvailability = (event: Event) => {
+      const detail = (event as CustomEvent<{ available: boolean }>).detail;
+      setInstallAvailable(Boolean(detail?.available));
+    };
+
+    window.addEventListener("pwa-install-availability", onAvailability);
+    return () => window.removeEventListener("pwa-install-availability", onAvailability);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -228,7 +256,7 @@ export default function Header({ user }: HeaderProps) {
                 href={link.href}
                 className={cn(
                   "flex min-w-0 items-center justify-center gap-[10px] rounded-full px-3 py-[6px] text-[13.5px] capitalize text-white transition-all",
-                  isActive ? "active-link text-cyan-400 max-[649px]:bg-transparent min-[650px]:bg-[rgba(0,255,255,0.08)]" : "min-[650px]:hover:active-link"
+                  isActive ? "active-link text-cyan-400 bg-transparent" : "min-[650px]:hover:active-link"
                 )}
               >
                 <span className="relative">
@@ -253,7 +281,7 @@ export default function Header({ user }: HeaderProps) {
             onClick={() => setShowSearch((v) => !v)}
             className={cn(
               "flex w-full min-w-0 items-center justify-center gap-[10px] rounded-full px-5 py-[6px] text-[13.5px] capitalize text-white transition-all",
-              showSearch ? "active-link text-cyan-400 max-[649px]:bg-transparent min-[650px]:bg-[rgba(0,255,255,0.08)]" : "min-[650px]:hover:active-link"
+              showSearch ? "active-link text-cyan-400 bg-transparent" : "min-[650px]:hover:active-link"
             )}
           >
             <i className="fas fa-search text-[17px] max-[500px]:text-[15px]" />
@@ -272,7 +300,7 @@ export default function Header({ user }: HeaderProps) {
             }}
             className={cn(
               "hidden w-full min-w-0 items-center justify-center gap-[10px] rounded-full px-3 py-[6px] text-[13.5px] capitalize text-white transition-all max-[995px]:flex",
-              showMenu ? "active-link text-cyan-400 max-[649px]:bg-transparent min-[650px]:bg-[rgba(0,255,255,0.08)]" : "min-[650px]:hover:active-link"
+              showMenu ? "active-link text-cyan-400 bg-transparent" : "min-[650px]:hover:active-link"
             )}
           >
             <span className="relative">
@@ -335,10 +363,22 @@ export default function Header({ user }: HeaderProps) {
           )}
 
           <div className="grid grid-cols-1 gap-x-4 gap-y-0 sm:grid-cols-2">
+            {installAvailable && (
+              <button
+                type="button"
+                onClick={() => {
+                  void window._pwaInstall?.();
+                }}
+                className="flex items-center gap-3 border-b border-white/10 py-3 text-left text-[16px] text-white transition-colors hover:text-cyan-400 sm:col-span-2"
+              >
+                <i className="fas fa-download w-5 text-center text-[13px]" />
+                Install App
+              </button>
+            )}
             {visibleSidebarLinks.map((link) => {
               const href = link.href === "/profile" ? profileHref : link.href;
               const className = cn(
-                "flex items-center gap-2 border-b border-white/10 py-2 text-[13px] transition-colors",
+                "flex items-center gap-3 border-b border-white/10 py-3 text-[16px] transition-colors",
                 pathname === href ? "text-cyan-400" : "text-white hover:text-cyan-400"
               );
 
@@ -347,14 +387,14 @@ export default function Header({ user }: HeaderProps) {
                   <a
                     key={link.label}
                     href={href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={className}
-                  >
-                    <i className={`${link.icon} w-4 text-center text-xs`} />
-                    {link.label}
-                  </a>
-                );
+                  target="_blank"
+                  rel="noreferrer"
+                  className={className}
+                >
+                  <i className={`${link.icon} w-5 text-center text-[13px]`} />
+                  {link.label}
+                </a>
+              );
               }
 
               return (
@@ -363,7 +403,7 @@ export default function Header({ user }: HeaderProps) {
                   href={href}
                   className={className}
                 >
-                  <i className={`${link.icon} w-4 text-center text-xs`} />
+                  <i className={`${link.icon} w-5 text-center text-[13px]`} />
                   {link.label}
                 </Link>
               );
@@ -374,14 +414,14 @@ export default function Header({ user }: HeaderProps) {
             {user ? (
               <button
                 onClick={() => setLogoutModalOpen(true)}
-                className="flex items-center gap-2 text-[13px] text-red-400"
+                className="flex items-center gap-3 text-[16px] text-red-400"
               >
                 <i className="fas fa-sign-out-alt" /> Logout
               </button>
             ) : (
               <>
-                <Link href="/login" className="btn-sage px-5 py-1.5 text-[13px]">Login</Link>
-                <Link href="/register" className="rounded-full border border-white/30 px-5 py-1.5 text-[13px] text-white transition-colors hover:border-cyan-400 hover:text-cyan-400">Register</Link>
+                <Link href="/login" className="btn-sage px-5 py-2 text-[16px]">Login</Link>
+                <Link href="/register" className="rounded-full border border-white/30 px-5 py-2 text-[16px] text-white transition-colors hover:border-cyan-400 hover:text-cyan-400">Register</Link>
               </>
             )}
           </div>

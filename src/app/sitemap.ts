@@ -16,6 +16,7 @@ const staticRoutes: Array<{
 }> = [
   { path: "/", changeFrequency: "hourly", priority: 1 },
   { path: "/ai", changeFrequency: "daily", priority: 0.95 },
+  { path: "/upload", changeFrequency: "weekly", priority: 0.74 },
   { path: "/dictionary", changeFrequency: "weekly", priority: 0.9 },
   { path: "/all-languages-dictionary", changeFrequency: "weekly", priority: 0.9 },
   { path: "/friends", changeFrequency: "daily", priority: 0.85 },
@@ -36,6 +37,7 @@ const staticRoutes: Array<{
   { path: "/contact", changeFrequency: "monthly", priority: 0.6 },
   { path: "/login", changeFrequency: "monthly", priority: 0.35 },
   { path: "/register", changeFrequency: "monthly", priority: 0.35 },
+  { path: "/forgot-password", changeFrequency: "monthly", priority: 0.25 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

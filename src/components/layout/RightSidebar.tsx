@@ -90,13 +90,13 @@ export default function RightSidebar() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/posts?type=advert&limit=5&order=random&seed=${seed}`, {
+        const res = await fetch(`/api/posts?type=advert&limit=10&order=random&seed=${seed}&lightweight=1`, {
           signal: controller.signal,
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`Advert request failed: ${res.status}`);
         const data = await res.json();
-        setAdverts((data.posts ?? []).slice(0, 5));
+        setAdverts((data.posts ?? []).slice(0, 10));
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           console.error("[RightSidebar] advert fetch failed", error);
@@ -119,7 +119,7 @@ export default function RightSidebar() {
       className="fixed right-0 top-0 hidden h-full overflow-y-auto pb-48 text-white lg:block"
       style={{
         background: "linear-gradient(to bottom, rgba(0,0,0,0.9), rgb(22,40,50), rgba(0,0,0,0.9))",
-        marginTop: "45px",
+        marginTop: "var(--app-header-offset, 45px)",
         width: "calc((100vw - 650px) / 2 - 10px)",
       }}
     >
@@ -146,29 +146,44 @@ export default function RightSidebar() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => handleAdvertClick(advert.id)}
-                    className="group block w-full overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] text-left transition-colors hover:border-cyan-400/20 hover:bg-white/[0.05]"
+                    className="group block w-full overflow-hidden border border-white/10 bg-transparent text-left transition-colors hover:border-cyan-400/20"
                   >
-                    <div className="relative grid aspect-square overflow-hidden bg-black/20">
-                      {advert.fileUrl && advert.fileType === "image" ? (
-                        <Image src={advert.fileUrl} alt={advert.advertTitle || "Advert"} fill className="object-contain bg-black/25 p-1 transition-transform duration-300 group-hover:scale-[1.02]" />
-                      ) : advert.fileType === "video" ? (
-                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
-                          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/35">
-                            <i className="fas fa-play ml-0.5 text-sm" />
-                          </span>
+                    {advert.fileUrl && advert.fileType === "image" ? (
+                      <>
+                        <div className="overflow-hidden bg-black/20">
+                          <img
+                            src={advert.fileUrl}
+                            alt={advert.advertTitle || "Advert"}
+                            className="block w-full h-auto max-h-[180px] bg-black/25 p-1 object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                          />
                         </div>
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
-                          <i className="fas fa-ad text-2xl" />
+                        <div className="px-2.5 pb-2.5 pt-2">
+                          <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white">
+                            {trimAdvertTitle(advert.advertTitle)}
+                          </p>
                         </div>
-                      )}
+                      </>
+                    ) : (
+                      <div className="relative grid aspect-square overflow-hidden bg-black/20">
+                        {advert.fileType === "video" ? (
+                          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
+                            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/35">
+                              <i className="fas fa-play ml-0.5 text-sm" />
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
+                            <i className="fas fa-ad text-2xl" />
+                          </div>
+                        )}
 
-                      <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(2,8,12,0.97))] px-2.5 pb-2.5 pt-8">
-                        <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
-                          {trimAdvertTitle(advert.advertTitle)}
-                        </p>
+                        <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(2,8,12,0.97))] px-2.5 pb-2.5 pt-8">
+                          <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
+                            {trimAdvertTitle(advert.advertTitle)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </a>
                 ) : (
                   <Link
@@ -181,29 +196,44 @@ export default function RightSidebar() {
                       postDescription: advert.postDescription ?? null,
                     } as never)}
                     onClick={() => handleAdvertClick(advert.id)}
-                    className="group block w-full overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] text-left transition-colors hover:border-cyan-400/20 hover:bg-white/[0.05]"
+                    className="group block w-full overflow-hidden border border-white/10 bg-transparent text-left transition-colors hover:border-cyan-400/20"
                   >
-                    <div className="relative grid aspect-square overflow-hidden bg-black/20">
-                      {advert.fileUrl && advert.fileType === "image" ? (
-                        <Image src={advert.fileUrl} alt={advert.advertTitle || "Advert"} fill className="object-contain bg-black/25 p-1 transition-transform duration-300 group-hover:scale-[1.02]" />
-                      ) : advert.fileType === "video" ? (
-                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
-                          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/35">
-                            <i className="fas fa-play ml-0.5 text-sm" />
-                          </span>
+                    {advert.fileUrl && advert.fileType === "image" ? (
+                      <>
+                        <div className="overflow-hidden bg-black/20">
+                          <img
+                            src={advert.fileUrl}
+                            alt={advert.advertTitle || "Advert"}
+                            className="block w-full h-auto max-h-[180px] bg-black/25 p-1 object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                          />
                         </div>
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
-                          <i className="fas fa-ad text-2xl" />
+                        <div className="px-2.5 pb-2.5 pt-2">
+                          <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white">
+                            {trimAdvertTitle(advert.advertTitle)}
+                          </p>
                         </div>
-                      )}
+                      </>
+                    ) : (
+                      <div className="relative grid aspect-square overflow-hidden bg-black/20">
+                        {advert.fileType === "video" ? (
+                          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
+                            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/35">
+                              <i className="fas fa-play ml-0.5 text-sm" />
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
+                            <i className="fas fa-ad text-2xl" />
+                          </div>
+                        )}
 
-                      <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(2,8,12,0.97))] px-2.5 pb-2.5 pt-8">
-                        <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
-                          {trimAdvertTitle(advert.advertTitle)}
-                        </p>
+                        <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(2,8,12,0.97))] px-2.5 pb-2.5 pt-8">
+                          <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
+                            {trimAdvertTitle(advert.advertTitle)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </Link>
                 )
               )}

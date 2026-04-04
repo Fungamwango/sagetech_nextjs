@@ -648,6 +648,15 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
   ] as const;
   const currentPrivacy = privacyOptions.find((option) => option.value === (postState.privacy ?? "public")) ?? privacyOptions[0];
   const isGuestAiPost = postState.postType === "guest_ai";
+  const postTypeHrefMap: Partial<Record<string, string>> = {
+    song: "/music",
+    video: "/videos",
+    app: "/apps",
+    book: "/documents",
+    document: "/documents",
+    product: "/business?section=marketplace",
+  };
+  const postTypeHref = postTypeHrefMap[postState.postType];
 
     const getPostTitle = () => {
       switch (postState.postType) {
@@ -888,14 +897,24 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       </div>
 
       {/* Post type badge */}
-      {postState.postType !== "general" && postState.postType !== "blog" && postState.postType !== "advert" && (
-        <span
-          className="text-xs px-2 py-0.5 rounded-full capitalize mb-2 inline-block"
-          style={{ background: "rgba(0,180,200,0.12)", color: "#00c8e8", border: "1px solid rgba(0,180,200,0.25)" }}
-        >
-          {postState.postType}
-        </span>
-      )}
+        {postState.postType !== "general" && postState.postType !== "blog" && postState.postType !== "advert" && (
+            postTypeHref ? (
+              <Link
+                href={postTypeHref}
+                className="text-xs px-2 py-0.5 rounded-full capitalize mb-2 inline-block transition-colors hover:text-cyan-300"
+                style={{ background: "rgba(255,255,255,0.035)", color: "rgba(255,255,255,0.58)", border: "1px solid rgba(255,255,255,0.08)" }}
+              >
+                {postState.postType}
+              </Link>
+            ) : (
+              <span
+                className="text-xs px-2 py-0.5 rounded-full capitalize mb-2 inline-block"
+                style={{ background: "rgba(255,255,255,0.035)", color: "rgba(255,255,255,0.58)", border: "1px solid rgba(255,255,255,0.08)" }}
+              >
+                {postState.postType}
+              </span>
+            )
+          )}
 
       {/* Title for blog/advert */}
       {(postState.postType === "blog" || postState.postType === "guest_ai") && postState.blogTitle && (

@@ -241,6 +241,7 @@ export const postsRouter = new Hono()
     const postId = url.searchParams.get("postId");
     const order = url.searchParams.get("order") ?? "latest";
     const seed = url.searchParams.get("seed") ?? "sagetech";
+    const lightweight = url.searchParams.get("lightweight") === "1";
     const exactSearch = search?.toLowerCase() ?? "";
     const prefixSearch = `${search ?? ""}%`;
     const fuzzySearch = `%${search ?? ""}%`;
@@ -396,6 +397,16 @@ export const postsRouter = new Hono()
       .orderBy(...orderBy)
       .limit(limit)
       .offset(offset);
+
+    if (lightweight) {
+      return c.json({
+        posts: feedPosts.map((post) => ({
+          ...post,
+          likedByMe: false,
+          isFollowingAuthor: false,
+        })),
+      });
+    }
 
     // Add "liked by me" flag
     const result = await Promise.all(

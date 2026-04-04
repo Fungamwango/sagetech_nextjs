@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const BOOKS = [
   { id: "genesis", label: "Genesis" },
@@ -127,6 +127,51 @@ const KEYPOINTS = [
 
 type JumpLink = { id: string; label: string };
 
+function ModernDropdown({
+  label,
+  value,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string;
+  value: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative min-w-0">
+      <button
+        type="button"
+        className={`flex min-h-[58px] w-full items-center justify-between gap-3 rounded-[16px] border px-4 py-3 text-left transition-all ${
+          open
+            ? "border-cyan-400/35 bg-[rgba(18,62,74,0.92)] shadow-[0_14px_34px_rgba(0,0,0,0.28)]"
+            : "border-white/10 bg-[rgba(255,255,255,0.04)] hover:border-white/18 hover:bg-[rgba(255,255,255,0.06)]"
+        }`}
+        onClick={onToggle}
+      >
+        <span className="min-w-0">
+          <span className="block text-[10px] uppercase tracking-[0.16em] text-white/38">{label}</span>
+          <span className="mt-1 block truncate text-sm font-medium text-white/88">{value}</span>
+        </span>
+        <i
+          className={`fa fa-chevron-down text-[12px] text-white/55 transition-transform ${
+            open ? "rotate-180 text-cyan-300" : ""
+          }`}
+        />
+      </button>
+      <div
+        className={`absolute left-0 top-full z-20 mt-2 max-h-80 w-full min-w-[170px] overflow-y-auto rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,30,40,0.985),rgba(6,18,28,0.985))] p-2 shadow-[0_26px_70px_rgba(0,0,0,0.42)] ${
+          open ? "block" : "hidden"
+        }`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function JumpList({
   items,
   activeId,
@@ -137,13 +182,15 @@ function JumpList({
   onSelect: (item: JumpLink) => void;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-1.5">
       {items.map((item) => (
         <button
           key={item.id}
           type="button"
-          className={`block w-full border-b border-white/15 py-2.5 text-left text-sm transition-colors ${
-            activeId === item.id ? "text-cyan-400" : "text-white/75 hover:text-white"
+          className={`block w-full rounded-[12px] px-3 py-2.5 text-left text-sm transition-colors ${
+            activeId === item.id
+              ? "bg-cyan-400/12 text-cyan-300"
+              : "text-white/72 hover:bg-white/[0.04] hover:text-white"
           }`}
           onClick={() => onSelect(item)}
         >
@@ -154,7 +201,16 @@ function JumpList({
   );
 }
 
-export default function BibleStudyClient() {
+function SelectionPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/55">
+      <span className="mr-1 uppercase tracking-[0.12em] text-white/35">{label}</span>
+      <span className="text-white/75">{value}</span>
+    </div>
+  );
+}
+
+export default function BibleStudyClient({ contentHtml }: { contentHtml: string }) {
   const [bookId, setBookId] = useState<string>(BOOKS[0]?.id ?? "genesis");
   const [bookLabel, setBookLabel] = useState<string>("Books");
   const [keypointId, setKeypointId] = useState<string>("");
@@ -162,11 +218,6 @@ export default function BibleStudyClient() {
   const [showBooks, setShowBooks] = useState(false);
   const [showKeypoints, setShowKeypoints] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const iframeSrc = useMemo(() => {
-    const target = keypointId || bookId;
-    return `/api/bible-study/content${target ? `#${encodeURIComponent(target)}` : ""}`;
-  }, [bookId, keypointId]);
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
@@ -179,79 +230,141 @@ export default function BibleStudyClient() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
 
+  useEffect(() => {
+    const hash = window.location.hash.replace(/^#/, "");
+    if (!hash) return;
+
+    const book = BOOKS.find((item) => item.id === hash);
+    const keypoint = KEYPOINTS.find((item) => item.id === hash);
+
+    if (book) {
+      setBookId(book.id);
+      setBookLabel(book.label);
+    }
+
+    if (keypoint) {
+      setKeypointId(keypoint.id);
+      setKeypointLabel(keypoint.label);
+    }
+  }, []);
+
+  const jumpTo = (item: JumpLink, type: "book" | "keypoint") => {
+    if (type === "book") {
+      setBookId(item.id);
+      setBookLabel(item.label);
+      setKeypointId("");
+      setKeypointLabel("Keypoints");
+      setShowBooks(false);
+    } else {
+      setKeypointId(item.id);
+      setKeypointLabel(item.label);
+      setShowKeypoints(false);
+    }
+
+    window.history.replaceState(null, "", `#${item.id}`);
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(item.id);
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   return (
-    <div>
-      <div id="post-navbar" className="mb-3" ref={wrapperRef}>
-        <div id="title">
-          <i className="fa fa-bible" /> Bible-study...
+    <div className="space-y-3">
+      <div
+        id="post-navbar"
+        className="rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-3"
+        ref={wrapperRef}
+      >
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-[18px] font-semibold text-white">
+              <i className="fa fa-bible text-cyan-400" />
+              <span>Bible Study</span>
+            </div>
+            <p className="mt-1 text-sm text-white/50">
+              Browse by book or jump straight to key study points.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <SelectionPill label="Book" value={bookLabel} />
+            <SelectionPill label="Focus" value={keypointLabel} />
+          </div>
         </div>
 
-        <div className="post-links-wrapper flex flex-wrap items-start gap-2">
-          <div className="dropdown-wrapper relative">
-            <button
-              type="button"
-              className={`post-links min-w-[160px] ${showBooks ? "post-active_link" : ""}`}
-              onClick={() => {
-                setShowBooks((current) => !current);
-                setShowKeypoints(false);
-              }}
-            >
-              <span id="book-span">{bookLabel}</span> <i className="fa fa-chevron-down" />
-            </button>
-            <div
-              className={`dropdown-content absolute left-0 top-full z-20 mt-1 max-h-72 w-[260px] overflow-y-auto rounded-md border border-white/10 !p-2 shadow-2xl ${showBooks ? "!block" : "!hidden"}`}
-              style={{ background: "linear-gradient(to bottom, rgba(10, 30, 40, 0.98), rgba(6, 18, 28, 0.98))" }}
-            >
+        <div className="grid grid-cols-2 gap-3">
+          <ModernDropdown
+            label="Books"
+            value={bookLabel}
+            open={showBooks}
+            onToggle={() => {
+              setShowBooks((current) => !current);
+              setShowKeypoints(false);
+            }}
+          >
               <JumpList
                 items={BOOKS}
                 activeId={bookId}
-                onSelect={(item) => {
-                  setBookId(item.id);
-                  setBookLabel(item.label);
-                  setKeypointId("");
-                  setKeypointLabel("Keypoints");
-                  setShowBooks(false);
-                }}
+                onSelect={(item) => jumpTo(item, "book")}
               />
-            </div>
-          </div>
+          </ModernDropdown>
 
-          <div className="dropdown-wrapper relative">
-            <button
-              type="button"
-              className={`post-links min-w-[160px] ${showKeypoints ? "post-active_link" : ""}`}
-              onClick={() => {
-                setShowKeypoints((current) => !current);
-                setShowBooks(false);
-              }}
-            >
-              <span id="keypoints-span">{keypointLabel}</span> <i className="fa fa-chevron-down" />
-            </button>
-            <div
-              className={`dropdown-content absolute left-0 top-full z-20 mt-1 max-h-72 w-[280px] overflow-y-auto rounded-md border border-white/10 !p-2 shadow-2xl ${showKeypoints ? "!block" : "!hidden"}`}
-              style={{ background: "linear-gradient(to bottom, rgba(10, 30, 40, 0.98), rgba(6, 18, 28, 0.98))" }}
-            >
+          <ModernDropdown
+            label="Key Points"
+            value={keypointLabel}
+            open={showKeypoints}
+            onToggle={() => {
+              setShowKeypoints((current) => !current);
+              setShowBooks(false);
+            }}
+          >
               <JumpList
                 items={KEYPOINTS}
                 activeId={keypointId}
-                onSelect={(item) => {
-                  setKeypointId(item.id);
-                  setKeypointLabel(item.label);
-                  setShowKeypoints(false);
-                }}
+                onSelect={(item) => jumpTo(item, "keypoint")}
               />
-            </div>
-          </div>
+          </ModernDropdown>
         </div>
       </div>
 
-      <iframe
-        key={`${bookId}-${keypointId}`}
-        src={iframeSrc}
-        title="Bible study content"
-        className="w-full border border-white/10 bg-white"
-        style={{ minHeight: "78vh" }}
-      />
+      <div className="overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.03]">
+        <div className="bible-study-content-shell max-h-[78vh] overflow-y-auto bg-[#f5f5ff] text-black/85">
+          <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .bible-study-content-shell {
+          scroll-behavior: smooth;
+        }
+
+        .bible-study-content-shell #bible-wrapper {
+          text-align: left;
+          position: relative;
+        }
+
+        .bible-study-content-shell #bible-wrapper strong {
+          display: inline-block;
+          border-radius: 3px;
+          background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgb(22, 40, 50), rgba(0, 0, 0, 0.5));
+          padding: 2px 8px;
+          font-size: 20px;
+          color: white;
+        }
+
+        .bible-study-content-shell #bible-wrapper p {
+          margin: 0;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.18);
+          background: rgb(245, 245, 255);
+          padding: 16px 10px;
+          line-height: 1.7;
+          word-spacing: 1.4px;
+        }
+
+        .bible-study-content-shell #bible-wrapper b {
+          color: rgba(0, 0, 0, 0.92);
+        }
+      `}</style>
     </div>
   );
 }
