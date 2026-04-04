@@ -45,3 +45,6 @@ tsconfig.tsbuildinfo
 
 # Vercel
 .vercel
+
+# OpenNext / Cloudflare Workers build output
+.open-next/
