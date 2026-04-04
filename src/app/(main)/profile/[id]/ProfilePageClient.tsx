@@ -293,7 +293,7 @@ export default function ProfilePageClient({
   };
 
   return (
-    <div className="mx-auto w-full max-w-[600px] space-y-4">
+    <div className="mx-auto w-full max-w-[650px] space-y-4">
       <section
         className="rounded-[3px] border border-white/[0.03] px-1 py-2"
         style={{ background: "linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgb(22, 40, 50), rgba(0, 0, 0, 0.9))" }}

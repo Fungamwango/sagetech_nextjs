@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ne, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ne, notInArray, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { follows, posts, users } from "@/lib/db/schema";
 import { getPrimaryMediaUrl } from "@/lib/postMedia";
@@ -68,6 +68,8 @@ export async function getPostById(id: string) {
       bookCategory: posts.bookCategory,
       advertTitle: posts.advertTitle,
       advertUrl: posts.advertUrl,
+      advertClicks: posts.advertClicks,
+      advertExpiresAt: posts.advertExpiresAt,
       views: posts.views,
       likesCount: posts.likesCount,
       commentsCount: posts.commentsCount,
@@ -97,6 +99,9 @@ export async function getVisiblePostById(id: string, currentUserId?: string | nu
   if (!post) return null;
 
   const isOwner = currentUserId === post.userId;
+  const isAdvertExpired =
+    post.postType === "advert" &&
+    new Date(post.advertExpiresAt ?? new Date(new Date(post.createdAt ?? Date.now()).getTime() + 30 * 24 * 60 * 60 * 1000)).getTime() < Date.now();
   const isPublicVisible = post.approved && post.privacy === "public";
 
   let isFollowerVisible = false;
@@ -109,7 +114,7 @@ export async function getVisiblePostById(id: string, currentUserId?: string | nu
     isFollowerVisible = Boolean(follow);
   }
 
-  if (!isPublicVisible && !isFollowerVisible && !isOwner) return null;
+  if ((!isPublicVisible && !isFollowerVisible && !isOwner) || (isAdvertExpired && !isOwner)) return null;
   return post;
 }
 
@@ -131,6 +136,14 @@ export function getPostSeo(post: NonNullable<Awaited<ReturnType<typeof getPostBy
     const songType = post.songType || "music";
     title = `${songTitle} by ${singer} - Download & Stream Mp3 Song now | ${songType}`;
     description = `${songTitle} by ${singer} - Download & Stream Mp3 Song now | ${songType}${post.postDescription ? ` - ${post.postDescription}` : ""}`;
+  } else if (post.postType === "guest_ai") {
+    const aiTitle = post.blogTitle || titleBase || "AI Post";
+    title = `${aiTitle} | Sage AI`;
+    description = (post.blogContent || post.postDescription || "AI-generated public post on SageTech.")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 180);
   } else if (post.postType === "product") {
     const productName = post.productName || titleBase || "Product";
     const productCategory = post.productType || "Marketplace";
@@ -139,6 +152,10 @@ export function getPostSeo(post: NonNullable<Awaited<ReturnType<typeof getPostBy
   } else if (post.postType === "video") {
     title = `${titleBase} - Watch & Download video Now`;
     description = `${titleBase} - Watch & Download video Now${post.postDescription ? ` - ${post.postDescription}` : ""}`;
+  } else if (post.postType === "advert") {
+    const advertTitle = post.advertTitle || titleBase || "Advert";
+    title = `${advertTitle} - Advert | SageTech`;
+    description = `${advertTitle}${post.postDescription ? ` - ${post.postDescription}` : " - Discover more on SageTech."}`;
   } else if (post.postType === "document") {
     const documentTitle = post.filename || "Document";
     const documentDescription = post.postDescription || "Document file";
@@ -154,6 +171,8 @@ export function getPostSeo(post: NonNullable<Awaited<ReturnType<typeof getPostBy
 }
 
 export async function getRelatedPostsByType(postId: string, postType: string, limit = 5) {
+  if (postType === "guest_ai") return [];
+
   const selectShape = {
     id: posts.id,
     slug: posts.slug,
@@ -173,6 +192,8 @@ export async function getRelatedPostsByType(postId: string, postType: string, li
     author: posts.author,
     bookCategory: posts.bookCategory,
     advertTitle: posts.advertTitle,
+    advertClicks: posts.advertClicks,
+    advertExpiresAt: posts.advertExpiresAt,
     linkTitle: posts.linkTitle,
     createdAt: posts.createdAt,
     views: posts.views,
@@ -185,6 +206,10 @@ export async function getRelatedPostsByType(postId: string, postType: string, li
     eq(posts.postType, postType as typeof posts.postType.enumValues[number]),
     eq(posts.approved, true),
     eq(posts.privacy, "public"),
+    or(
+      sql`${posts.postType} <> 'advert'`,
+      and(eq(posts.postType, "advert"), sql`COALESCE(${posts.advertExpiresAt}, ${posts.createdAt} + INTERVAL '30 days') >= NOW()`)
+    ),
     ne(posts.id, postId)
   );
 

@@ -39,23 +39,25 @@ app.route("/admin", adminRouter);
 app.route("/business", businessRouter);
 
 // Leaderboard
-app.get("/leaderboard", async (c) => {
-  const { db } = await import("@/lib/db");
-  const { users } = await import("@/lib/db/schema");
-  const { desc } = await import("drizzle-orm");
+  app.get("/leaderboard", async (c) => {
+    const { db } = await import("@/lib/db");
+    const { users } = await import("@/lib/db/schema");
+    const { and, desc, ne } = await import("drizzle-orm");
+    const { GUEST_AI_EMAIL, GUEST_AI_USERNAME } = await import("@/lib/aiPosts");
 
-  const leaders = await db
-    .select({
+    const leaders = await db
+      .select({
       id: users.id,
       username: users.username,
       picture: users.picture,
       points: users.points,
       awards: users.awards,
       level: users.level,
-    })
-    .from(users)
-    .orderBy(desc(users.points))
-    .limit(50);
+      })
+      .from(users)
+      .where(and(ne(users.username, GUEST_AI_USERNAME), ne(users.email, GUEST_AI_EMAIL)))
+      .orderBy(desc(users.points))
+      .limit(50);
 
   return c.json({ leaders });
 });
@@ -513,14 +515,16 @@ RULES:
   ]);
 
   // Save authenticated chats as public blog posts.
-  // Save guest chats in ai_posts only so they are persisted without social interactions.
+  // Save guest chats in the main posts table as guest_ai so they remain shareable,
+  // while the UI can still keep them view-only.
   let postId: string | null = null;
   let sharePath: string | null = null;
   let savedAsGuest = false;
   try {
     const { getSession } = await import("@/lib/auth");
     const { db } = await import("@/lib/db");
-    const { posts, aiPosts } = await import("@/lib/db/schema");
+    const { posts } = await import("@/lib/db/schema");
+    const { ensureGuestAiUserId } = await import("@/lib/aiPosts");
     const session = await getSession();
     if (session?.userId) {
       const title = translatedQ.substring(0, 200);
@@ -537,14 +541,20 @@ RULES:
         sharePath = `/posts/${slugifyPostText(title)}/${postId}`;
       }
     } else {
-      const title = `Guest: ${translatedQ.substring(0, 190)}`;
-      const [inserted] = await db.insert(aiPosts).values({
-        title,
-        content: translatedA,
-      }).returning({ id: aiPosts.id });
+      const title = translatedQ.substring(0, 200);
+      const guestAiUserId = await ensureGuestAiUserId();
+      const [inserted] = await db.insert(posts).values({
+        userId: guestAiUserId,
+        postType: "guest_ai",
+        blogTitle: title,
+        blogContent: translatedA,
+        approved: true,
+        privacy: "public",
+        slug: slugifyPostText(title),
+      }).returning({ id: posts.id });
       postId = inserted?.id ?? null;
       if (postId) {
-        sharePath = `/ai/posts/${postId}/${slugifyPostText(title)}`;
+        sharePath = `/posts/${slugifyPostText(title)}/${postId}`;
       }
       savedAsGuest = true;
     }

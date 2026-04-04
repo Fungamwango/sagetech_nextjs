@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useBackClosable } from "@/hooks/useBackClosable";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface SidebarUser {
   id: string;
@@ -29,7 +32,7 @@ const sidebarLinks = [
   { href: "/messages", icon: "fas fa-envelope", label: "Messages" },
   { href: "/videos", icon: "fas fa-tv", label: "Videos" },
   { href: "/music", icon: "fas fa-music", label: "Music" },
-  { href: "/books", icon: "fas fa-book", label: "Books" },
+  { href: "/documents", icon: "fas fa-file-alt", label: "Documents" },
   { href: "/blog", icon: "fas fa-blog", label: "Blog" },
   { href: "/business", icon: "fas fa-store", label: "Business" },
   { href: "/adverts", icon: "fas fa-ad", label: "Adverts" },
@@ -52,15 +55,40 @@ const sidebarLinks = [
 export default function LeftSidebar({ user }: LeftSidebarProps) {
   const pathname = usePathname();
   const hideProfileSummaryOnly = /^\/profile\/[^/]+/.test(pathname);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const closeLogoutModal = useBackClosable(logoutModalOpen, () => {
+    if (!loggingOut) setLogoutModalOpen(false);
+  });
   const visibleLinks = sidebarLinks.filter((link) => !link.authOnly || user);
   const profileHref = user ? `/profile/${user.id}` : "/login";
 
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+      setLogoutModalOpen(false);
+      window.location.replace("/login");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <aside
-      className="fixed top-0 h-full w-[25%] overflow-y-auto pb-48 text-white hidden lg:block"
+      className="fixed top-0 hidden h-full overflow-y-auto pb-48 text-white lg:block"
       style={{
         background: "linear-gradient(to bottom, rgba(0,0,0,0.9), rgb(22,40,50), rgba(0,0,0,0.9))",
         marginTop: "45px",
+        left: "0px",
+        width: "calc((100vw - 650px) / 2 - 10px)",
       }}
     >
       {/* User profile section */}
@@ -68,12 +96,6 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
         <div className="p-3">
           {!hideProfileSummaryOnly && (
             <>
-              <p
-                className="text-sm opacity-70 mb-3"
-                style={{ fontStyle: "oblique", fontFamily: "serif" }}
-              >
-                welcome {user.username}
-              </p>
               <div className="text-center border border-white/10 p-3">
                 <Link href={`/profile/${user.id}`}>
                   <Image
@@ -137,7 +159,7 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
             })}
             <li>
               <button
-                onClick={() => fetch("/api/auth/logout", { method: "POST" }).then(() => window.location.href = "/login")}
+                onClick={() => setLogoutModalOpen(true)}
                 className="grid grid-cols-[10%_80%] gap-1 items-center py-3 ml-4 border-b border-white/10 text-sm capitalize cursor-pointer hover:text-red-400 transition-colors text-red-300 w-full text-left"
               >
                 <i className="fas fa-sign-out-alt text-xs" />
@@ -148,14 +170,27 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
         </div>
       )}
 
+      <ConfirmModal
+        open={logoutModalOpen}
+        title="Log out?"
+        description="You will be signed out of your SageTech account on this device."
+        confirmLabel="Log out"
+        loading={loggingOut}
+        iconClassName="fas fa-sign-out-alt"
+        onConfirm={() => {
+          void handleLogout();
+        }}
+        onClose={closeLogoutModal}
+      />
+
       {!user && (
-        <div className="p-4 text-center">
-          <p className="text-sm opacity-70 mb-4" style={{ fontFamily: "serif" }}>
+        <div className="p-4">
+          <p className="mb-4 text-sm opacity-70" style={{ fontFamily: "serif" }}>
             Join SageTech to connect with friends, earn points and more.
           </p>
           <Link
             href="/register"
-            className="block w-full btn-sage text-center mb-2"
+            className="mb-2 block w-full rounded-full border border-cyan-300/25 bg-[linear-gradient(135deg,rgba(0,138,124,0.92),rgba(0,184,217,0.92))] px-5 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:border-cyan-200/35 hover:bg-[linear-gradient(135deg,rgba(0,154,138,0.96),rgba(0,200,232,0.96))]"
           >
             Create Account
           </Link>
@@ -175,10 +210,10 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
                       href={href}
                       target="_blank"
                       rel="noreferrer"
-                      className="grid grid-cols-[10%_80%] gap-1 items-center py-2 ml-2 border-b border-white/10 text-sm hover:text-cyan-400 transition-colors"
+                      className="ml-4 grid grid-cols-[10%_80%] items-center gap-1 border-b border-white/10 py-2 text-sm transition-colors hover:text-cyan-400"
                     >
                       <i className={`${link.icon} text-xs`} />
-                      <span>{link.label}</span>
+                      <span style={{ wordSpacing: "2px" }}>{link.label}</span>
                     </a>
                   </li>
                 );
@@ -187,10 +222,10 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
               <li key={link.label}>
                 <Link
                   href={href}
-                  className="grid grid-cols-[10%_80%] gap-1 items-center py-2 ml-2 border-b border-white/10 text-sm capitalize hover:text-cyan-400 transition-colors"
+                  className="ml-4 grid grid-cols-[10%_80%] items-center gap-1 border-b border-white/10 py-2 text-sm capitalize transition-colors hover:text-cyan-400"
                 >
                   <i className={`${link.icon} text-xs`} />
-                  <span>{link.label}</span>
+                  <span style={{ wordSpacing: "2px" }}>{link.label}</span>
                 </Link>
               </li>
             );

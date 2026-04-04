@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useBackClosable } from "@/hooks/useBackClosable";
@@ -58,21 +57,12 @@ export default function PostComposer({ user, onCreated }: PostComposerProps) {
     <>
       {/* ── Composer bar ── */}
       <div className="modern-composer fade-in">
-        <div className="flex items-center gap-3">
-          <Image
-            src={user?.picture || "/files/default-avatar.svg"}
-            alt={user?.username || "user"}
-            width={44}
-            height={44}
-            className="h-11 w-11 rounded-full border border-white/15 object-cover"
-          />
-          <button
-            onClick={() => openWith("general")}
-            className="min-h-[46px] flex-1 rounded-full border border-white/10 bg-white/[0.04] px-4 text-left text-sm text-white/55 transition-colors hover:bg-white/[0.07]"
-          >
-            Share an update, photo, or video{user?.username ? `, ${user.username}` : ""}...
-          </button>
-        </div>
+        <button
+          onClick={() => openWith("general")}
+          className="min-h-[46px] w-full rounded-full border border-white/10 bg-white/[0.04] px-4 text-left text-sm text-white/68 transition-colors hover:bg-white/[0.07]"
+        >
+          Share an update, photo, or video{user?.username ? `, ${user.username}` : ""}...
+        </button>
 
         <div className="modern-feed-divider my-3" />
 
@@ -99,12 +89,10 @@ export default function PostComposer({ user, onCreated }: PostComposerProps) {
         >
           <div
             ref={modalRef}
-            className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden"
+            className="flex h-[100dvh] w-full flex-col overflow-hidden rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl"
             style={{
               background: "#0d1f2d",
               border: "1px solid rgba(255,255,255,0.1)",
-              maxHeight: "90vh",
-              overflowY: "auto",
             }}
           >
             {/* Modal header */}
@@ -123,7 +111,7 @@ export default function PostComposer({ user, onCreated }: PostComposerProps) {
             </div>
 
             {/* Upload form */}
-            <div className="p-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
               <UploadClient
                 user={{ id: user.id, username: user.username ?? "", points: user.points }}
                 initialType={initialType}

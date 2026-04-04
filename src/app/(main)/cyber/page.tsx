@@ -2,9 +2,9 @@ import { getCurrentUser } from "@/lib/auth";
 import CyberClient from "./CyberClient";
 
 export const metadata = {
-  title: "SageCyber | Ethical hacking, SQL Injection Lab, Phishing Simulator",
+  title: "SageCyber | Cyber Tools",
   description:
-    "Learn ethical hacking, scan for vulnerabilities, and explore cybersecurity tools including SQL injection lab, phishing simulator, and more.",
+    "Use practical cyber tools and free internet utilities in one place.",
 };
 
 export default async function CyberPage() {

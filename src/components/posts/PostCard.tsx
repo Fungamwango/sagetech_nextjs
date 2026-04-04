@@ -45,6 +45,8 @@ interface PostCardProps {
     bookCategory?: string | null;
     advertTitle?: string | null;
     advertUrl?: string | null;
+    advertClicks?: number | null;
+    advertExpiresAt?: string | Date | null;
     views?: number | null;
     likesCount?: number | null;
     commentsCount?: number | null;
@@ -366,6 +368,11 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
     await fetch(`/api/posts/${postState.id}/download`, { method: "POST" });
   };
 
+  const handleAdvertClick = () => {
+    if (postState.postType !== "advert") return;
+    void fetch(`/api/posts/${postState.id}/advert-click`, { method: "POST" }).catch(() => {});
+  };
+
   const handleInlineFileDownload = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!postState.fileUrl) return;
     event.preventDefault();
@@ -640,12 +647,14 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
     { value: "private", label: "Only Me" },
   ] as const;
   const currentPrivacy = privacyOptions.find((option) => option.value === (postState.privacy ?? "public")) ?? privacyOptions[0];
+  const isGuestAiPost = postState.postType === "guest_ai";
 
     const getPostTitle = () => {
       switch (postState.postType) {
         case "song": return postState.filename ?? postState.singer;
         case "video": return postState.filename ?? null;
         case "blog": return postState.blogTitle;
+        case "guest_ai": return postState.blogTitle;
         case "product": return postState.productName;
         case "app": return postState.filename ?? postState.appType;
       case "book": return postState.bookTitle ?? postState.author;
@@ -705,25 +714,44 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-          <Link href={`/profile/${postState.userId}`} className="flex items-center gap-2">
-            <Image
-              src={postState.userPicture || "/files/default-avatar.svg"}
-              alt={postState.username ?? "user"}
-              width={38}
-              height={38}
-              className="h-[38px] w-[38px] flex-shrink-0 rounded-full object-cover"
-              style={{ border: "2px solid rgba(0,200,220,0.3)" }}
-            />
-          </Link>
+          {isGuestAiPost ? (
+            <span className="flex items-center gap-2">
+              <Image
+                src={postState.userPicture || "/files/default-avatar.svg"}
+                alt={postState.username ?? "user"}
+                width={38}
+                height={38}
+                className="h-[38px] w-[38px] flex-shrink-0 rounded-full object-cover"
+                style={{ border: "2px solid rgba(0,200,220,0.3)" }}
+              />
+            </span>
+          ) : (
+            <Link href={`/profile/${postState.userId}`} className="flex items-center gap-2">
+              <Image
+                src={postState.userPicture || "/files/default-avatar.svg"}
+                alt={postState.username ?? "user"}
+                width={38}
+                height={38}
+                className="h-[38px] w-[38px] flex-shrink-0 rounded-full object-cover"
+                style={{ border: "2px solid rgba(0,200,220,0.3)" }}
+              />
+            </Link>
+          )}
             <div>
-              <Link href={`/profile/${postState.userId}`} className="text-sm font-semibold text-white capitalize hover:text-cyan-400 transition-colors">
-                {postState.username}
-              </Link>
+              {isGuestAiPost ? (
+                <span className="text-sm font-semibold text-white capitalize">
+                  {postState.username}
+                </span>
+              ) : (
+                <Link href={`/profile/${postState.userId}`} className="text-sm font-semibold text-white capitalize hover:text-cyan-400 transition-colors">
+                  {postState.username}
+                </Link>
+              )}
               <div className="flex items-center gap-2">
                 <Link href={postPath} className="text-xs text-white/45 hover:text-white/70 hover:underline">
-                  {timeAgo(postState.createdAt ?? null)}
+                  {postState.postType === "advert" ? "Sponsored" : timeAgo(postState.createdAt ?? null)}
                 </Link>
-                {currentUserId && currentUserId !== postState.userId && !followingAuthor && (
+                {currentUserId && currentUserId !== postState.userId && !followingAuthor && !isGuestAiPost && (
                   <>
                     <span className="text-[10px] text-white/20">•</span>
                     <button
@@ -755,7 +783,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
               <button onClick={handleShare} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors">
                 <i className="fas fa-share-alt text-cyan-400 w-4" /> Share
               </button>
-              {currentUserId && currentUserId !== postState.userId ? (
+              {currentUserId && currentUserId !== postState.userId && !isGuestAiPost ? (
                 <Link
                   href={`/messages?user=${post.userId}`}
                   className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
@@ -772,7 +800,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
               >
                 <i className="fas fa-copy text-white/40 w-4" /> Copy link
               </button>
-              {currentUserId === postState.userId && (
+              {currentUserId === postState.userId && !isGuestAiPost && (
                 <button
                   onClick={() => {
                     if (postState.postType === "song") {
@@ -788,7 +816,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
                   <i className="fas fa-pen w-4" /> Edit
                 </button>
               )}
-              {currentUserId === postState.userId && (
+              {currentUserId === postState.userId && !isGuestAiPost && (
                 <div className="relative border-t border-white/5 px-4 py-3">
                   <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
                     <i className="fas fa-lock text-[10px]" />
@@ -830,7 +858,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
                   </div>
                 </div>
               )}
-              {currentUserId === postState.userId && (
+              {(currentUserId === postState.userId || isGuestAiPost) && (
                 <button
                   onClick={() => {
                     setDeleteModalOpen(true);
@@ -860,7 +888,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       </div>
 
       {/* Post type badge */}
-      {postState.postType !== "general" && postState.postType !== "blog" && (
+      {postState.postType !== "general" && postState.postType !== "blog" && postState.postType !== "advert" && (
         <span
           className="text-xs px-2 py-0.5 rounded-full capitalize mb-2 inline-block"
           style={{ background: "rgba(0,180,200,0.12)", color: "#00c8e8", border: "1px solid rgba(0,180,200,0.25)" }}
@@ -870,9 +898,12 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       )}
 
       {/* Title for blog/advert */}
-      {postState.postType === "blog" && postState.blogTitle && (
+      {(postState.postType === "blog" || postState.postType === "guest_ai") && postState.blogTitle && (
         <p className="text-base font-bold text-white mb-2">{postState.blogTitle}</p>
       )}
+      {postState.postType === "advert" && postTitle ? (
+        <p className="mt-2 text-[16px] font-medium text-white break-words">{renderTextWithLinks(postTitle)}</p>
+      ) : null}
 
       {/* Text content with truncation */}
       {editingPost ? (
@@ -988,7 +1019,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
                   }}
                 />
                 {(editSongCoverPreview || postState.albumCover) ? (
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                  <div className="mt-4 overflow-hidden rounded-[14px] border border-white/10 bg-black/20">
                     <Image
                       src={editSongCoverPreview || postState.albumCover || "/files/default-avatar.svg"}
                       alt="Song cover"
@@ -1039,7 +1070,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
         </div>
       ) : displayText && !isSharedLinkPost && (
         <div className="mt-2">
-          {postState.postType === "blog" && /<[a-z][\s\S]*>/i.test(displayText) ? (
+          {(postState.postType === "blog" || postState.postType === "guest_ai") && /<[a-z][\s\S]*>/i.test(displayText) ? (
             <>
               <div
                 className="text-[16px] text-white/85 leading-relaxed ai-blog-content"
@@ -1067,10 +1098,10 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       )}
 
       {/* Non-text title */}
-        {postTitle && postState.postType !== "blog" && postState.postType !== "product" && (
+        {postTitle && postState.postType !== "blog" && postState.postType !== "guest_ai" && postState.postType !== "product" && postState.postType !== "advert" && (
           <p className="text-[16px] text-white mt-2 font-medium break-words">{renderTextWithLinks(postTitle)}</p>
         )}
-      {postState.postDescription && !displayText && !["general", "blog", "advert"].includes(postState.postType) && !editingPost && (
+      {postState.postDescription && !displayText && !["general", "blog", "guest_ai", "advert"].includes(postState.postType) && !editingPost && (
         <p className="mt-1 text-[16px] text-white/55 break-words">{renderTextWithLinks(postState.postDescription)}</p>
       )}
       {shouldShowLinkPreview && postState.linkUrl ? (
@@ -1088,6 +1119,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
           <PostContent
             post={postState}
             onDownload={handleDownload}
+            onAdvertClick={handleAdvertClick}
             canManageGallery={canManageGallery}
             onRemoveGalleryImage={handleRemoveGalleryImage}
             musicQueue={musicQueue}
@@ -1098,6 +1130,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
         <PostContent
           post={postState}
           onDownload={handleDownload}
+          onAdvertClick={handleAdvertClick}
           canManageGallery={canManageGallery}
           onRemoveGalleryImage={handleRemoveGalleryImage}
           musicQueue={musicQueue}
@@ -1109,8 +1142,9 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       <div className="modern-feed-divider mt-4 mb-3" />
       <div
         className="grid gap-2"
-        style={{ gridTemplateColumns: ["song", "app", "book", "document", "product", "advert"].includes(postState.postType) ? "1fr 1fr 1fr auto" : "1fr 1fr 1fr" }}
+        style={{ gridTemplateColumns: isGuestAiPost ? "1fr" : ["song", "app", "book", "document", "product", "advert"].includes(postState.postType) ? "1fr 1fr 1fr auto" : "1fr 1fr 1fr" }}
       >
+        {!isGuestAiPost && (
           <button
             onClick={handleLike}
             disabled={liking}
@@ -1132,6 +1166,8 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             {liking ? <i className="fas fa-circle-notch fa-spin" /> : <i className={`${liked ? "fas" : "far"} fa-thumbs-up`} />}
             <span className="text-xs font-medium">{likeCount}</span>
           </button>
+        )}
+        {!isGuestAiPost && (
           <button
             onClick={() => {
               if (showComments) {
@@ -1145,12 +1181,19 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             <i className={`${showComments ? "fas" : "far"} fa-comment`} />
             <span className="text-xs font-medium">{postState.commentsCount ?? 0}</span>
           </button>
-            {postState.postType !== "song" && postState.postType !== "document" && (
-              <span className="modern-pill-action flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs text-white/45">
-                <i className="far fa-eye" />
-                <span>{postState.views ?? 0}</span>
-              </span>
-            )}
+        )}
+        {isGuestAiPost ? (
+          <span className="modern-pill-action flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs text-white/45">
+            <i className="far fa-eye" />
+            <span>{postState.views ?? 0}</span>
+          </span>
+        ) : null}
+        {!isGuestAiPost && postState.postType !== "song" && postState.postType !== "document" && (
+          <span className="modern-pill-action flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs text-white/45">
+            <i className="far fa-eye" />
+            <span>{postState.views ?? 0}</span>
+          </span>
+        )}
 
         {["song", "app", "book", "document"].includes(postState.postType) && postState.fileUrl && (
             <a
@@ -1190,15 +1233,17 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             href={postState.advertUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center text-xs px-4 py-1.5 rounded-sm font-semibold transition-colors"
-            style={{ background: "rgba(0,200,220,0.15)", color: "#00c8e8", border: "1px solid rgba(0,200,220,0.3)" }}
+            onClick={handleAdvertClick}
+            className="flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-cyan-400/12 hover:text-cyan-200"
+            style={{ background: "rgba(0,200,220,0.08)", color: "rgba(150,240,255,0.92)", border: "1px solid rgba(0,200,220,0.18)" }}
           >
+            <i className="fas fa-external-link-alt text-[10px]" />
             Learn more
           </a>
         )}
       </div>
 
-        {showComments && (
+        {!isGuestAiPost && showComments && (
           <CommentsSection
             postId={postState.id}
             currentUserId={currentUserId}
@@ -1269,6 +1314,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
 function PostContent({
   post,
   onDownload,
+  onAdvertClick,
   canManageGallery = false,
   onRemoveGalleryImage,
   musicQueue,
@@ -1276,6 +1322,7 @@ function PostContent({
 }: {
   post: PostCardProps["post"];
   onDownload: () => void;
+  onAdvertClick?: () => void;
   canManageGallery?: boolean;
   onRemoveGalleryImage?: (imageUrl: string) => void | Promise<void>;
   musicQueue?: PostCardProps["musicQueue"];
@@ -1316,6 +1363,8 @@ function PostContent({
       <PhotoGalleryViewer
         images={mediaUrls}
         alt={post.postDescription ?? post.blogTitle ?? "Photo"}
+        clickHref={post.postType === "advert" ? post.advertUrl ?? undefined : undefined}
+        onClickHref={post.postType === "advert" ? onAdvertClick : undefined}
         canManage={canManageGallery}
         onRemoveImage={onRemoveGalleryImage}
       />
@@ -1331,7 +1380,7 @@ function PostContent({
   if (post.postType === "product" && primaryMediaUrl) {
       return (
         <div className="my-2">
-          <div className="overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03]">
+          <div className="overflow-hidden rounded-[12px] border border-white/10 bg-white/[0.03]">
             <div className="px-3 py-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1849,7 +1898,7 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
 
   return (
     <div
-      className="my-2 relative overflow-hidden rounded-[12px] bg-black group"
+      className="my-2 relative overflow-hidden rounded-[10px] bg-black group"
       style={{ maxHeight: "340px" }}
       onMouseMove={revealControls}
       onMouseEnter={revealControls}
@@ -1983,11 +2032,15 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
 function PhotoGalleryViewer({
   images,
   alt,
+  clickHref,
+  onClickHref,
   canManage = false,
   onRemoveImage,
 }: {
   images: string[];
   alt: string;
+  clickHref?: string;
+  onClickHref?: () => void;
   canManage?: boolean;
   onRemoveImage?: (imageUrl: string) => void | Promise<void>;
 }) {
@@ -2012,7 +2065,7 @@ function PhotoGalleryViewer({
   }, [closeGallery, images.length, openIndex]);
 
   if (images.length <= 1) {
-    return images[0] ? <PhotoViewer src={images[0]} alt={alt} /> : null;
+    return images[0] ? <PhotoViewer src={images[0]} alt={alt} clickHref={clickHref} onClickHref={onClickHref} /> : null;
   }
 
   const handleRemove = async (imageUrl: string) => {
@@ -2043,21 +2096,37 @@ function PhotoGalleryViewer({
     <>
       <div className={`post-gallery-grid post-gallery-grid--${Math.min(images.length, 4)}`}>
         {visible.map((src, index) => (
-          <button
-            key={`${src}-${index}`}
-            type="button"
-            className={`post-gallery-grid__item post-gallery-grid__item--${Math.min(images.length, 4)}-${index + 1}`}
-            onClick={() => setOpenIndex(index)}
-          >
-            <Image src={src} alt={`${alt} ${index + 1}`} fill className="object-cover transition-transform duration-300 hover:scale-[1.02]" />
-            {remaining > 0 && index === visible.length - 1 && (
-              <span className="post-gallery-grid__more">+{remaining}</span>
-            )}
-          </button>
+          clickHref && !canManage ? (
+            <a
+              key={`${src}-${index}`}
+              href={clickHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClickHref}
+              className={`post-gallery-grid__item post-gallery-grid__item--${Math.min(images.length, 4)}-${index + 1}`}
+            >
+              <Image src={src} alt={`${alt} ${index + 1}`} fill className="object-cover transition-transform duration-300 hover:scale-[1.02]" />
+              {remaining > 0 && index === visible.length - 1 && (
+                <span className="post-gallery-grid__more">+{remaining}</span>
+              )}
+            </a>
+          ) : (
+            <button
+              key={`${src}-${index}`}
+              type="button"
+              className={`post-gallery-grid__item post-gallery-grid__item--${Math.min(images.length, 4)}-${index + 1}`}
+              onClick={() => setOpenIndex(index)}
+            >
+              <Image src={src} alt={`${alt} ${index + 1}`} fill className="object-cover transition-transform duration-300 hover:scale-[1.02]" />
+              {remaining > 0 && index === visible.length - 1 && (
+                <span className="post-gallery-grid__more">+{remaining}</span>
+              )}
+            </button>
+          )
         ))}
       </div>
 
-      {openIndex != null && (
+      {!clickHref && openIndex != null && (
         <div
           className="group/gallery fixed inset-0 z-50 flex items-center justify-center bg-black/95 px-4"
           onClick={closeGallery}
@@ -2114,7 +2183,7 @@ function PhotoGalleryViewer({
   );
 }
 
-function PhotoViewer({ src, alt }: { src: string; alt: string }) {
+function PhotoViewer({ src, alt, clickHref, onClickHref }: { src: string; alt: string; clickHref?: string; onClickHref?: () => void }) {
   const [open, setOpen] = useState(false);
   const closePhotoViewer = useBackClosable(open, () => setOpen(false));
 
@@ -2126,26 +2195,50 @@ function PhotoViewer({ src, alt }: { src: string; alt: string }) {
 
   return (
     <>
-      <div
-        className="my-2 relative overflow-hidden rounded-[14px] cursor-zoom-in group"
-        onClick={() => setOpen(true)}
-      >
-        <Image
-          src={src}
-          alt={alt}
-          width={600}
-          height={400}
-          className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-          style={{ maxHeight: "350px" }}
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <i className="fas fa-expand text-white text-2xl drop-shadow-lg" />
+      {clickHref ? (
+        <a
+          href={clickHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onClickHref}
+          className="my-2 relative block overflow-hidden rounded-[10px] group"
+        >
+          <Image
+            src={src}
+            alt={alt}
+            width={600}
+            height={400}
+            className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            style={{ maxHeight: "350px" }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/10">
+            <div className="opacity-0 transition-opacity group-hover:opacity-100">
+              <i className="fas fa-external-link-alt text-white text-xl drop-shadow-lg" />
+            </div>
+          </div>
+        </a>
+      ) : (
+        <div
+          className="my-2 relative overflow-hidden rounded-[10px] cursor-zoom-in group"
+          onClick={() => setOpen(true)}
+        >
+          <Image
+            src={src}
+            alt={alt}
+            width={600}
+            height={400}
+            className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            style={{ maxHeight: "350px" }}
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <i className="fas fa-expand text-white text-2xl drop-shadow-lg" />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {open && (
+      {!clickHref && open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: "rgba(0,0,0,0.95)" }}

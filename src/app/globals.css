@@ -40,6 +40,14 @@ html, body {
   box-shadow: 0 2px 4px 0 rgba(0,0,0,0.8);
 }
 
+@media (max-width: 649px) {
+  .active-link {
+    border-bottom: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 /* Loading text */
 .loading-text {
   color: aqua;
@@ -405,7 +413,13 @@ html, body {
 }
 
 .modern-feed-card__body {
-  padding: 16px 16px 18px;
+  padding: 10px 10px 14px;
+}
+
+@media (min-width: 640px) {
+  .modern-feed-card__body {
+    padding: 16px 16px 18px;
+  }
 }
 
 .modern-feed-divider {

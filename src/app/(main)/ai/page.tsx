@@ -200,7 +200,7 @@ export default function AIPage() {
       });
       setInput("");
 
-      if (data.postId && data.savedAsGuest) setStatusMsg("Guest AI post published publicly.");
+      if (data.postId && data.savedAsGuest) setStatusMsg("Guest AI post saved as a public view-only post.");
       else if (data.postId) setStatusMsg("Answer saved as a post.");
 
       const nextEntry: HistoryEntry = {
@@ -293,7 +293,7 @@ export default function AIPage() {
               placeholder="Ask me anything, I will respond in selected language"
               rows={4}
               disabled={loading}
-              className="w-full resize-none rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/45 focus:border-cyan-400/40"
+              className="w-full resize-none rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/58 focus:border-cyan-400/40"
             />
 
             <div className="flex flex-wrap items-center justify-between gap-3">

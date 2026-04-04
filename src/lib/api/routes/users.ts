@@ -7,6 +7,7 @@ import { users, follows, posts, notifications } from "@/lib/db/schema";
 import { eq, sql, and, ne, ilike, desc, inArray, exists } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { getMonetiseMinPosts } from "@/lib/websiteSettings";
+import { GUEST_AI_EMAIL, GUEST_AI_USERNAME } from "@/lib/aiPosts";
 
 const updateProfileSchema = z.object({
   username: z.string().min(3).max(50).optional(),
@@ -332,6 +333,8 @@ export const usersRouter = new Hono()
     const whereConditions = [
       q ? ilike(users.username, `%${q}%`) : undefined,
       session?.userId ? ne(users.id, session.userId) : undefined,
+      ne(users.username, GUEST_AI_USERNAME),
+      ne(users.email, GUEST_AI_EMAIL),
       filter === "online" ? ONLINE_WINDOW_SQL : undefined,
       filter === "following" && session?.userId
         ? exists(

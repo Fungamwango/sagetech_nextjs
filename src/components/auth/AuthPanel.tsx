@@ -582,10 +582,16 @@ export default function AuthPanel({ defaultMode = "login" }: { defaultMode?: Mod
           className="bg-cover px-[10px] pt-[10px] pb-[25px]"
           style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.9), rgb(22,40,50), rgba(0,0,0,0.9))" }}
         >
-          <Link href="/" className="mb-[27px] block text-[30px] text-white" style={{ fontFamily: "serif" }}>
-            Sage<span style={{ color: "crimson", fontFamily: "serif" }}>Tech</span>
-            <span className="mt-0.5 block h-px bg-white/10" />
+          <Link href="/" className="mb-[27px] flex items-center gap-2">
+            <Image src="/files/sagetech_icon.jpg" alt="SageTech" width={35} height={35} className="rounded-sm object-cover" />
+            <span
+              className="truncate text-[28px] font-bold text-white max-sm:text-[25px]"
+              style={{ fontFamily: "serif", wordSpacing: "2.2px" }}
+            >
+              Sage<span className="text-cyan-400">Tech</span>
+            </span>
           </Link>
+          <span className="mt-0.5 block h-px bg-white/10" />
 
           {mode !== "forgot" && (
             <div className="flex justify-between gap-6 px-1 sm:px-0">
@@ -660,14 +666,34 @@ export default function AuthPanel({ defaultMode = "login" }: { defaultMode?: Mod
                 {checkingRegisterEmail ? (
                   <div className="-mt-7 mb-6 text-[12px] text-white/35">Checking email...</div>
                 ) : null}
-                <AuthField
-                  id="password"
-                  label="Password"
-                  type="password"
-                  value={registerPassword}
-                  onChange={setRegisterPassword}
-                  error={registerErrors.password}
-                />
+                <label htmlFor="password" className="mb-1 ml-0.5 block text-[13px] font-bold text-white">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-[2px] border px-[10px] py-[10px] pr-10 text-[13px] text-white/80 outline-none"
+                    style={{
+                      borderColor: registerErrors.password ? "rgba(195,44,55,0.6)" : "rgba(255,255,255,0.12)",
+                      background: "rgba(0, 0, 0, 0.2)",
+                      marginBottom: "35px",
+                      opacity: loading ? 0.7 : 1,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    disabled={loading}
+                    className="absolute right-[15px] top-[10px] text-white/30"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    <i className={`fa ${showPassword ? "fa-eye-slash" : "fa-eye"}`} />
+                  </button>
+                </div>
               </div>
               <AuthSubmit label={registerButton.text} loadingLabel="Please wait.." loading={loading} tone={registerButton.tone} />
             </form>

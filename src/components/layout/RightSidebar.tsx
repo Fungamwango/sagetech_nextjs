@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ModernLoader } from "@/components/ui/ModernLoader";
+import { getPostPath } from "@/lib/postUrls";
 
 interface LeaderUser {
   id: string;
@@ -14,12 +15,44 @@ interface LeaderUser {
   level?: string | null;
 }
 
+interface SidebarAdvert {
+  id: string;
+  slug?: string | null;
+  advertTitle?: string | null;
+  advertUrl?: string | null;
+  postDescription?: string | null;
+  fileUrl?: string | null;
+  fileType?: string | null;
+}
+
+function trimAdvertTitle(title?: string | null) {
+  const value = (title ?? "").trim();
+  if (!value) return "Sponsored advert";
+  return value.length > 30 ? `${value.slice(0, 30).trimEnd()}...` : value;
+}
+
 export default function RightSidebar() {
   const pathname = usePathname();
   const [leaders, setLeaders] = useState<LeaderUser[]>([]);
   const [loadingLeaders, setLoadingLeaders] = useState(true);
+  const [adverts, setAdverts] = useState<SidebarAdvert[]>([]);
+  const [loadingAdvert, setLoadingAdvert] = useState(true);
+  const [sidebarEnabled, setSidebarEnabled] = useState(false);
 
   useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setSidebarEnabled(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarEnabled) {
+      setLoadingLeaders(false);
+      return;
+    }
+
     const controller = new AbortController();
 
     (async () => {
@@ -44,49 +77,162 @@ export default function RightSidebar() {
     })();
 
     return () => controller.abort();
-  }, []);
+  }, [sidebarEnabled]);
+
+  useEffect(() => {
+    if (!sidebarEnabled) {
+      setLoadingAdvert(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const seed = Math.random().toString(36).slice(2, 10);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/posts?type=advert&limit=5&order=random&seed=${seed}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`Advert request failed: ${res.status}`);
+        const data = await res.json();
+        setAdverts((data.posts ?? []).slice(0, 5));
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("[RightSidebar] advert fetch failed", error);
+          setAdverts([]);
+        }
+      } finally {
+        setLoadingAdvert(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [sidebarEnabled]);
+
+  const handleAdvertClick = (advertId: string) => {
+    void fetch(`/api/posts/${advertId}/advert-click`, { method: "POST" }).catch(() => {});
+  };
 
   return (
-    <aside className="hidden lg:block">
-      <div className="sticky top-[96px] space-y-4">
-        <div
-          className="w-full cursor-pointer border border-white/10 p-2 text-center"
-          style={{ minHeight: "260px", background: "rgba(0,0,0,0.18)" }}
-        >
-          <div
-            className="mb-3 rounded p-3 text-left"
-            style={{ background: "linear-gradient(to bottom, rgba(0, 180, 200, 0.12), rgba(0,0,0,0.08))" }}
-          >
+    <aside
+      className="fixed right-0 top-0 hidden h-full overflow-y-auto pb-48 text-white lg:block"
+      style={{
+        background: "linear-gradient(to bottom, rgba(0,0,0,0.9), rgb(22,40,50), rgba(0,0,0,0.9))",
+        marginTop: "45px",
+        width: "calc((100vw - 650px) / 2 - 10px)",
+      }}
+    >
+      <div className="space-y-4 p-3">
+        <div className="w-full border border-white/10 p-2 text-center" style={{ minHeight: "260px", background: "rgba(0,0,0,0.18)" }}>
+          <div className="mb-2 px-1 text-left">
             <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">Sponsored</p>
-            <p className="mt-2 text-sm font-semibold text-white">Grow on SageTech</p>
-            <p className="mt-1 text-xs leading-relaxed text-white/55">
-              Upload content, stay active, and build points across the platform.
-            </p>
           </div>
 
-          <div className="space-y-2">
-            <Link
-              href="/upload"
-              className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-left text-sm text-white/75 transition-colors hover:text-cyan-400"
+          {loadingAdvert ? (
+            <div className="flex min-h-[210px] items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.03] text-sm text-white/45">
+              Loading adverts...
+            </div>
+          ) : adverts.length > 0 ? (
+            <div
+              className="grid gap-2"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(88px, 1fr))" }}
             >
-              <span><i className="fas fa-paper-plane mr-2 text-cyan-400" />Post something</span>
-              <i className="fas fa-chevron-right text-[10px]" />
-            </Link>
-            <Link
-              href="/recharge"
-              className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-left text-sm text-white/75 transition-colors hover:text-cyan-400"
-            >
-              <span><i className="fas fa-coins mr-2 text-cyan-400" />Recharge points</span>
-              <i className="fas fa-chevron-right text-[10px]" />
-            </Link>
-            <Link
-              href="/tools"
-              className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-left text-sm text-white/75 transition-colors hover:text-cyan-400"
-            >
-              <span><i className="fas fa-tools mr-2 text-cyan-400" />Sage tools</span>
-              <i className="fas fa-chevron-right text-[10px]" />
-            </Link>
-          </div>
+              {adverts.map((advert) =>
+                advert.advertUrl ? (
+                  <a
+                    key={advert.id}
+                    href={advert.advertUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleAdvertClick(advert.id)}
+                    className="group block w-full overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] text-left transition-colors hover:border-cyan-400/20 hover:bg-white/[0.05]"
+                  >
+                    <div className="relative grid aspect-square overflow-hidden bg-black/20">
+                      {advert.fileUrl && advert.fileType === "image" ? (
+                        <Image src={advert.fileUrl} alt={advert.advertTitle || "Advert"} fill className="object-contain bg-black/25 p-1 transition-transform duration-300 group-hover:scale-[1.02]" />
+                      ) : advert.fileType === "video" ? (
+                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
+                          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/35">
+                            <i className="fas fa-play ml-0.5 text-sm" />
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
+                          <i className="fas fa-ad text-2xl" />
+                        </div>
+                      )}
+
+                      <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(2,8,12,0.97))] px-2.5 pb-2.5 pt-8">
+                        <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
+                          {trimAdvertTitle(advert.advertTitle)}
+                        </p>
+                      </div>
+                    </div>
+                  </a>
+                ) : (
+                  <Link
+                    key={advert.id}
+                    href={getPostPath({
+                      id: advert.id,
+                      slug: advert.slug ?? null,
+                      postType: "advert",
+                      advertTitle: advert.advertTitle ?? null,
+                      postDescription: advert.postDescription ?? null,
+                    } as never)}
+                    onClick={() => handleAdvertClick(advert.id)}
+                    className="group block w-full overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] text-left transition-colors hover:border-cyan-400/20 hover:bg-white/[0.05]"
+                  >
+                    <div className="relative grid aspect-square overflow-hidden bg-black/20">
+                      {advert.fileUrl && advert.fileType === "image" ? (
+                        <Image src={advert.fileUrl} alt={advert.advertTitle || "Advert"} fill className="object-contain bg-black/25 p-1 transition-transform duration-300 group-hover:scale-[1.02]" />
+                      ) : advert.fileType === "video" ? (
+                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
+                          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/35">
+                            <i className="fas fa-play ml-0.5 text-sm" />
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(0,180,200,0.12),rgba(0,0,0,0.35))] text-cyan-200">
+                          <i className="fas fa-ad text-2xl" />
+                        </div>
+                      )}
+
+                      <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(2,8,12,0.97))] px-2.5 pb-2.5 pt-8">
+                        <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
+                          {trimAdvertTitle(advert.advertTitle)}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Link
+                href="/upload"
+                className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-left text-sm text-white/75 transition-colors hover:text-cyan-400"
+              >
+                <span><i className="fas fa-paper-plane mr-2 text-cyan-400" />Post something</span>
+                <i className="fas fa-chevron-right text-[10px]" />
+              </Link>
+              <Link
+                href="/recharge"
+                className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-left text-sm text-white/75 transition-colors hover:text-cyan-400"
+              >
+                <span><i className="fas fa-coins mr-2 text-cyan-400" />Recharge points</span>
+                <i className="fas fa-chevron-right text-[10px]" />
+              </Link>
+              <Link
+                href="/tools"
+                className="flex items-center justify-between rounded border border-white/10 px-3 py-2 text-left text-sm text-white/75 transition-colors hover:text-cyan-400"
+              >
+                <span><i className="fas fa-tools mr-2 text-cyan-400" />Sage tools</span>
+                <i className="fas fa-chevron-right text-[10px]" />
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="sage-card">

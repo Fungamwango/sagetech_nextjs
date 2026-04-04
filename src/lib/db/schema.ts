@@ -24,6 +24,7 @@ export const postTypeEnum = pgEnum("post_type", [
   "product",
   "advert",
   "blog",
+  "guest_ai",
 ]);
 
 export const privacyEnum = pgEnum("privacy", ["public", "private", "friends"]);
@@ -117,6 +118,8 @@ export const posts = pgTable(
     // Advert fields
     advertTitle: varchar("advert_title", { length: 200 }),
     advertUrl: text("advert_url"),
+    advertClicks: integer("advert_clicks").default(0),
+    advertExpiresAt: timestamp("advert_expires_at"),
 
     // Metrics
     views: integer("views").default(0),
@@ -131,6 +134,7 @@ export const posts = pgTable(
     userIdIdx: index("posts_user_id_idx").on(t.userId),
     postTypeIdx: index("posts_type_idx").on(t.postType),
     approvedIdx: index("posts_approved_idx").on(t.approved),
+    advertExpiryIdx: index("posts_advert_expiry_idx").on(t.advertExpiresAt),
   })
 );
 
@@ -361,16 +365,6 @@ export const reports = pgTable("reports", {
   postId: uuid("post_id").references(() => posts.id, { onDelete: "cascade" }),
   reason: text("reason").notNull(),
   status: varchar("status", { length: 20 }).default("pending"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// ============ AI POSTS ============
-export const aiPosts = pgTable("ai_posts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  title: varchar("title", { length: 200 }).notNull(),
-  content: text("content"),
-  fileUrl: text("file_url"),
-  views: integer("views").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

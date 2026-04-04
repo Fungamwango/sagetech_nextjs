@@ -1031,7 +1031,7 @@ function UploadFormFields({
             value={formData.generalPost ?? ""}
             onChange={(e) => set("generalPost", e.target.value)}
             placeholder="What's happening? Share your thoughts, a link, photos, or one short video..."
-            className={`${inputClass} w-full min-h-[120px] resize-none`}
+            className={`${inputClass} w-full min-h-[120px] resize-none placeholder:text-white/55`}
           />
         </section>
       );
@@ -1341,13 +1341,13 @@ function GalleryPreviewModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-end justify-center p-2 sm:items-center sm:p-4"
       style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(6px)" }}
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/10 bg-[#081722] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+      <div className="flex max-h-[100dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-white/10 bg-[#081722] shadow-[0_40px_120px_rgba(0,0,0,0.55)] sm:max-h-[90vh] sm:max-w-5xl sm:rounded-[28px]">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
             <p className="text-sm font-semibold text-white">Gallery preview</p>
@@ -1365,7 +1365,7 @@ function GalleryPreviewModal({
           </button>
         </div>
 
-        <div className="max-h-[75vh] overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((item) => (
               <div

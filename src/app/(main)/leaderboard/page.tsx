@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { desc, sql } from "drizzle-orm";
+import { and, desc, ne, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { GUEST_AI_EMAIL, GUEST_AI_USERNAME } from "@/lib/aiPosts";
 
 export default async function LeaderboardPage() {
   const [currentUser, leaders] = await Promise.all([
@@ -19,6 +20,7 @@ export default async function LeaderboardPage() {
         isOnline: sql<boolean>`(${users.lastSeen} IS NOT NULL AND ${users.lastSeen} >= NOW() - INTERVAL '1 minute')`,
       })
       .from(users)
+      .where(and(ne(users.username, GUEST_AI_USERNAME), ne(users.email, GUEST_AI_EMAIL)))
       .orderBy(desc(users.points))
       .limit(50),
   ]);

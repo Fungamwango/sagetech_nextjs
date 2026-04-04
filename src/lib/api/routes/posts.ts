@@ -206,12 +206,23 @@ const createPostSchema = createPostSchemaBase.superRefine((data, ctx) => {
 
 const updatePostSchema = createPostSchemaBase.partial().omit({ postType: true, fileResourceType: true });
 const updateCommentSchema = z.object({ content: z.string().min(1).max(1000) });
+const ADVERT_DURATION_DAYS = 30;
 
 async function incrementPostViews(postId: string) {
   await db
     .update(posts)
     .set({ views: sql`${posts.views} + 1` })
     .where(eq(posts.id, postId));
+}
+
+function getAdvertActiveWhereClause() {
+  return or(
+    sql`${posts.postType} <> 'advert'`,
+    and(
+      eq(posts.postType, "advert"),
+      sql`COALESCE(${posts.advertExpiresAt}, ${posts.createdAt} + INTERVAL '30 days') >= NOW()`
+    )
+  )!;
 }
 
 export const postsRouter = new Hono()
@@ -250,7 +261,7 @@ export const postsRouter = new Hono()
         )
       : eq(posts.privacy, "public");
 
-    const conditions = [eq(posts.approved, true), visibilityCondition];
+    const conditions = [eq(posts.approved, true), visibilityCondition, getAdvertActiveWhereClause()];
 
     if (postType && postType !== "all") {
       if (postType === "video") {
@@ -367,6 +378,8 @@ export const postsRouter = new Hono()
         bookCategory: posts.bookCategory,
         advertTitle: posts.advertTitle,
         advertUrl: posts.advertUrl,
+        advertClicks: posts.advertClicks,
+        advertExpiresAt: posts.advertExpiresAt,
         views: posts.views,
         likesCount: posts.likesCount,
         commentsCount: posts.commentsCount,
@@ -414,6 +427,60 @@ export const postsRouter = new Hono()
   })
 
   // ─── Get single post ─────────────────────────────────────────
+  .get("/adverts/manage", async (c) => {
+    const session = await getSession();
+    if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+    const url = new URL(c.req.url);
+    const limit = parseInt(url.searchParams.get("limit") ?? "8");
+    const offset = parseInt(url.searchParams.get("offset") ?? "0");
+
+    const adverts = await db
+      .select({
+        id: posts.id,
+        slug: posts.slug,
+        advertTitle: posts.advertTitle,
+        advertUrl: posts.advertUrl,
+        postDescription: posts.postDescription,
+        fileUrl: posts.fileUrl,
+        fileType: posts.fileType,
+        views: posts.views,
+        advertClicks: posts.advertClicks,
+        likesCount: posts.likesCount,
+        commentsCount: posts.commentsCount,
+        approved: posts.approved,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+        advertExpiresAt: posts.advertExpiresAt,
+      })
+      .from(posts)
+      .where(and(eq(posts.userId, session.userId), eq(posts.postType, "advert")))
+      .orderBy(desc(posts.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [totals] = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+      })
+      .from(posts)
+      .where(and(eq(posts.userId, session.userId), eq(posts.postType, "advert")));
+
+    const [me] = await db
+      .select({ points: users.points })
+      .from(users)
+      .where(eq(users.id, session.userId))
+      .limit(1);
+
+    return c.json({
+      adverts,
+      totalCount: Number(totals?.total ?? 0),
+      availablePoints: parseFloat(String(me?.points ?? 0)),
+      renewCost: getPostTypeCost("advert"),
+      advertDurationDays: ADVERT_DURATION_DAYS,
+    });
+  })
+
   .get("/:id", async (c) => {
     const id = c.req.param("id");
     const [post] = await db
@@ -443,6 +510,86 @@ export const postsRouter = new Hono()
     const id = c.req.param("id");
     await incrementPostViews(id);
     return c.json({ success: true });
+  })
+
+  .post("/:id/advert-click", async (c) => {
+    const id = c.req.param("id");
+    await db
+      .update(posts)
+      .set({ advertClicks: sql`${posts.advertClicks} + 1` })
+      .where(and(eq(posts.id, id), eq(posts.postType, "advert")));
+
+    return c.json({ success: true });
+  })
+
+  .post("/:id/advert-renew", async (c) => {
+    const session = await getSession();
+    if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+    const id = c.req.param("id");
+    const [post] = await db
+      .select({
+        id: posts.id,
+        userId: posts.userId,
+        postType: posts.postType,
+        advertExpiresAt: posts.advertExpiresAt,
+        createdAt: posts.createdAt,
+      })
+      .from(posts)
+      .where(eq(posts.id, id))
+      .limit(1);
+
+    if (!post || post.postType !== "advert") return c.json({ error: "Advert not found" }, 404);
+    if (post.userId !== session.userId) return c.json({ error: "Forbidden" }, 403);
+
+    const effectiveExpiry = post.advertExpiresAt
+      ? new Date(post.advertExpiresAt)
+      : new Date(new Date(post.createdAt ?? Date.now()).getTime() + ADVERT_DURATION_DAYS * 24 * 60 * 60 * 1000);
+
+    const isStillActive = effectiveExpiry.getTime() > Date.now();
+
+    if (isStillActive) {
+      return c.json({ error: "This advert is still active." }, 400);
+    }
+
+    const cost = getPostTypeCost("advert");
+    const [user] = await db
+      .select({ points: users.points })
+      .from(users)
+      .where(eq(users.id, session.userId))
+      .limit(1);
+
+    const currentPoints = parseFloat(String(user?.points ?? 0));
+    if (currentPoints < cost) {
+      return c.json({ error: `Insufficient points. You need ${cost} pts to renew this advert.` }, 400);
+    }
+
+    const nextPoints = currentPoints - cost;
+    const nextLevel = getUserLevel(nextPoints);
+
+    await db
+      .update(users)
+      .set({ points: String(nextPoints), level: nextLevel as typeof users.level._.data })
+      .where(eq(users.id, session.userId));
+
+    const [renewed] = await db
+      .update(posts)
+      .set({
+        approved: true,
+        advertExpiresAt: sql`NOW() + INTERVAL '30 days'`,
+        updatedAt: new Date(),
+      })
+      .where(eq(posts.id, id))
+      .returning({
+        advertExpiresAt: posts.advertExpiresAt,
+      });
+
+    return c.json({
+      success: true,
+      advertExpiresAt: renewed?.advertExpiresAt ?? null,
+      availablePoints: nextPoints,
+      renewCost: cost,
+    });
   })
 
   .post("/", zValidator("json", createPostSchema), async (c) => {
@@ -508,7 +655,8 @@ export const postsRouter = new Hono()
         data.postType === "song" ||
         data.postType === "video" ||
         data.postType === "product" ||
-        data.postType === "document";
+        data.postType === "document" ||
+        data.postType === "advert";
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { fileResourceType: _frt, galleryUrls: _galleryUrls, ...postData } = data;
@@ -540,6 +688,7 @@ export const postsRouter = new Hono()
         linkDescription: linkPreview?.description,
         linkImage: linkPreview?.image,
         productPrice: postData.productPrice ? postData.productPrice : undefined,
+        advertExpiresAt: data.postType === "advert" ? sql`NOW() + INTERVAL '30 days'` : undefined,
         approved: autoApprove,
       })
       .returning();
@@ -550,11 +699,12 @@ export const postsRouter = new Hono()
   // ─── Delete post ─────────────────────────────────────────────
   .delete("/:id", async (c) => {
     const session = await getSession();
-    if (!session) return c.json({ error: "Unauthorized" }, 401);
 
     const id = c.req.param("id");
     const [post] = await db
       .select({
+        id: posts.id,
+        postType: posts.postType,
         userId: posts.userId,
         slug: posts.slug,
         blogTitle: posts.blogTitle,
@@ -572,7 +722,10 @@ export const postsRouter = new Hono()
       .limit(1);
 
     if (!post) return c.json({ error: "Post not found" }, 404);
-    if (post.userId !== session.userId) return c.json({ error: "Forbidden" }, 403);
+    if (post.postType !== "guest_ai") {
+      if (!session) return c.json({ error: "Unauthorized" }, 401);
+      if (post.userId !== session.userId) return c.json({ error: "Forbidden" }, 403);
+    }
 
     await db.delete(posts).where(eq(posts.id, id));
     return c.json({ success: true });
@@ -640,6 +793,14 @@ export const postsRouter = new Hono()
     if (!session) return c.json({ error: "Unauthorized" }, 401);
 
     const postId = c.req.param("id");
+    const [targetPost] = await db
+      .select({ id: posts.id, postType: posts.postType, userId: posts.userId })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
+
+    if (!targetPost) return c.json({ error: "Post not found" }, 404);
+    if (targetPost.postType === "guest_ai") return c.json({ error: "Guest AI posts are view-only." }, 400);
 
     const [existing] = await db
       .select({ id: likes.id })
@@ -664,12 +825,6 @@ export const postsRouter = new Hono()
         .where(eq(posts.id, postId));
 
       // Notify post owner
-      const [targetPost] = await db
-        .select({ userId: posts.userId })
-        .from(posts)
-        .where(eq(posts.id, postId))
-        .limit(1);
-
       if (targetPost && targetPost.userId !== session.userId) {
         await db.insert(notifications).values({
           userId: targetPost.userId,
@@ -746,6 +901,15 @@ export const postsRouter = new Hono()
       const postId = c.req.param("id");
       const { content, parentId } = c.req.valid("json");
 
+      const [targetPost] = await db
+        .select({ id: posts.id, postType: posts.postType, userId: posts.userId })
+        .from(posts)
+        .where(eq(posts.id, postId))
+        .limit(1);
+
+      if (!targetPost) return c.json({ error: "Post not found" }, 404);
+      if (targetPost.postType === "guest_ai") return c.json({ error: "Guest AI posts are view-only." }, 400);
+
       const [comment] = await db
         .insert(comments)
         .values({ postId, userId: session.userId, content, parentId })
@@ -757,12 +921,6 @@ export const postsRouter = new Hono()
         .where(eq(posts.id, postId));
 
       // Notify post owner
-      const [targetPost] = await db
-        .select({ userId: posts.userId })
-        .from(posts)
-        .where(eq(posts.id, postId))
-        .limit(1);
-
       if (targetPost && targetPost.userId !== session.userId) {
         await db.insert(notifications).values({
           userId: targetPost.userId,

@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useBackClosable } from "@/hooks/useBackClosable";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface NavUser {
   id: string;
@@ -37,7 +38,7 @@ const allSidebarLinks = [
   { href: "/messages", icon: "fas fa-envelope", label: "Messages" },
   { href: "/videos", icon: "fas fa-tv", label: "Videos" },
   { href: "/music", icon: "fas fa-music", label: "Music" },
-  { href: "/books", icon: "fas fa-book", label: "Books" },
+  { href: "/documents", icon: "fas fa-file-alt", label: "Documents" },
   { href: "/blog", icon: "fas fa-blog", label: "Blog" },
   { href: "/business", icon: "fas fa-store", label: "Business" },
   { href: "/adverts", icon: "fas fa-ad", label: "Adverts" },
@@ -67,9 +68,14 @@ export default function Header({ user }: HeaderProps) {
   const [notifCount, setNotifCount] = useState(0);
   const [msgCount, setMsgCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeMenu = useBackClosable(showMenu, () => setShowMenu(false));
+  const closeLogoutModal = useBackClosable(logoutModalOpen, () => {
+    if (!loggingOut) setLogoutModalOpen(false);
+  });
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -134,9 +140,22 @@ export default function Header({ user }: HeaderProps) {
   };
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+    setLoggingOut(true);
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+      setLogoutModalOpen(false);
+      setShowMenu(false);
+      window.location.replace("/login");
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const visibleSidebarLinks = allSidebarLinks.filter((link) => !link.authOnly || user);
@@ -154,9 +173,9 @@ export default function Header({ user }: HeaderProps) {
       }}
     >
       <div
-        className="mx-auto flex max-w-[1280px] items-start justify-between gap-3 overflow-hidden transition-all duration-[1500ms] ease-in-out"
+        className="mx-auto flex max-w-[1280px] items-start justify-between gap-3 overflow-hidden pt-1 transition-all duration-[1500ms] ease-in-out"
         style={{
-          marginBottom: scrolled ? "0px" : "12px",
+          marginBottom: scrolled ? "0px" : "6px",
           maxHeight: scrolled ? "0px" : "62px",
           opacity: scrolled ? 0 : 1,
           transform: scrolled ? "translateY(-18px)" : "translateY(0)",
@@ -193,7 +212,7 @@ export default function Header({ user }: HeaderProps) {
 
       <div
         className="mx-auto h-px max-w-[1280px] bg-white/15 transition-all duration-[1500ms] ease-in-out"
-        style={{ marginBottom: scrolled ? "7px" : "4px" }}
+        style={{ marginBottom: scrolled ? "4px" : "2px" }}
       />
 
       <ul className="mx-auto grid max-w-[1280px] list-none items-center gap-[3px]" style={{ gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>
@@ -209,14 +228,15 @@ export default function Header({ user }: HeaderProps) {
                 href={link.href}
                 className={cn(
                   "flex min-w-0 items-center justify-center gap-[10px] rounded-full px-3 py-[6px] text-[13.5px] capitalize text-white transition-all",
-                  isActive ? "active-link text-cyan-400" : "min-[650px]:hover:active-link"
+                  isActive ? "active-link text-cyan-400 max-[649px]:bg-transparent min-[650px]:bg-[rgba(0,255,255,0.08)]" : "min-[650px]:hover:active-link"
                 )}
-                style={{ background: isActive ? "rgba(0,255,255,0.08)" : "transparent" }}
               >
                 <span className="relative">
                   <i className={`${link.icon} text-[17px] max-[500px]:text-[15px]`} />
                   {"badge" in link && link.badge ? (
-                    <span className="badge-red absolute -top-2 left-full -translate-x-1/3 !bg-sky-800">{link.badge}</span>
+                    <span className="badge-red absolute -top-1.5 left-full -translate-x-1/3 !bg-sky-800 !px-1 !py-[1px] !text-[9px]">
+                      {link.badge}
+                    </span>
                   ) : null}
                   {badge > 0 && (
                     <span className="badge-red absolute -top-1 -right-1">{badge > 9 ? "9+" : badge}</span>
@@ -233,9 +253,8 @@ export default function Header({ user }: HeaderProps) {
             onClick={() => setShowSearch((v) => !v)}
             className={cn(
               "flex w-full min-w-0 items-center justify-center gap-[10px] rounded-full px-5 py-[6px] text-[13.5px] capitalize text-white transition-all",
-              showSearch ? "active-link text-cyan-400" : "min-[650px]:hover:active-link"
+              showSearch ? "active-link text-cyan-400 max-[649px]:bg-transparent min-[650px]:bg-[rgba(0,255,255,0.08)]" : "min-[650px]:hover:active-link"
             )}
-            style={{ background: showSearch ? "rgba(0,255,255,0.08)" : "transparent" }}
           >
             <i className="fas fa-search text-[17px] max-[500px]:text-[15px]" />
             <span className="hidden text-[13.5px] min-[995px]:inline">search</span>
@@ -253,13 +272,12 @@ export default function Header({ user }: HeaderProps) {
             }}
             className={cn(
               "hidden w-full min-w-0 items-center justify-center gap-[10px] rounded-full px-3 py-[6px] text-[13.5px] capitalize text-white transition-all max-[995px]:flex",
-              showMenu ? "active-link text-cyan-400" : "min-[650px]:hover:active-link"
+              showMenu ? "active-link text-cyan-400 max-[649px]:bg-transparent min-[650px]:bg-[rgba(0,255,255,0.08)]" : "min-[650px]:hover:active-link"
             )}
-            style={{ background: showMenu ? "rgba(0,255,255,0.08)" : "transparent" }}
           >
             <span className="relative">
               <i className="fas fa-align-justify text-[17px] max-[500px]:text-[15px]" />
-              <span className="badge-red absolute -top-1 -right-2">+</span>
+              <span className="badge-red absolute -top-1 -right-2 text-[12px] leading-none">+</span>
             </span>
           </button>
         </li>
@@ -295,7 +313,7 @@ export default function Header({ user }: HeaderProps) {
       {showMenu && (
         <div
           ref={menuRef}
-          className="mx-auto mt-3 max-w-[1280px] rounded-[18px] border border-white/10 bg-[rgba(5,16,23,0.94)] px-3 pb-3 pt-2 shadow-[0_16px_40px_rgba(0,0,0,0.28)] lg:hidden"
+          className="mx-auto mt-3 max-h-[calc(100vh-132px)] max-w-[1280px] overflow-y-auto rounded-[18px] border border-white/10 bg-[rgba(5,16,23,0.94)] px-3 pb-3 pt-2 shadow-[0_16px_40px_rgba(0,0,0,0.28)] lg:hidden"
         >
           {user && (
             <div className="mb-2 flex items-center gap-3 border-b border-white/10 px-1 py-3">
@@ -320,7 +338,7 @@ export default function Header({ user }: HeaderProps) {
             {visibleSidebarLinks.map((link) => {
               const href = link.href === "/profile" ? profileHref : link.href;
               const className = cn(
-                "flex items-center gap-2 border-b border-white/10 py-2.5 text-sm transition-colors",
+                "flex items-center gap-2 border-b border-white/10 py-2 text-[13px] transition-colors",
                 pathname === href ? "text-cyan-400" : "text-white hover:text-cyan-400"
               );
 
@@ -355,20 +373,33 @@ export default function Header({ user }: HeaderProps) {
           <div className="mt-3 flex flex-col gap-3 border-t border-white/10 pt-2 sm:flex-row">
             {user ? (
               <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-sm text-red-400"
+                onClick={() => setLogoutModalOpen(true)}
+                className="flex items-center gap-2 text-[13px] text-red-400"
               >
                 <i className="fas fa-sign-out-alt" /> Logout
               </button>
             ) : (
               <>
-                <Link href="/login" className="btn-sage px-6 py-1.5 text-sm">Login</Link>
-                <Link href="/register" className="rounded-full border border-white/30 px-6 py-1.5 text-sm text-white transition-colors hover:border-cyan-400 hover:text-cyan-400">Register</Link>
+                <Link href="/login" className="btn-sage px-5 py-1.5 text-[13px]">Login</Link>
+                <Link href="/register" className="rounded-full border border-white/30 px-5 py-1.5 text-[13px] text-white transition-colors hover:border-cyan-400 hover:text-cyan-400">Register</Link>
               </>
             )}
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={logoutModalOpen}
+        title="Log out?"
+        description="You will be signed out of your SageTech account on this device."
+        confirmLabel="Log out"
+        loading={loggingOut}
+        iconClassName="fas fa-sign-out-alt"
+        onConfirm={() => {
+          void handleLogout();
+        }}
+        onClose={closeLogoutModal}
+      />
     </nav>
   );
 }
