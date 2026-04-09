@@ -103,6 +103,22 @@ export default async function AboutPage() {
               >
                 <i className="fas fa-external-link-alt text-xs" />
                 View portfolio
+              </Link>   <Link
+                href="tel:0962464552"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-white/[0.03] px-4 py-2 text-sm text-cyan-300 transition-colors hover:border-cyan-200/35 hover:bg-white/[0.06] hover:text-cyan-200"
+              >
+                <i className="fas fa-external-link-alt text-xs" />
+                Call / Whatsapp
+              </Link> <Link
+                href="mailto:chandamark386@gmail.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-white/[0.03] px-4 py-2 text-sm text-cyan-300 transition-colors hover:border-cyan-200/22 hover:bg-white/[0.06] hover:text-cyan-200"
+              >
+                <i className="fas fa-external-link-alt text-xs" />
+                Email
               </Link>
             </div>
           </div>
@@ -148,7 +164,7 @@ export default async function AboutPage() {
         </p>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-[14px] border border-white/8 bg-white/[0.03] p-4">
+          <div className="rounded-[14px] border border-white/1 bg-white/[0.03] p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
               <i className="fas fa-arrow-trend-up text-emerald-400" />
               How Points Are Earned
@@ -163,7 +179,7 @@ export default async function AboutPage() {
             </div>
           </div>
 
-          <div className="rounded-[14px] border border-white/8 bg-white/[0.03] p-4">
+          <div className="rounded-[14px] border border-white/1 bg-white/[0.03] p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
               <i className="fas fa-arrow-trend-down text-rose-400" />
               How Points Are Used

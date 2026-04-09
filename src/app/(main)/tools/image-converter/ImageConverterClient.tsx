@@ -81,13 +81,19 @@ export default function ImageConverterClient() {
   }, [file, numericQuality, sourceUrl, targetFormat]);
   const canConvert = !processing && !validationMessage;
   const downloadName = file ? file.name.replace(/\.[^.]+$/, `.${targetFormat}`) : `converted-image.${targetFormat}`;
+  const triggerDownload = () => {
+    if (!outputUrl) return;
+    const anchor = document.createElement("a");
+    anchor.href = outputUrl;
+    anchor.download = downloadName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
 
   const convertImage = async () => {
     if (outputUrl && !processing) {
-      const anchor = document.createElement("a");
-      anchor.href = outputUrl;
-      anchor.download = downloadName;
-      anchor.click();
+      triggerDownload();
       return;
     }
     if (!canConvert || !file || !sourceUrl) return;
@@ -200,25 +206,11 @@ export default function ImageConverterClient() {
                 {processing ? "Converting..." : outputUrl ? "Download Converted Image" : "Convert Image"}
               </button>
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-[24px] border border-white/[0.04] bg-white/[0.03] p-3">
-                  <p className="mb-2 text-xs uppercase tracking-[0.18em] text-white/32">Original</p>
-                  {sourceUrl ? <img src={sourceUrl} alt="Original upload" className="max-h-[300px] w-full rounded-2xl object-contain" /> : null}
+              {outputUrl ? (
+                <div className="rounded-[24px] border border-white/[0.04] bg-white/[0.03] px-4 py-4 text-sm text-white/68">
+                  Converted image is ready to download.
                 </div>
-
-                <div className="rounded-[24px] border border-white/[0.04] bg-white/[0.03] p-3">
-                  <p className="mb-2 text-xs uppercase tracking-[0.18em] text-white/32">Converted</p>
-                  {outputUrl ? (
-                    <div className="space-y-3">
-                      <img src={outputUrl} alt="Converted output" className="max-h-[300px] w-full rounded-2xl object-contain" />
-                    </div>
-                  ) : (
-                    <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-white/45">
-                      Converted image preview will appear here
-                    </div>
-                  )}
-                </div>
-              </div>
+              ) : null}
             </>
           ) : null}
         </div>

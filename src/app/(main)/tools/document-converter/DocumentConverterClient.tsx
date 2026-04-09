@@ -175,8 +175,21 @@ export default function DocumentConverterClient() {
   }, [file, outputKind, outputText, serviceConfigured]);
   const canPrepareDownload = !processing && !validationMessage;
   const downloadName = file ? file.name.replace(/\.[^.]+$/, `.${extension}`) : `converted-document.${extension}`;
+  const triggerDownload = () => {
+    if (!outputUrl) return;
+    const anchor = document.createElement("a");
+    anchor.href = outputUrl;
+    anchor.download = downloadName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
 
   const createDownload = async () => {
+    if (outputUrl && !processing) {
+      triggerDownload();
+      return;
+    }
     if (!canPrepareDownload || !file) return;
 
     setProcessing(true);
@@ -265,32 +278,16 @@ export default function DocumentConverterClient() {
                 <TinyMetric label="Output size" value={`${formatNumber(convertFileSize(outputSize, "Bytes", "KB"), 2)} KB`} />
               </div>
 
-              {localFormats.includes(outputKind) && text ? (
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-[24px] border border-white/[0.04] bg-white/[0.03] p-3">
-                    <p className="mb-2 text-xs uppercase tracking-[0.18em] text-white/32">Original</p>
-                    <pre className="max-h-[380px] overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-black/20 p-3 text-xs text-white/75">{text.slice(0, 5000) || "No text content"}</pre>
-                  </div>
-                  <div className="rounded-[24px] border border-white/[0.04] bg-white/[0.03] p-3">
-                    <p className="mb-2 text-xs uppercase tracking-[0.18em] text-white/32">Converted</p>
-                    <pre className="max-h-[380px] overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-black/20 p-3 text-xs text-white/75">{outputText.slice(0, 5000) || "Converted output will appear here"}</pre>
-                  </div>
-                </div>
-              ) : (
+              {(processing || outputUrl) ? (
                 <div className="rounded-[24px] border border-white/[0.04] bg-white/[0.03] p-4 text-sm leading-6 text-white/58">
-                  {processing ? "Converting document..." : "Converted file preview will appear here after conversion."}
+                  {processing ? "Converting document..." : "Converted document is ready to download."}
                 </div>
-              )}
+              ) : null}
 
               <button type="button" onClick={() => void createDownload()} disabled={!canPrepareDownload} className="btn-sage w-full py-3 disabled:opacity-40">
                 {processing ? "Converting..." : outputUrl ? "Download Converted Document" : "Convert Document"}
               </button>
 
-              {outputUrl ? (
-                <a href={outputUrl} download={downloadName} className="hidden" aria-hidden="true" tabIndex={-1}>
-                  Download Converted Document
-                </a>
-              ) : null}
             </>
           ) : null}
         </div>

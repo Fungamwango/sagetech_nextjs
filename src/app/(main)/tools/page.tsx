@@ -60,7 +60,7 @@ const toolsByCategory: Record<
       id: "currency",
       label: "Currency Converter",
       subtitle: "Live exchange rate conversion",
-      icon: "fas fa-money-bill-transfer",
+      icon: "fas fa-exchange-alt",
       seoBlurb: "Convert between major currencies with live exchange rates for quick business, travel, and shopping decisions.",
     },
     {
@@ -95,7 +95,7 @@ const toolsByCategory: Record<
       id: "tip",
       label: "Tip Split Calculator",
       subtitle: "Tip amount and split per person",
-      icon: "fas fa-hand-holding-dollar",
+      icon: "fas fa-hand-holding-usd",
       seoBlurb: "Split restaurant bills and tips fairly across friends, teams, or clients.",
     },
   ],
@@ -104,7 +104,7 @@ const toolsByCategory: Record<
       id: "bmi",
       label: "BMI Calculator",
       subtitle: "Simple body mass check",
-      icon: "fas fa-heart-pulse",
+      icon: "fas fa-heartbeat",
       seoBlurb: "Check body mass index quickly from your height and weight.",
     },
   ],
@@ -152,7 +152,7 @@ const toolsByCategory: Record<
       id: "aspect-ratio",
       label: "Aspect Ratio Tool",
       subtitle: "Use a real file or manual dimensions",
-      icon: "fas fa-panorama",
+      icon: "fas fa-image",
       seoBlurb: "Load a real image or video file and calculate matching dimensions while preserving aspect ratio for social media, editing, and publishing.",
     },
     {
@@ -173,7 +173,7 @@ const toolsByCategory: Record<
       id: "document-estimator",
       label: "Document File Inspector",
       subtitle: "Inspect a real text or PDF document",
-      icon: "fas fa-file-lines",
+      icon: "fas fa-file-alt",
       seoBlurb: "Inspect a real text or PDF document for size, word count, reading time, and approximate page details where possible.",
     },
     {
@@ -201,7 +201,7 @@ const toolsByCategory: Record<
       id: "document-converter",
       label: "Document Converter",
       subtitle: "Convert PDF, DOCX, TXT, ODT and more",
-      icon: "fas fa-file-lines",
+      icon: "fas fa-file-alt",
       seoBlurb: "Convert real documents between common text, office, and portable formats.",
     },
   ],
@@ -254,8 +254,8 @@ const categoryOptions: Array<{ id: ToolCategory; label: string; icon: string }> 
   { id: "money", label: "Money", icon: "fas fa-wallet" },
   { id: "health", label: "Health", icon: "fas fa-heart" },
   { id: "planning", label: "Planning", icon: "fas fa-route" },
-  { id: "convert", label: "Convert", icon: "fas fa-right-left" },
-  { id: "media", label: "Media", icon: "fas fa-photo-film" },
+  { id: "convert", label: "Convert", icon: "fas fa-exchange-alt" },
+  { id: "media", label: "Media", icon: "fas fa-photo-video" },
 ];
 
 const conversions: Record<
@@ -384,7 +384,7 @@ function MediaDropzone({
   return (
     <label className="flex cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed border-white/12 bg-white/[0.03] px-4 py-6 text-center transition hover:border-cyan-400/20 hover:bg-cyan-400/[0.04]">
       <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/15 bg-cyan-400/10 text-cyan-300">
-        <i className="fas fa-file-arrow-up text-base" />
+        <i className="fas fa-file-upload text-base" />
       </div>
       <p className="mt-3 text-sm font-medium text-white">{label}</p>
       <p className="mt-1 text-xs text-white/45">Choose a file from your device</p>
@@ -466,7 +466,7 @@ function CurrencyTool() {
     <ToolCard
       title="Currency Converter"
       subtitle="Uses live exchange rates from the server, with a short cache to keep results fresh."
-      icon="fas fa-money-bill-transfer"
+      icon="fas fa-exchange-alt"
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block">
@@ -755,7 +755,7 @@ function TipTool() {
   const eachPerson = total / numericPeople;
 
   return (
-    <ToolCard title="Tip Split Calculator" subtitle="Work out the tip, total bill, and per-person share for restaurants, teams, and outings." icon="fas fa-hand-holding-dollar">
+    <ToolCard title="Tip Split Calculator" subtitle="Work out the tip, total bill, and per-person share for restaurants, teams, and outings." icon="fas fa-hand-holding-usd">
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block">
@@ -807,7 +807,7 @@ function BmiTool() {
   }, [height, weight]);
 
   return (
-    <ToolCard title="BMI Calculator" subtitle="A quick weight-to-height check for everyday health tracking." icon="fas fa-heart-pulse">
+    <ToolCard title="BMI Calculator" subtitle="A quick weight-to-height check for everyday health tracking." icon="fas fa-heartbeat">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs uppercase tracking-[0.16em] text-white/38">Height (cm)</span>
@@ -863,7 +863,7 @@ function AgeTool() {
   }, [dateOfBirth]);
 
   return (
-    <ToolCard title="Age Calculator" subtitle="Calculate exact age from a date of birth for school forms, job applications, and personal records." icon="fas fa-cake-candles">
+    <ToolCard title="Age Calculator" subtitle="Calculate exact age from a date of birth for school forms, job applications, and personal records." icon="fas fa-birthday-cake">
       <div className="space-y-4">
         <label className="block">
           <span className="text-xs uppercase tracking-[0.16em] text-white/38">Date of birth</span>
@@ -1490,7 +1490,7 @@ function AspectRatioTool() {
     ratio > 0 && targetWidthValue > 0 ? Math.round(targetWidthValue / ratio) : null;
 
   return (
-    <ToolCard title="Aspect Ratio Tool" subtitle="Load a real image or video file, or enter dimensions manually, then scale media proportionally." icon="fas fa-panorama">
+    <ToolCard title="Aspect Ratio Tool" subtitle="Load a real image or video file, or enter dimensions manually, then scale media proportionally." icon="fas fa-image">
       <div className="space-y-4">
         <MediaDropzone accept="image/*,video/*" onSelect={setFile} label="Choose an image or video" />
 
@@ -1707,7 +1707,7 @@ function DocumentEstimatorTool() {
   }, [file]);
 
   return (
-    <ToolCard title="Document File Inspector" subtitle="Upload a real text or PDF document and inspect size, word count, reading time, and approximate page data." icon="fas fa-file-lines">
+    <ToolCard title="Document File Inspector" subtitle="Upload a real text or PDF document and inspect size, word count, reading time, and approximate page data." icon="fas fa-file-alt">
       <div className="space-y-4">
         <MediaDropzone accept=".txt,.md,.csv,.json,.pdf,text/*,application/pdf" onSelect={setFile} label="Choose a text or PDF document" />
 
@@ -1823,7 +1823,7 @@ export default function ToolsPage() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-cyan-200">
-              <i className="fas fa-sparkles text-[10px]" />
+              <i className="fas fa-star text-[10px]" />
               Practical Utilities
             </div>
             <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-[30px]">Sage Tools</h1>
@@ -1932,7 +1932,7 @@ export default function ToolsPage() {
               href: "/tools/document-converter",
               label: "Document Converter",
               subtitle: "Convert TXT, CSV, and JSON",
-              icon: "fas fa-file-lines",
+              icon: "fas fa-file-alt",
             },
           ].map((item) => (
             <a
@@ -1985,7 +1985,7 @@ export default function ToolsPage() {
         <section className="space-y-4">
           <div className="rounded-[24px] border border-white/8 bg-white/[0.025] px-4 py-4">
             <div className="flex items-center gap-2 text-cyan-200">
-              <i className="fas fa-stars text-sm" />
+              <i className="fas fa-star text-sm" />
               <h2 className="text-lg font-semibold text-white">Featured Tools</h2>
             </div>
           </div>
@@ -2023,7 +2023,7 @@ export default function ToolsPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-cyan-200">
-                <i className="fas fa-list-check text-sm" />
+                <i className="fas fa-list text-sm" />
                 <h2 className="text-lg font-semibold text-white">Browse All Tools</h2>
               </div>
             </div>
@@ -2037,7 +2037,7 @@ export default function ToolsPage() {
           <section className="space-y-4">
             <div className="rounded-[24px] border border-white/[0.04] bg-white/[0.025] px-4 py-4">
               <div className="flex items-center gap-2 text-cyan-200">
-                <i className={`${categoryOptions.find((item) => item.id === category)?.icon ?? "fas fa-grid-2"} text-sm`} />
+                <i className={`${categoryOptions.find((item) => item.id === category)?.icon ?? "fas fa-th-large"} text-sm`} />
                 <h2 className="text-lg font-semibold text-white">{categoryOptions.find((item) => item.id === category)?.label ?? "Tools"} Directory</h2>
               </div>
             </div>

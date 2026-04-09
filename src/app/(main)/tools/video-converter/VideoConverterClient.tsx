@@ -103,13 +103,19 @@ export default function VideoConverterClient() {
     : serviceConfigured && availableFormats.length > 0
       ? `converted-video.${targetFormat}`
       : `video-frame.${extension}`;
+  const triggerDownload = () => {
+    if (!outputUrl) return;
+    const anchor = document.createElement("a");
+    anchor.href = outputUrl;
+    anchor.download = downloadName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
 
   const extractFrame = async () => {
     if (outputUrl && !processing) {
-      const anchor = document.createElement("a");
-      anchor.href = outputUrl;
-      anchor.download = downloadName;
-      anchor.click();
+      triggerDownload();
       return;
     }
     const video = videoRef.current;
@@ -258,15 +264,9 @@ export default function VideoConverterClient() {
 
               {outputUrl ? (
                 <div className="space-y-3 rounded-[24px] border border-white/[0.04] bg-white/[0.03] p-4">
-                  {serviceConfigured && availableFormats.length > 0 ? (
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/58">
-                      Converted video is ready to download.
-                    </div>
-                  ) : (
-                    <>
-                      <img src={outputUrl} alt="Extracted video frame" className="max-h-[340px] w-full rounded-2xl object-contain" />
-                    </>
-                  )}
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/58">
+                    {serviceConfigured && availableFormats.length > 0 ? "Converted video is ready to download." : "Extracted frame is ready to download."}
+                  </div>
                 </div>
               ) : null}
             </>

@@ -67,6 +67,15 @@ export default function AudioConverterClient() {
       : "";
   const canConvert = !processing && !validationMessage;
   const downloadName = file ? file.name.replace(/\.[^.]+$/, `.${targetFormat}`) : `converted-audio.${targetFormat}`;
+  const triggerDownload = () => {
+    if (!outputUrl) return;
+    const anchor = document.createElement("a");
+    anchor.href = outputUrl;
+    anchor.download = downloadName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -101,10 +110,7 @@ export default function AudioConverterClient() {
 
   const convertToWav = async () => {
     if (outputUrl && !processing) {
-      const anchor = document.createElement("a");
-      anchor.href = outputUrl;
-      anchor.download = downloadName;
-      anchor.click();
+      triggerDownload();
       return;
     }
     if (!canConvert || !file) return;
@@ -224,9 +230,7 @@ export default function AudioConverterClient() {
 
               {outputUrl ? (
                 <div className="space-y-3 rounded-[24px] border border-white/[0.04] bg-white/[0.03] p-4">
-                  <audio controls className="w-full">
-                    <source src={outputUrl} type={targetFormat === "wav" ? "audio/wav" : `audio/${targetFormat}`} />
-                  </audio>
+                  <div className="text-sm text-white/68">Converted audio is ready to download.</div>
                 </div>
               ) : null}
             </>
