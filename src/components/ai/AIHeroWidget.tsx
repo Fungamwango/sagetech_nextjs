@@ -36,8 +36,8 @@ export default function AIHeroWidget() {
         setLangOpen(false);
       }
     };
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   function selectLang(code: string, label: string) {
@@ -126,7 +126,10 @@ export default function AIHeroWidget() {
         <div className="relative" ref={langRef}>
           <button
             type="button"
-            onClick={() => setLangOpen((v) => !v)}
+            onClick={(event) => {
+              event.stopPropagation();
+              setLangOpen((v) => !v);
+            }}
             className="flex min-w-[72px] items-center gap-1 rounded-md border border-white/20 bg-black/20 px-2 py-1 text-xs text-white transition-colors hover:border-cyan-400/50"
           >
             <i className="fas fa-globe text-cyan-400" style={{ fontSize: "10px" }} />
@@ -151,7 +154,10 @@ export default function AIHeroWidget() {
                   <li key={code}>
                     <button
                       type="button"
-                      onClick={() => selectLang(code, name)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selectLang(code, name);
+                      }}
                       className={`w-full px-3 py-1.5 text-left text-xs transition-colors hover:bg-cyan-500/10 ${
                         selectedLang === code ? "text-cyan-400" : "text-white/80"
                       }`}

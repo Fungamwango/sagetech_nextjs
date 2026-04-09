@@ -75,6 +75,9 @@ export const usersRouter = new Hono()
       .limit(1);
 
     if (!user) return c.json({ error: "User not found" }, 404);
+    if (user.username === GUEST_AI_USERNAME || user.bio === "System guest AI author") {
+      return c.json({ error: "User not found" }, 404);
+    }
 
     // Counts
     const [followerCount] = await db
@@ -281,6 +284,7 @@ export const usersRouter = new Hono()
   // ─── Get followers ───────────────────────────────────────────
   .get("/:id/followers", async (c) => {
     const id = c.req.param("id");
+    const session = await getSession();
     const offset = parseInt(c.req.query("offset") ?? "0");
 
     const followerList = await db
@@ -293,16 +297,52 @@ export const usersRouter = new Hono()
       })
       .from(follows)
       .leftJoin(users, eq(follows.followerId, users.id))
-      .where(eq(follows.followingId, id))
+      .where(
+        and(
+          eq(follows.followingId, id),
+          ne(users.username, GUEST_AI_USERNAME),
+          ne(users.email, GUEST_AI_EMAIL),
+        )
+      )
       .limit(20)
       .offset(offset);
 
-    return c.json({ followers: followerList });
+    if (!session?.userId || followerList.length === 0) {
+      return c.json({
+        followers: followerList.map((user) => ({
+          ...user,
+          isFollowing: false,
+        })),
+        hasMore: followerList.length === 20,
+      });
+    }
+
+    const candidateIds = followerList
+      .map((user) => user.id)
+      .filter((userId): userId is string => Boolean(userId && userId !== session.userId));
+
+    const followingRows = candidateIds.length
+      ? await db
+          .select({ followingId: follows.followingId })
+          .from(follows)
+          .where(and(eq(follows.followerId, session.userId), inArray(follows.followingId, candidateIds)))
+      : [];
+
+    const followingSet = new Set(followingRows.map((row) => row.followingId));
+
+    return c.json({
+      followers: followerList.map((user) => ({
+        ...user,
+        isFollowing: user.id && user.id !== session.userId ? followingSet.has(user.id) : false,
+      })),
+      hasMore: followerList.length === 20,
+    });
   })
 
   // ─── Get following ───────────────────────────────────────────
   .get("/:id/following", async (c) => {
     const id = c.req.param("id");
+    const session = await getSession();
     const offset = parseInt(c.req.query("offset") ?? "0");
 
     const followingList = await db
@@ -315,11 +355,46 @@ export const usersRouter = new Hono()
       })
       .from(follows)
       .leftJoin(users, eq(follows.followingId, users.id))
-      .where(eq(follows.followerId, id))
+      .where(
+        and(
+          eq(follows.followerId, id),
+          ne(users.username, GUEST_AI_USERNAME),
+          ne(users.email, GUEST_AI_EMAIL),
+        )
+      )
       .limit(20)
       .offset(offset);
 
-    return c.json({ following: followingList });
+    if (!session?.userId || followingList.length === 0) {
+      return c.json({
+        following: followingList.map((user) => ({
+          ...user,
+          isFollowing: false,
+        })),
+        hasMore: followingList.length === 20,
+      });
+    }
+
+    const candidateIds = followingList
+      .map((user) => user.id)
+      .filter((userId): userId is string => Boolean(userId && userId !== session.userId));
+
+    const followingRows = candidateIds.length
+      ? await db
+          .select({ followingId: follows.followingId })
+          .from(follows)
+          .where(and(eq(follows.followerId, session.userId), inArray(follows.followingId, candidateIds)))
+      : [];
+
+    const followingSet = new Set(followingRows.map((row) => row.followingId));
+
+    return c.json({
+      following: followingList.map((user) => ({
+        ...user,
+        isFollowing: user.id && user.id !== session.userId ? followingSet.has(user.id) : false,
+      })),
+      hasMore: followingList.length === 20,
+    });
   })
 
   // ─── Search users ─────────────────────────────────────────────
@@ -357,7 +432,7 @@ export const usersRouter = new Hono()
       })
       .from(users)
       .where(whereConditions.length ? and(...whereConditions) : undefined)
-      .orderBy(desc(users.points))
+      .orderBy(desc(users.lastSeen), desc(users.points))
       .limit(limit)
       .offset(offset);
 

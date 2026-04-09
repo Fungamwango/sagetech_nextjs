@@ -1,5 +1,5 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+// @ts-ignore
+import bibleRaw from "../../public/original/bible_study/bible/index.php?raw";
 
 function stripPhp(raw: string) {
   return raw.replace(/<\?(?:php)?[\s\S]*?\?>/gi, "");
@@ -18,16 +18,6 @@ function cleanupContent(raw: string) {
     .replace(/â€¢/g, "&bull;");
 }
 
-export async function getBibleStudyContent() {
-  const contentPath = path.join(
-    process.cwd(),
-    "public",
-    "original",
-    "bible_study",
-    "bible",
-    "index.php"
-  );
-
-  const rawContent = await fs.readFile(contentPath, "utf8");
-  return cleanupContent(rawContent);
+export async function getBibleStudyContent(): Promise<string> {
+  return cleanupContent(bibleRaw as string);
 }

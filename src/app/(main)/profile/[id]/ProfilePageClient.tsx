@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -59,6 +59,17 @@ interface ProfilePageClientProps {
   currentUserId: string | null;
 }
 
+interface ProfileRelationUser {
+  id: string;
+  username: string;
+  picture?: string | null;
+  level?: string | null;
+  isOnline?: boolean | null;
+  isFollowing?: boolean;
+}
+
+type RelationsModalMode = "followers" | "following";
+
 type PostFilter = "all" | "video" | "song" | "document" | "product";
 
 const FILTERS: Array<{
@@ -88,6 +99,189 @@ function levelLabel(level: string | null) {
   return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
+function ProfileRelationsModal({
+  open,
+  mode,
+  profileId,
+  profileUsername,
+  currentUserId,
+  onClose,
+}: {
+  open: boolean;
+  mode: RelationsModalMode;
+  profileId: string;
+  profileUsername: string;
+  currentUserId: string | null;
+  onClose: () => void;
+}) {
+  const { showToast } = useToast();
+  const title = mode === "followers" ? "Followers" : "Following";
+  const [items, setItems] = useState<ProfileRelationUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [followLoadingId, setFollowLoadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setItems([]);
+      setHasMore(false);
+      setLoading(false);
+      setLoadingMore(false);
+      setFollowLoadingId(null);
+      return;
+    }
+
+    void loadRelations(true);
+  }, [open, mode, profileId]);
+
+  const loadRelations = async (reset: boolean) => {
+    const nextOffset = reset ? 0 : items.length;
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
+
+    try {
+      const res = await fetch(`/api/users/${profileId}/${mode}?offset=${nextOffset}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `Unable to load ${mode}.`);
+
+      const nextItems = (data[mode] ?? []) as ProfileRelationUser[];
+      setHasMore(Boolean(data.hasMore));
+      setItems((current) =>
+        reset ? nextItems : [...current, ...nextItems.filter((item) => !current.some((existing) => existing.id === item.id))]
+      );
+    } catch (error) {
+      showToast({
+        type: "error",
+        message: error instanceof Error ? error.message : `Unable to load ${mode}.`,
+      });
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleFollowToggle = async (userId: string) => {
+    if (!currentUserId) {
+      showToast({ type: "error", message: "Login is required to follow users." });
+      return;
+    }
+    if (userId === currentUserId) return;
+
+    setFollowLoadingId(userId);
+    try {
+      const res = await fetch(`/api/users/${userId}/follow`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Unable to update follow status.");
+
+      setItems((current) =>
+        current.map((item) => (item.id === userId ? { ...item, isFollowing: Boolean(data.following) } : item))
+      );
+      showToast({
+        type: "success",
+        message: data.following ? "User followed." : "User unfollowed.",
+      });
+    } catch (error) {
+      showToast({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to update follow status.",
+      });
+    } finally {
+      setFollowLoadingId(null);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={onClose}>
+      <div
+        className="w-full max-w-xl rounded-[8px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,21,32,0.98),rgba(4,13,20,0.96))] shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+          <div>
+            <div className="text-[17px] font-semibold text-white">{title}</div>
+            <div className="text-sm text-white/45">{profileUsername}</div>
+          </div>
+          <button onClick={onClose} className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/65">
+            Close
+          </button>
+        </div>
+
+        <div className="max-h-[70vh] overflow-y-auto px-4 py-4">
+          {loading ? (
+            <div className="py-8 text-center text-sm text-white/55">Loading {title.toLowerCase()}...</div>
+          ) : items.length === 0 ? (
+            <div className="py-8 text-center text-sm text-white/45">No {title.toLowerCase()} yet.</div>
+          ) : (
+            <div className="space-y-3">
+              {items.map((user) => {
+                const canToggleFollow = Boolean(currentUserId && user.id !== currentUserId);
+                const isBusy = followLoadingId === user.id;
+                return (
+                  <div
+                    key={user.id}
+                    className="flex items-center gap-3 rounded-[6px] border border-white/8 bg-white/[0.03] px-3 py-3"
+                  >
+                    <Link href={`/profile/${user.id}`} className="flex-shrink-0" onClick={onClose}>
+                      <Image
+                        src={user.picture || "/files/default-avatar.svg"}
+                        alt={user.username}
+                        width={44}
+                        height={44}
+                        className="h-11 w-11 rounded-full object-cover"
+                      />
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/profile/${user.id}`}
+                        onClick={onClose}
+                        className="block truncate text-[15px] font-semibold capitalize text-white hover:text-cyan-300"
+                      >
+                        {user.username}
+                      </Link>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-white/45">
+                        <span>{levelLabel(user.level ?? null)}</span>
+                        {user.isOnline ? <span className="text-emerald-400">Online</span> : null}
+                      </div>
+                    </div>
+                    {canToggleFollow ? (
+                      <button
+                        onClick={() => void handleFollowToggle(user.id)}
+                        disabled={isBusy}
+                        className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                          user.isFollowing
+                            ? "border border-white/12 bg-white/[0.04] text-white/75"
+                            : "border border-cyan-400/25 bg-cyan-400/[0.06] text-cyan-200 hover:border-cyan-300/40 hover:bg-cyan-400/[0.1] hover:text-cyan-100"
+                        } ${isBusy ? "opacity-60" : ""}`}
+                      >
+                        {isBusy ? "Please wait..." : user.isFollowing ? "Unfollow" : "Follow"}
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!loading && hasMore ? (
+            <div className="pt-4 text-center">
+              <button
+                onClick={() => void loadRelations(false)}
+                disabled={loadingMore}
+                className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/75"
+              >
+                {loadingMore ? "Loading more..." : `Load more ${title.toLowerCase()}`}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfilePageClient({
   profile,
   monetise,
@@ -103,8 +297,10 @@ export default function ProfilePageClient({
   const [activeFilter, setActiveFilter] = useState<PostFilter>("all");
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
+  const [relationsModalMode, setRelationsModalMode] = useState<RelationsModalMode | null>(null);
   const closeMoreMenu = useBackClosable(showMoreMenu, () => setShowMoreMenu(false));
   const closeFullImage = useBackClosable(showFullImage, () => setShowFullImage(false));
+  const closeRelationsModal = useBackClosable(Boolean(relationsModalMode), () => setRelationsModalMode(null));
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [preview, setPreview] = useState(profile.picture || "/files/default-avatar.svg");
   const [pictureUrl, setPictureUrl] = useState(profile.picture || "/files/default-avatar.svg");
@@ -343,9 +539,13 @@ export default function ProfilePageClient({
             <li className="mt-2 border-b border-white/[0.07] px-2 py-2 text-sm text-[rgba(235,245,254,0.7)]">
               Level:
               <span className="ml-5 text-white/90">{levelLabel(profile.level)}</span>
-              <span className="float-right mr-1 text-[rgba(235,245,254,0.6)]">
+              <button
+                type="button"
+                onClick={() => setRelationsModalMode("followers")}
+                className="float-right mr-1 text-[rgba(235,245,254,0.6)] transition-colors hover:text-cyan-300"
+              >
                 Followers: <span className="text-white">{compactCount(counts.followers)}</span>
-              </span>
+              </button>
             </li>
             <li className="mt-2 border-b border-white/[0.07] px-2 py-2 text-sm text-[rgba(235,245,254,0.7)]">
               Awards:
@@ -359,9 +559,13 @@ export default function ProfilePageClient({
                   {Number(profile.awards ?? 0)}
                 </sup>
               </span>
-              <span className="float-right mr-1 text-[rgba(235,245,254,0.6)]">
+              <button
+                type="button"
+                onClick={() => setRelationsModalMode("following")}
+                className="float-right mr-1 text-[rgba(235,245,254,0.6)] transition-colors hover:text-cyan-300"
+              >
                 Following: <span className="text-white">{compactCount(counts.following)}</span>
-              </span>
+              </button>
             </li>
           </ul>
         </div>
@@ -395,9 +599,13 @@ export default function ProfilePageClient({
             <button
               onClick={handleFollow}
               disabled={followLoading}
-              className="w-full rounded-full border border-white/10 bg-black/10 px-3 py-1.5 text-left text-[13px] text-[rgba(155,155,180)]"
+              className={`w-full rounded-full border px-3 py-1.5 text-left text-[13px] transition-colors ${
+                following
+                  ? "border-white/10 bg-black/10 text-[rgba(155,155,180)]"
+                  : "border-cyan-400/25 bg-cyan-400/[0.06] text-cyan-200 hover:border-cyan-300/40 hover:bg-cyan-400/[0.1] hover:text-cyan-100"
+              } ${followLoading ? "cursor-not-allowed opacity-70" : ""}`}
             >
-              <i className={`mr-2 text-xs text-[rgba(155,155,155,0.8)] ${following ? "fas fa-rss" : "fas fa-user-plus"}`} />
+              <i className={`mr-2 text-xs ${following ? "text-[rgba(155,155,155,0.8)]" : "text-cyan-200/80"} ${following ? "fas fa-rss" : "fas fa-user-plus"}`} />
               {followLoading ? "Please wait.." : following ? "Following" : "Follow"}
             </button>
           )}
@@ -581,6 +789,15 @@ export default function ProfilePageClient({
           <AdsterraBannerEmbed code={monetise.adsterraBannerCode} />
         </section>
       ) : null}
+
+      <ProfileRelationsModal
+        open={Boolean(relationsModalMode)}
+        mode={relationsModalMode ?? "followers"}
+        profileId={profile.id}
+        profileUsername={profile.username}
+        currentUserId={currentUserId}
+        onClose={closeRelationsModal}
+      />
 
       {showMoreMenu && (
         <div

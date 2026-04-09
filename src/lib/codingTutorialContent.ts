@@ -1,35 +1,19 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+// @ts-ignore
+import htmlContent from "../../public/original/coding/html_tutorial/index.php?raw";
+// @ts-ignore
+import htmlStyle from "../../public/original/coding/html_tutorial/css/style.css?raw";
+// @ts-ignore
+import cssContent from "../../public/original/coding/css_tutorial/index.php?raw";
+// @ts-ignore
+import cssStyle from "../../public/original/coding/css_tutorial/css/style.css?raw";
+// @ts-ignore
+import sagejsContent from "../../public/original/coding/sage-js_tutorial/index.html?raw";
+// @ts-ignore
+import sagejsStyle from "../../public/original/coding/sage-js_tutorial/css/style.css?raw";
+// @ts-ignore
+import shellStyle from "../../public/original/coding/css/style.css?raw";
 
 export type CodingTutorialId = "html" | "css" | "sagejs";
-
-type TutorialSource = {
-  content: string[];
-  style: string[];
-  wrapperId: string;
-  title: string;
-};
-
-const TUTORIAL_SOURCES: Record<CodingTutorialId, TutorialSource> = {
-  html: {
-    content: ["public", "original", "coding", "html_tutorial", "index.php"],
-    style: ["public", "original", "coding", "html_tutorial", "css", "style.css"],
-    wrapperId: "html_tutorial_wrapper",
-    title: "Learn HTML",
-  },
-  css: {
-    content: ["public", "original", "coding", "css_tutorial", "index.php"],
-    style: ["public", "original", "coding", "css_tutorial", "css", "style.css"],
-    wrapperId: "css-tutorial-wrapper",
-    title: "Learn CSS",
-  },
-  sagejs: {
-    content: ["public", "original", "coding", "sage-js_tutorial", "index.html"],
-    style: ["public", "original", "coding", "sage-js_tutorial", "css", "style.css"],
-    wrapperId: "tutorial-wrapper",
-    title: "Learn Sage.js",
-  },
-};
 
 function stripPhp(raw: string) {
   return raw.replace(/<\?(?:php)?[\s\S]*?\?>/gi, "");
@@ -51,32 +35,24 @@ function cleanupContent(raw: string, wrapperId: string) {
 }
 
 export async function getCodingTutorialContent() {
-  const entries = await Promise.all(
-    (Object.entries(TUTORIAL_SOURCES) as Array<[CodingTutorialId, TutorialSource]>).map(async ([id, source]) => {
-      const contentPath = path.join(process.cwd(), ...source.content);
-      const stylePath = path.join(process.cwd(), ...source.style);
-      const shellStylePath = path.join(process.cwd(), "public", "original", "coding", "css", "style.css");
-
-      const [rawContent, tutorialCss, shellCss] = await Promise.all([
-        fs.readFile(contentPath, "utf8"),
-        fs.readFile(stylePath, "utf8"),
-        fs.readFile(shellStylePath, "utf8"),
-      ]);
-
-      return [
-        id,
-        {
-          title: source.title,
-          wrapperId: source.wrapperId,
-          contentHtml: cleanupContent(rawContent, source.wrapperId),
-          styleCss: `${shellCss}\n${tutorialCss}`,
-        },
-      ] as const;
-    })
-  );
-
-  return Object.fromEntries(entries) as Record<
-    CodingTutorialId,
-    { title: string; wrapperId: string; contentHtml: string; styleCss: string }
-  >;
+  return {
+    html: {
+      title: "Learn HTML",
+      wrapperId: "html_tutorial_wrapper",
+      contentHtml: cleanupContent(htmlContent as string, "html_tutorial_wrapper"),
+      styleCss: `${shellStyle as string}\n${htmlStyle as string}`,
+    },
+    css: {
+      title: "Learn CSS",
+      wrapperId: "css-tutorial-wrapper",
+      contentHtml: cleanupContent(cssContent as string, "css-tutorial-wrapper"),
+      styleCss: `${shellStyle as string}\n${cssStyle as string}`,
+    },
+    sagejs: {
+      title: "Learn Sage.js",
+      wrapperId: "tutorial-wrapper",
+      contentHtml: cleanupContent(sagejsContent as string, "tutorial-wrapper"),
+      styleCss: `${shellStyle as string}\n${sagejsStyle as string}`,
+    },
+  } as Record<CodingTutorialId, { title: string; wrapperId: string; contentHtml: string; styleCss: string }>;
 }

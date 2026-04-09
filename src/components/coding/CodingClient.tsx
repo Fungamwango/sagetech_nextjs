@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
@@ -199,6 +199,7 @@ export default function CodingClient({
   const [topicId, setTopicId] = useState<string>("html-intro");
   const [showTutorials, setShowTutorials] = useState(false);
   const [showTopics, setShowTopics] = useState(false);
+  const shellRef = useRef<HTMLDivElement | null>(null);
 
   const tutorial = useMemo(
     () => TUTORIALS.find((item) => item.id === tutorialId) ?? TUTORIALS[0],
@@ -207,6 +208,26 @@ export default function CodingClient({
   const activeTutorialContent = tutorialContent[tutorialId];
   const activeTopicLabel =
     tutorial.topics.find((topic) => topic.id === topicId)?.label ?? tutorial.topics[0]?.label ?? "Topics";
+
+  const findTopicTarget = (nextTutorialId: TutorialId, nextTopicId: string) => {
+    const shell = shellRef.current;
+    if (!shell) return null;
+
+    const byId = shell.querySelector<HTMLElement>(`#${CSS.escape(nextTopicId)}`);
+    if (byId) return byId;
+
+    const topic = TUTORIALS.find((item) => item.id === nextTutorialId)?.topics.find((item) => item.id === nextTopicId);
+    if (!topic) return null;
+
+    const normalizedLabel = topic.label.trim().toLowerCase();
+    const headings = Array.from(shell.querySelectorAll<HTMLElement>("section h1, section h2, section h3, h1, h2, h3"));
+    return (
+      headings.find((heading) => {
+        const text = heading.textContent?.trim().toLowerCase() ?? "";
+        return text.startsWith(normalizedLabel);
+      }) ?? null
+    );
+  };
 
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
@@ -222,14 +243,22 @@ export default function CodingClient({
     }
   }, []);
 
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    const handle = window.setTimeout(() => {
+      const target = findTopicTarget(tutorialId, topicId);
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+
+    return () => window.clearTimeout(handle);
+  }, [tutorialId, topicId]);
+
   const jumpTo = (nextTutorialId: TutorialId, nextTopicId: string) => {
     setTutorialId(nextTutorialId);
     setTopicId(nextTopicId);
     window.history.replaceState(null, "", `#${nextTopicId}`);
-    window.requestAnimationFrame(() => {
-      const target = document.getElementById(nextTopicId);
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   };
 
   return (
@@ -243,14 +272,11 @@ export default function CodingClient({
               <i className="fa fa-code" /> Coding...
             </div>
             <p className="mt-1 text-sm text-white/50">
-              Learn HTML, CSS, and Sage.js from fully readable page content.
+              Learn HTML, CSS, and Sage.js with simple interactive tutorials.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <SelectionPill label="Tutorial" value={tutorial.title} />
-            <SelectionPill label="Topic" value={activeTopicLabel} />
-          </div>
+
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -310,7 +336,7 @@ export default function CodingClient({
             `,
           }}
         />
-        <div className="coding-tutorial-shell max-h-[78vh] overflow-y-auto">
+        <div ref={shellRef} className="coding-tutorial-shell max-h-[78vh] overflow-y-auto">
           <div dangerouslySetInnerHTML={{ __html: activeTutorialContent.contentHtml }} />
         </div>
       </div>

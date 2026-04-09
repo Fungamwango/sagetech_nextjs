@@ -15,11 +15,9 @@
     "db:seed-sqli": "tsx src/lib/db/seed-sqli.ts",
     "build:worker": "opennextjs-cloudflare build",
     "preview": "opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare deploy"
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1015.0",
-    "@aws-sdk/s3-request-presigner": "^3.1015.0",
     "@hono/zod-validator": "^0.4.1",
     "@neondatabase/serverless": "^0.10.0",
     "@types/ws": "^8.18.1",

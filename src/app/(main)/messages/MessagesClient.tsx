@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { timeAgo } from "@/lib/utils";
 import { useToast } from "@/components/ui/ToastProvider";
 import { prepareUploadFile } from "@/lib/client/upload";
@@ -82,7 +82,9 @@ interface MessageStreamPayload {
 
 export default function MessagesClient({ currentUser }: { currentUser: CurrentUser }) {
   const { showToast } = useToast();
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatUser, setChatUser] = useState<ChatUser | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
@@ -95,16 +97,23 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [chatLoading, setChatLoading] = useState(false);
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [chatOffset, setChatOffset] = useState(0);
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ChatMessage | null>(null);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const closeDeleteTarget = useBackClosable(!!deleteTarget, () => setDeleteTarget(null));
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const shouldStickToBottomRef = useRef(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const typingActiveRef = useRef(false);
+  const lastChatScrollTopRef = useRef(0);
   const searchParams = useSearchParams();
+  const canSend = Boolean(inputText.trim() || pendingAttachment) && !sending && !uploadingAttachment;
 
   const clearPendingAttachment = () => {
     setPendingAttachment((current) => {
@@ -120,22 +129,88 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
   };
 
   const loadConversations = async () => {
+    setConversationsLoading(true);
     const res = await fetch("/api/messages");
     if (res.ok) {
       const d = await res.json();
-      setConversations(d.conversations ?? []);
+      const nextConversations = ((d.conversations ?? []) as Array<Record<string, unknown>>)
+        .map((item) => ({
+          conversation_partner: String(item.conversation_partner ?? item.conversationPartner ?? ""),
+          username: String(item.username ?? "user"),
+          picture: String(item.picture ?? "/files/default-avatar.svg"),
+          is_online: Boolean(item.is_online ?? item.isOnline),
+          content: String(item.content ?? ""),
+          created_at: String(item.created_at ?? item.createdAt ?? ""),
+          unread_count: Number(item.unread_count ?? item.unreadCount ?? 0),
+        }))
+        .filter((item) => item.conversation_partner && item.conversation_partner !== currentUser.id);
+      setConversations(nextConversations);
     } else {
       showToast({ type: "error", message: "Unable to load conversations." });
     }
+    setConversationsLoading(false);
   };
 
-  const loadChat = async (userId: string, silent = false) => {
+  const renderConversationsLoader = () => (
+    <div className="flex justify-center py-8">
+      <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/65">
+        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+        Loading conversations...
+      </div>
+    </div>
+  );
+
+  const renderNoConversations = () => (
+    <p className="text-center text-sm py-8" style={{ color: "rgba(233,237,239,0.4)" }}>
+      No conversations yet
+    </p>
+  );
+
+  const loadChat = async (
+    userId: string,
+    silent = false,
+    offset = 0,
+    mode: "replace" | "prepend" | "mergeLatest" = "replace"
+  ) => {
     if (!silent) setChatLoading(true);
-    const res = await fetch(`/api/messages/${userId}`);
+    const container = chatScrollRef.current;
+    const previousScrollHeight = container?.scrollHeight ?? 0;
+    const previousScrollTop = container?.scrollTop ?? 0;
+    const res = await fetch(`/api/messages/${userId}?offset=${offset}`);
     if (res.ok) {
       const d = await res.json();
-      setChatMessages(d.messages ?? []);
+      const fetchedMessages = (d.messages ?? []) as ChatMessage[];
+      setChatMessages((current) => {
+        if (mode === "prepend") {
+          const seen = new Set(current.map((message) => message.id));
+          return [...fetchedMessages.filter((message) => !seen.has(message.id)), ...current];
+        }
+
+        if (mode === "mergeLatest") {
+          const merged = new Map<string, ChatMessage>();
+          for (const message of current) merged.set(message.id, message);
+          for (const message of fetchedMessages) merged.set(message.id, message);
+          return Array.from(merged.values()).sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        }
+
+        return fetchedMessages;
+      });
       setChatUser(d.user ?? null);
+      if (mode === "replace") {
+        setChatOffset(fetchedMessages.length);
+        setHasOlderMessages(fetchedMessages.length === 30);
+      } else if (mode === "prepend") {
+        setChatOffset((current) => current + fetchedMessages.length);
+        setHasOlderMessages(fetchedMessages.length === 30);
+        requestAnimationFrame(() => {
+          const nextContainer = chatScrollRef.current;
+          if (!nextContainer) return;
+          const nextScrollHeight = nextContainer.scrollHeight;
+          nextContainer.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight);
+        });
+      }
       setConversations((current) =>
         current.map((conversation) =>
           conversation.conversation_partner === userId
@@ -156,15 +231,10 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
 
   useEffect(() => {
     const targetUserId = searchParams.get("userId");
-    if (targetUserId) {
-      setActiveChatId(targetUserId);
+    if (targetUserId && targetUserId !== currentUser.id && targetUserId !== activeChatId) {
+      void openChat(targetUserId, false);
     }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!activeChatId) return;
-    void loadChat(activeChatId);
-  }, [activeChatId]);
+  }, [searchParams, currentUser.id, activeChatId]);
 
   useEffect(() => {
     const stream = new EventSource("/api/messages/stream");
@@ -189,7 +259,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
         (payload.type === "messages_read" && payload.peerId === currentUser.id && payload.userId === activeChatId);
 
       if (affectsActiveChat) {
-        void loadChat(activeChatId, true);
+        void loadChat(activeChatId, true, 0, "mergeLatest");
       }
     };
 
@@ -214,7 +284,10 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
   }, [activeChatId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!shouldStickToBottomRef.current) return;
+    const container = chatScrollRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
   }, [chatMessages]);
 
   useEffect(() => {
@@ -225,8 +298,16 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
     };
   }, [pendingAttachment]);
 
-  const openChat = (userId: string) => {
+  const openChat = async (userId: string, syncUrl = true) => {
+    if (userId === currentUser.id) return;
+    shouldStickToBottomRef.current = true;
+    lastChatScrollTopRef.current = 0;
     setActiveChatId(userId);
+    setChatOffset(0);
+    setHasOlderMessages(false);
+    if (syncUrl) {
+      router.replace(`/messages?userId=${encodeURIComponent(userId)}`, { scroll: false });
+    }
     setSearchUser("");
     setSearchResults([]);
     setTypingUserId(null);
@@ -237,6 +318,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
           : conversation
       )
     );
+    await loadChat(userId);
   };
 
   const sendTypingState = async (active: boolean, receiverId: string) => {
@@ -282,7 +364,34 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
     const res = await fetch("/api/users");
     if (!res.ok) return;
     const d = await res.json();
-    setOnlineUsers(((d.users ?? []) as ChatUser[]).filter((user) => user.isOnline).slice(0, 12));
+    setOnlineUsers(
+      ((d.users ?? []) as ChatUser[])
+        .filter((user) => user.isOnline && user.id !== currentUser.id)
+        .slice(0, 12)
+    );
+  };
+
+  const handleChatScroll = () => {
+    const container = chatScrollRef.current;
+    if (!container) return;
+    const scrollingUp = container.scrollTop < lastChatScrollTopRef.current;
+    lastChatScrollTopRef.current = container.scrollTop;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 80;
+
+    if (
+      scrollingUp &&
+      container.scrollTop <= 24 &&
+      activeChatId &&
+      hasOlderMessages &&
+      !loadingOlderMessages &&
+      !chatLoading
+    ) {
+      setLoadingOlderMessages(true);
+      void loadChat(activeChatId, true, chatOffset, "prepend").finally(() => {
+        setLoadingOlderMessages(false);
+      });
+    }
   };
 
   const uploadAttachment = async (file: File) => {
@@ -493,7 +602,13 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/5"
                     >
                       <div className="relative">
-                        <Image src={u.picture || "/files/default-avatar.svg"} alt={u.username} width={30} height={30} className="rounded-full object-cover" />
+                        <Image
+                          src={u.picture || "/files/default-avatar.svg"}
+                          alt={u.username}
+                          width={30}
+                          height={30}
+                          className="h-[30px] w-[30px] flex-shrink-0 rounded-full object-cover"
+                        />
                         {u.isOnline ? <span className="absolute bottom-0 right-0 online-dot h-2 w-2" /> : null}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -513,13 +628,13 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                 <span className="text-[11px] text-[#00a884]">{onlineUsers.length}</span>
               </div>
               {onlineUsers.length > 0 ? (
-                <div className="flex gap-2 overflow-x-auto pb-1">
+                <div className="flex gap-2 overflow-x-auto pb-1 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {onlineUsers.map((user) => (
                     <button
                       key={user.id}
                       type="button"
                       onClick={() => openChat(user.id)}
-                      className="flex min-w-[72px] flex-col items-center rounded-2xl border border-white/8 bg-white/5 px-2.5 py-2 text-center transition-colors hover:bg-white/8"
+                      className="flex min-w-[72px] flex-shrink-0 flex-col items-center rounded-2xl border border-white/6 bg-white/5 px-2.5 py-2 text-center transition-colors hover:bg-white/8"
                     >
                       <div className="relative">
                         <Image
@@ -527,7 +642,7 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                           alt={user.username}
                           width={42}
                           height={42}
-                          className="rounded-full object-cover"
+                          className="h-[42px] w-[42px] flex-shrink-0 rounded-full border border-white/10 object-cover"
                         />
                         <span className="absolute bottom-0 right-0 online-dot h-2.5 w-2.5" />
                       </div>
@@ -538,17 +653,14 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                   ))}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-2 text-xs text-white/40">
-                  No users online right now
-                </div>
+                <p className="px-1 py-1 text-xs text-white/40">No users online right now</p>
               )}
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto" style={{ background: "#111b21" }}>
-            {conversations.length === 0 && (
-              <p className="text-center text-sm py-8" style={{ color: "rgba(233,237,239,0.4)" }}>No conversations yet</p>
-            )}
+            {conversationsLoading ? renderConversationsLoader() : null}
+            {!conversationsLoading && conversations.length === 0 ? renderNoConversations() : null}
             {conversations.map((conv) => (
               <button
                 key={conv.conversation_partner}
@@ -559,25 +671,43 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
                   background: activeChatId === conv.conversation_partner ? "#2a3942" : "transparent",
                 }}
               >
-                <Link href={`/profile/${conv.conversation_partner}`} className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Image src={conv.picture || "/files/default-avatar.svg"} alt={conv.username} width={40} height={40} className="rounded-full object-cover" />
+                <span className="relative flex-shrink-0">
+                  <Image
+                    src={conv.picture || "/files/default-avatar.svg"}
+                    alt={conv.username}
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+                  />
                   {conv.is_online && <span className="absolute bottom-0 right-0 online-dot w-2.5 h-2.5" />}
-                </Link>
+                </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
-                    <Link
-                      href={`/profile/${conv.conversation_partner}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="truncate text-sm font-semibold capitalize hover:text-cyan-300"
+                    <span
+                      className="truncate text-sm font-semibold capitalize"
                       style={{ color: "#e9edef" }}
                     >
                       {conv.username}
-                    </Link>
-                    <span className="text-xs ml-1 flex-shrink-0" style={{ color: "rgba(233,237,239,0.4)" }}>{timeAgo(conv.created_at)}</span>
+                    </span>
+                    <span
+                      className="ml-1 flex-shrink-0 text-xs"
+                      style={{ color: conv.unread_count > 0 ? "#25d366" : "rgba(233,237,239,0.4)" }}
+                    >
+                      {timeAgo(conv.created_at)}
+                    </span>
                   </div>
-                  <p className="text-xs truncate" style={{ color: "rgba(233,237,239,0.5)" }}>{conv.content ?? "File"}</p>
+                  <p
+                    className={`truncate text-[13px] ${conv.unread_count > 0 ? "font-semibold" : "font-normal"}`}
+                    style={{ color: conv.unread_count > 0 ? "#e9edef" : "rgba(233,237,239,0.58)" }}
+                  >
+                    {conv.content ?? "File"}
+                  </p>
                 </div>
-                {conv.unread_count > 0 && <span className="badge-red flex-shrink-0">{conv.unread_count}</span>}
+                {conv.unread_count > 0 && (
+                  <span className="flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#25d366] px-1.5 text-[11px] font-bold text-[#08131a]">
+                    {conv.unread_count > 99 ? "99+" : conv.unread_count}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -587,7 +717,10 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
           <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden" style={{ background: "#0b141a" }}>
             <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:px-4" style={{ background: "#1f2c34" }}>
               <button
-                onClick={() => setActiveChatId(null)}
+                onClick={() => {
+                  setActiveChatId(null);
+                  router.replace("/messages", { scroll: false });
+                }}
                 className="md:hidden mr-1"
                 style={{ color: "#00a884" }}
               >
@@ -596,7 +729,13 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
               {chatUser && (
                 <>
                   <Link href={`/profile/${chatUser.id}`} className="relative">
-                    <Image src={chatUser.picture || "/files/default-avatar.svg"} alt={chatUser.username} width={36} height={36} className="rounded-full object-cover" />
+                    <Image
+                      src={chatUser.picture || "/files/default-avatar.svg"}
+                      alt={chatUser.username}
+                      width={36}
+                      height={36}
+                      className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
+                    />
                     {chatUser.isOnline && <span className="absolute bottom-0 right-0 online-dot w-2 h-2" />}
                   </Link>
                   <Link href={`/profile/${chatUser.id}`} className="min-w-0">
@@ -613,7 +752,20 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
               )}
             </div>
 
-            <div className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 space-y-2" style={{ background: "#0b141a" }}>
+            <div
+              ref={chatScrollRef}
+              onScroll={handleChatScroll}
+              className="flex-1 touch-pan-y space-y-2 overflow-x-hidden overflow-y-auto p-3 sm:p-4"
+              style={{ background: "#0b141a" }}
+            >
+              {loadingOlderMessages ? (
+                <div className="flex justify-center pb-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
+                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                    Loading older messages...
+                  </div>
+                </div>
+              ) : null}
               {chatLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70">
@@ -663,7 +815,11 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
               <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={sendMessage} className="min-w-0 space-y-2 p-2.5 sm:p-3" style={{ background: "#1f2c34" }}>
+            <form
+              onSubmit={sendMessage}
+              className="min-w-0 space-y-2 px-2.5 pt-2.5 pb-1 sm:px-3 sm:pt-3 sm:pb-1.5"
+              style={{ background: "#1f2c34" }}
+            >
               {pendingAttachment ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                   <div className="flex items-start gap-3">
@@ -757,9 +913,12 @@ export default function MessagesClient({ currentUser }: { currentUser: CurrentUs
               />
               <button
                 type="submit"
-                disabled={sending || uploadingAttachment || (!inputText.trim() && !pendingAttachment)}
+                disabled={!canSend}
                 className="rounded-full px-4 py-2 text-sm inline-flex items-center justify-center"
-                style={{ background: "#00a884", color: "white" }}
+                style={{
+                  background: canSend ? "#00a884" : "rgba(255,255,255,0.12)",
+                  color: canSend ? "white" : "rgba(233,237,239,0.45)",
+                }}
               >
                 {sending || uploadingAttachment ? <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" /> : <i className="fas fa-paper-plane" />}
               </button>

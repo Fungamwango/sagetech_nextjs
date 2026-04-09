@@ -69,11 +69,13 @@ interface PostCardProps {
     songType?: string | null;
     albumCover?: string | null;
     filename?: string | null;
+    postDescription?: string | null;
     views?: number | null;
     downloadsCount?: number | null;
     likesCount?: number | null;
   }>;
   musicQueueIndex?: number;
+  hideNavButtons?: boolean;
 }
 
 // Deterministic waveform heights to avoid flickering
@@ -107,6 +109,19 @@ function getFileExtensionFromUrl(fileUrl?: string | null) {
   }
 }
 
+function getRawFilenameFromUrl(fileUrl?: string | null) {
+  if (!fileUrl) return "";
+  try {
+    const pathname = new URL(fileUrl).pathname;
+    const filename = decodeURIComponent(pathname.split("/").pop() || "");
+    return stripFileExtension(filename);
+  } catch {
+    const cleaned = fileUrl.split("?")[0]?.split("#")[0] ?? "";
+    const filename = decodeURIComponent(cleaned.split("/").pop() || "");
+    return stripFileExtension(filename);
+  }
+}
+
 function sanitizeDownloadName(value: string) {
   return value
     .replace(/[\\/:*?"<>|]+/g, " ")
@@ -127,14 +142,22 @@ function buildDownloadFilename({
   fileUrl,
   fallbackBase,
   extensionFallback,
+  uniqueSuffix,
 }: {
   fileUrl?: string | null;
   fallbackBase: string;
   extensionFallback: string;
+  uniqueSuffix?: string;
 }) {
   const extension = getFileExtensionFromUrl(fileUrl) || extensionFallback;
-  const base = sanitizeDownloadName(stripFileExtension(fallbackBase) || "download");
-  return `${base}${extension}`;
+  const rawBase = getRawFilenameFromUrl(fileUrl);
+  const base = sanitizeDownloadName(rawBase || stripFileExtension(fallbackBase) || "download");
+  const suffix = sanitizeDownloadName(uniqueSuffix?.trim() || "");
+  return `${base}${suffix ? `_${suffix}` : ""}${extension}`;
+}
+
+function createDownloadSuffix() {
+  return String(Date.now());
 }
 
 function triggerFileDownload(fileUrl: string, downloadName: string) {
@@ -212,7 +235,7 @@ function LinkPreviewCard({
   );
 }
 
-export default function PostCard({ post, currentUserId, onDelete, fullContent = false, musicQueue, musicQueueIndex }: PostCardProps) {
+export default function PostCard({ post, currentUserId, onDelete, fullContent = false, musicQueue, musicQueueIndex, hideNavButtons }: PostCardProps) {
   const { showToast } = useToast();
   const [postState, setPostState] = useState(post);
   const [liked, setLiked] = useState(post.likedByMe ?? false);
@@ -281,6 +304,15 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (showMenu) {
+      history.pushState({ menuOpen: true }, "");
+      const onPop = () => setShowMenu(false);
+      window.addEventListener("popstate", onPop, { once: true });
+      return () => window.removeEventListener("popstate", onPop);
+    }
+  }, [showMenu]);
 
   useEffect(() => {
     if (!showMenu) {
@@ -392,7 +424,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
         ? ".mp3"
         : postState.postType === "app"
           ? ".apk"
-          : postState.postType === "book" || postState.postType === "document"
+          : postState.postType === "book"
             ? ".pdf"
             : "";
 
@@ -400,6 +432,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
       fileUrl: postState.fileUrl,
       fallbackBase,
       extensionFallback,
+      uniqueSuffix: createDownloadSuffix(),
     });
 
     triggerFileDownload(postState.fileUrl, downloadName);
@@ -661,13 +694,13 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
     const getPostTitle = () => {
       switch (postState.postType) {
         case "song": return postState.filename ?? postState.singer;
-        case "video": return postState.filename ?? null;
+        case "video": return null;
         case "blog": return postState.blogTitle;
         case "guest_ai": return postState.blogTitle;
         case "product": return postState.productName;
         case "app": return postState.filename ?? postState.appType;
       case "book": return postState.bookTitle ?? postState.author;
-      case "advert": return postState.advertTitle ?? postState.postDescription;
+      case "advert": return postState.advertTitle ?? null;
       default: return null;
     }
   };
@@ -718,7 +751,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
 
   return (
     <>
-      <article className="modern-feed-card fade-in">
+      <article className={`modern-feed-card fade-in relative${showMenu ? " z-50" : ""}${post.postType === "song" ? " !border-0 !shadow-none !bg-transparent !backdrop-filter-none" : ""}`}>
       <div className="modern-feed-card__body">
       {/* Header */}
         <div className="flex items-center justify-between mb-3">
@@ -785,113 +818,226 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             <i className="fas fa-ellipsis-v text-sm" />
           </button>
           {showMenu && (
-            <div
-              className="absolute right-0 top-8 rounded-xl shadow-2xl z-20 overflow-visible"
-              style={{ background: "#0d2535", border: "1px solid rgba(255,255,255,0.1)", minWidth: "160px" }}
-            >
-              <button onClick={handleShare} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors">
-                <i className="fas fa-share-alt text-cyan-400 w-4" /> Share
-              </button>
-              {currentUserId && currentUserId !== postState.userId && !isGuestAiPost ? (
-                <Link
-                  href={`/messages?user=${post.userId}`}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
-                  onClick={() => setShowMenu(false)}
-                >
-                  <i className="fas fa-comment-dots text-cyan-400 w-4" /> Chat with {postState.username || "user"}
-                </Link>
-              ) : null}
-              <button
-                onClick={() => {
-                  void handleCopyPostLink();
-                }}
-                className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
+            <>
+              <div
+                className="fixed inset-0 z-[69] bg-black/20 md:hidden"
+                onClick={() => setShowMenu(false)}
+              />
+              <div
+                className="absolute right-0 top-[calc(100%+6px)] z-[70] max-h-[75vh] min-w-[196px] max-w-[min(260px,calc(100vw-1.5rem))] overflow-y-auto rounded-xl shadow-2xl md:hidden"
+                style={{ background: "#0d2535", border: "1px solid rgba(255,255,255,0.1)" }}
               >
-                <i className="fas fa-copy text-white/40 w-4" /> Copy link
-              </button>
-              {currentUserId === postState.userId && !isGuestAiPost && (
+                <button onClick={handleShare} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors">
+                  <i className="fas fa-share-alt text-cyan-400 w-4" /> Share
+                </button>
+                {currentUserId && currentUserId !== postState.userId && !isGuestAiPost ? (
+                  <Link
+                    href={`/messages?userId=${post.userId}`}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    <i className="fas fa-comment-dots text-cyan-400 w-4" /> Chat with {postState.username || "user"}
+                  </Link>
+                ) : null}
                 <button
                   onClick={() => {
-                    if (postState.postType === "song") {
-                      resetSongEditState();
-                    } else {
-                      setEditPostText(postState.blogContent ?? postState.generalPost ?? postState.postDescription ?? "");
-                    }
-                    setEditingPost(true);
-                    setShowMenu(false);
+                    void handleCopyPostLink();
                   }}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors border-t border-white/5"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
                 >
-                  <i className="fas fa-pen w-4" /> Edit
+                  <i className="fas fa-copy text-white/40 w-4" /> Copy link
                 </button>
-              )}
-              {currentUserId === postState.userId && !isGuestAiPost && (
-                <div className="relative border-t border-white/5 px-4 py-3">
-                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
-                    <i className="fas fa-lock text-[10px]" />
-                    <span>Privacy</span>
-                  </p>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowPrivacyOptions((current) => !current)}
-                      disabled={Boolean(updatingPrivacy)}
-                      className="flex w-full items-center justify-between rounded-lg border border-cyan-400/20 bg-cyan-400/[0.08] px-2 py-1.5 text-[13px] text-white/80 transition-colors hover:bg-cyan-400/[0.12] disabled:opacity-60"
-                    >
-                      <span>{currentPrivacy.label}</span>
-                      <span className="text-[11px] text-cyan-400">
-                        {updatingPrivacy ? <i className="fas fa-spinner fa-spin" /> : <i className={`fas ${showPrivacyOptions ? "fa-chevron-up" : "fa-chevron-down"}`} />}
-                      </span>
-                    </button>
-                    {showPrivacyOptions ? (
-                      <div
-                        className="absolute left-0 right-0 top-[calc(100%-1px)] z-30 overflow-hidden rounded-b-lg border border-white/10 border-t-0 bg-[#071926] shadow-[0_16px_40px_rgba(0,0,0,0.35)]"
+                {currentUserId === postState.userId && !isGuestAiPost && (
+                  <button
+                    onClick={() => {
+                      if (postState.postType === "song") {
+                        resetSongEditState();
+                      } else {
+                        setEditPostText(postState.blogContent ?? postState.generalPost ?? postState.postDescription ?? "");
+                      }
+                      setEditingPost(true);
+                      setShowMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors border-t border-white/5"
+                  >
+                    <i className="fas fa-pen w-4" /> Edit
+                  </button>
+                )}
+                {currentUserId === postState.userId && !isGuestAiPost && (
+                  <div className="relative border-t border-white/5 px-4 py-3">
+                    <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                      <i className="fas fa-lock text-[10px]" />
+                      <span>Privacy</span>
+                    </p>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowPrivacyOptions((current) => !current)}
+                        disabled={Boolean(updatingPrivacy)}
+                        className="flex w-full items-center justify-between rounded-lg border border-cyan-400/20 bg-cyan-400/[0.08] px-2 py-1.5 text-[13px] text-white/80 transition-colors hover:bg-cyan-400/[0.12] disabled:opacity-60"
                       >
-                        {privacyOptions
-                          .filter((option) => option.value !== currentPrivacy.value)
-                          .map((option, index, filtered) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => void handleUpdatePrivacy(option.value)}
-                              disabled={Boolean(updatingPrivacy)}
-                              className={`flex w-full items-center justify-between px-2 py-1.5 text-[13px] text-white/72 transition-colors hover:bg-white/5 disabled:opacity-60 ${
-                                index < filtered.length - 1 ? "border-b border-white/6" : ""
-                              }`}
-                            >
-                              <span>{option.label}</span>
-                            </button>
-                          ))}
-                      </div>
-                    ) : null}
+                        <span>{currentPrivacy.label}</span>
+                        <span className="text-[11px] text-cyan-400">
+                          {updatingPrivacy ? <i className="fas fa-spinner fa-spin" /> : <i className={`fas ${showPrivacyOptions ? "fa-chevron-up" : "fa-chevron-down"}`} />}
+                        </span>
+                      </button>
+                      {showPrivacyOptions ? (
+                        <div
+                          className="absolute left-0 right-0 top-[calc(100%-1px)] z-30 overflow-hidden rounded-b-lg border border-white/10 border-t-0 bg-[#071926] shadow-[0_16px_40px_rgba(0,0,0,0.35)]"
+                        >
+                          {privacyOptions
+                            .filter((option) => option.value !== currentPrivacy.value)
+                            .map((option, index, filtered) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => void handleUpdatePrivacy(option.value)}
+                                disabled={Boolean(updatingPrivacy)}
+                                className={`flex w-full items-center justify-between px-2 py-1.5 text-[13px] text-white/72 transition-colors hover:bg-white/5 disabled:opacity-60 ${
+                                  index < filtered.length - 1 ? "border-b border-white/6" : ""
+                                }`}
+                              >
+                                <span>{option.label}</span>
+                              </button>
+                            ))}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              )}
-              {(currentUserId === postState.userId || isGuestAiPost) && (
+                )}
+                {(currentUserId === postState.userId || isGuestAiPost) && (
+                  <button
+                    onClick={() => {
+                      setDeleteModalOpen(true);
+                      setShowMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-900/20 transition-colors border-t border-white/5"
+                  >
+                    <i className="fas fa-trash w-4" /> Delete
+                  </button>
+                )}
+                {currentUserId !== postState.userId && (
+                  <button
+                    onClick={() => {
+                      setReportModalOpen(true);
+                      setReportReason("");
+                      setReportError("");
+                      setShowMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/50 hover:bg-white/5 transition-colors border-t border-white/5"
+                  >
+                    <i className="fas fa-flag w-4" /> Report
+                  </button>
+                )}
+              </div>
+              <div
+                className="absolute right-0 top-8 z-50 hidden max-h-[75vh] min-w-[160px] overflow-y-auto rounded-xl shadow-2xl md:block"
+                style={{ background: "#0d2535", border: "1px solid rgba(255,255,255,0.1)" }}
+              >
+                <button onClick={handleShare} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors">
+                  <i className="fas fa-share-alt text-cyan-400 w-4" /> Share
+                </button>
+                {currentUserId && currentUserId !== postState.userId && !isGuestAiPost ? (
+                  <Link
+                    href={`/messages?userId=${post.userId}`}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    <i className="fas fa-comment-dots text-cyan-400 w-4" /> Chat with {postState.username || "user"}
+                  </Link>
+                ) : null}
                 <button
                   onClick={() => {
-                    setDeleteModalOpen(true);
-                    setShowMenu(false);
+                    void handleCopyPostLink();
                   }}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-900/20 transition-colors border-t border-white/5"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
                 >
-                  <i className="fas fa-trash w-4" /> Delete
+                  <i className="fas fa-copy text-white/40 w-4" /> Copy link
                 </button>
-              )}
-              {currentUserId !== postState.userId && (
-                <button
-                  onClick={() => {
-                    setReportModalOpen(true);
-                    setReportReason("");
-                    setReportError("");
-                    setShowMenu(false);
-                  }}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/50 hover:bg-white/5 transition-colors border-t border-white/5"
-                >
-                  <i className="fas fa-flag w-4" /> Report
-                </button>
-              )}
-            </div>
+                {currentUserId === postState.userId && !isGuestAiPost && (
+                  <button
+                    onClick={() => {
+                      if (postState.postType === "song") {
+                        resetSongEditState();
+                      } else {
+                        setEditPostText(postState.blogContent ?? postState.generalPost ?? postState.postDescription ?? "");
+                      }
+                      setEditingPost(true);
+                      setShowMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors border-t border-white/5"
+                  >
+                    <i className="fas fa-pen w-4" /> Edit
+                  </button>
+                )}
+                {currentUserId === postState.userId && !isGuestAiPost && (
+                  <div className="relative border-t border-white/5 px-4 py-3">
+                    <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                      <i className="fas fa-lock text-[10px]" />
+                      <span>Privacy</span>
+                    </p>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowPrivacyOptions((current) => !current)}
+                        disabled={Boolean(updatingPrivacy)}
+                        className="flex w-full items-center justify-between rounded-lg border border-cyan-400/20 bg-cyan-400/[0.08] px-2 py-1.5 text-[13px] text-white/80 transition-colors hover:bg-cyan-400/[0.12] disabled:opacity-60"
+                      >
+                        <span>{currentPrivacy.label}</span>
+                        <span className="text-[11px] text-cyan-400">
+                          {updatingPrivacy ? <i className="fas fa-spinner fa-spin" /> : <i className={`fas ${showPrivacyOptions ? "fa-chevron-up" : "fa-chevron-down"}`} />}
+                        </span>
+                      </button>
+                      {showPrivacyOptions ? (
+                        <div
+                          className="absolute left-0 right-0 top-[calc(100%-1px)] z-30 overflow-hidden rounded-b-lg border border-white/10 border-t-0 bg-[#071926] shadow-[0_16px_40px_rgba(0,0,0,0.35)]"
+                        >
+                          {privacyOptions
+                            .filter((option) => option.value !== currentPrivacy.value)
+                            .map((option, index, filtered) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => void handleUpdatePrivacy(option.value)}
+                                disabled={Boolean(updatingPrivacy)}
+                                className={`flex w-full items-center justify-between px-2 py-1.5 text-[13px] text-white/72 transition-colors hover:bg-white/5 disabled:opacity-60 ${
+                                  index < filtered.length - 1 ? "border-b border-white/6" : ""
+                                }`}
+                              >
+                                <span>{option.label}</span>
+                              </button>
+                            ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+                {(currentUserId === postState.userId || isGuestAiPost) && (
+                  <button
+                    onClick={() => {
+                      setDeleteModalOpen(true);
+                      setShowMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-900/20 transition-colors border-t border-white/5"
+                  >
+                    <i className="fas fa-trash w-4" /> Delete
+                  </button>
+                )}
+                {currentUserId !== postState.userId && (
+                  <button
+                    onClick={() => {
+                      setReportModalOpen(true);
+                      setReportReason("");
+                      setReportError("");
+                      setShowMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/50 hover:bg-white/5 transition-colors border-t border-white/5"
+                  >
+                    <i className="fas fa-flag w-4" /> Report
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -1087,7 +1233,12 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             </button>
           </div>
         </div>
-      ) : displayText && !isSharedLinkPost && (
+      ) : (
+        <>
+          {(postState.postType === "song" || postState.postType === "video") && postTitle ? (
+            <p className="text-[16px] text-white mt-2 font-medium break-words">{renderTextWithLinks(postTitle)}</p>
+          ) : null}
+          {displayText && !isSharedLinkPost ? (
         <div className="mt-2">
           {(postState.postType === "blog" || postState.postType === "guest_ai") && /<[a-z][\s\S]*>/i.test(displayText) ? (
             <>
@@ -1114,13 +1265,17 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             </>
           )}
         </div>
+          ) : null}
+        </>
       )}
 
       {/* Non-text title */}
-        {postTitle && postState.postType !== "blog" && postState.postType !== "guest_ai" && postState.postType !== "product" && postState.postType !== "advert" && (
+        {postTitle && postState.postType !== "blog" && postState.postType !== "guest_ai" && postState.postType !== "product" && postState.postType !== "advert" && postState.postType !== "song" && postState.postType !== "video" && (
           <p className="text-[16px] text-white mt-2 font-medium break-words">{renderTextWithLinks(postTitle)}</p>
         )}
-      {postState.postDescription && !displayText && !["general", "blog", "guest_ai", "advert"].includes(postState.postType) && !editingPost && (
+      {postState.postDescription &&
+        !["general", "blog", "guest_ai", "advert", "song", "video"].includes(postState.postType) &&
+        !editingPost && (
         <p className="mt-1 text-[16px] text-white/55 break-words">{renderTextWithLinks(postState.postDescription)}</p>
       )}
       {shouldShowLinkPreview && postState.linkUrl ? (
@@ -1143,6 +1298,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
             onRemoveGalleryImage={handleRemoveGalleryImage}
             musicQueue={musicQueue}
             musicQueueIndex={musicQueueIndex}
+            hideNavButtons={hideNavButtons}
           />
         </div>
       ) : (
@@ -1154,6 +1310,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
           onRemoveGalleryImage={handleRemoveGalleryImage}
           musicQueue={musicQueue}
           musicQueueIndex={musicQueueIndex}
+          hideNavButtons={hideNavButtons}
         />
       )}
 
@@ -1225,7 +1382,7 @@ export default function PostCard({ post, currentUserId, onDelete, fullContent = 
               >
               <i className="fas fa-download" />
               {(postState.downloadsCount ?? 0) > 0 ? (
-                <span>{postState.postType === "document" ? `${postState.downloadsCount ?? 0} downloads` : postState.downloadsCount ?? 0}</span>
+                <span>{postState.downloadsCount ?? 0}</span>
               ) : null}
             </a>
           )}
@@ -1338,6 +1495,7 @@ function PostContent({
   onRemoveGalleryImage,
   musicQueue,
   musicQueueIndex,
+  hideNavButtons,
 }: {
   post: PostCardProps["post"];
   onDownload: () => void;
@@ -1346,6 +1504,7 @@ function PostContent({
   onRemoveGalleryImage?: (imageUrl: string) => void | Promise<void>;
   musicQueue?: PostCardProps["musicQueue"];
   musicQueueIndex?: number;
+  hideNavButtons?: boolean;
 }) {
   const mediaUrls = parseMediaUrls(post.fileUrl);
   const primaryMediaUrl = mediaUrls[0];
@@ -1358,19 +1517,21 @@ function PostContent({
       post.bookTitle ||
       post.appType ||
       post.author ||
+      post.postDescription ||
       "file";
     const extensionFallback =
-      post.postType === "app" ? ".apk" : post.postType === "book" ? ".pdf" : post.postType === "document" ? ".pdf" : "";
+      post.postType === "app" ? ".apk" : post.postType === "book" ? ".pdf" : "";
     const downloadName = buildDownloadFilename({
       fileUrl: primaryMediaUrl,
       fallbackBase,
       extensionFallback,
+      uniqueSuffix: createDownloadSuffix(),
     });
     triggerFileDownload(primaryMediaUrl, downloadName);
   };
 
   if (post.postType === "song" && post.fileUrl) {
-    return <MusicPlayer post={post} queue={musicQueue} queueIndex={musicQueueIndex} />;
+    return <MusicPlayer post={post} queue={musicQueue} queueIndex={musicQueueIndex} hideNavButtons={hideNavButtons} />;
   }
   if (post.postType === "video" && post.fileUrl) return <VideoPlayer post={post} />;
 
@@ -1470,10 +1631,12 @@ function MusicPlayer({
   post,
   queue,
   queueIndex,
+  hideNavButtons,
 }: {
   post: PostCardProps["post"];
   queue?: PostCardProps["musicQueue"];
   queueIndex?: number;
+  hideNavButtons?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -1593,6 +1756,7 @@ function MusicPlayer({
       fileUrl: currentTrack.fileUrl,
       fallbackBase: currentTrack.filename || currentTrack.singer || "song",
       extensionFallback: ".mp3",
+      uniqueSuffix: createDownloadSuffix(),
     });
 
     triggerFileDownload(currentTrack.fileUrl, downloadName);
@@ -1648,14 +1812,6 @@ function MusicPlayer({
             <span className="truncate text-white/78">{currentTrack.singer ?? "Unknown artist"}</span>
             <span className="text-white/20">•</span>
             <span className="truncate capitalize text-cyan-300/90">{currentTrack.songType ?? "Music"}</span>
-            {playlist.length > 1 && (
-              <>
-                <span className="text-white/20">•</span>
-                <span className="text-white/58">
-                  {activeIndex + 1}/{playlist.length}
-                </span>
-              </>
-            )}
           </div>
 
           {/* Progress bar */}
@@ -1681,14 +1837,14 @@ function MusicPlayer({
 
         {/* Play/Pause */}
         <div className="flex shrink-0 items-center gap-2">
-          {playlist.length > 1 && (
+          {!hideNavButtons && playlist.length > 1 && (
             <button
               type="button"
               onClick={handlePrevious}
               disabled={!hasPrevious}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-white/85 transition-colors hover:bg-white/[0.12] hover:text-white disabled:opacity-25"
             >
-              <i className="fas fa-backward-step text-xs" />
+              <i className="fas fa-step-backward text-xs" />
             </button>
           )}
           <button
@@ -1707,14 +1863,14 @@ function MusicPlayer({
               <i className="fas fa-play text-white ml-0.5" />
             )}
           </button>
-          {playlist.length > 1 && (
+          {!hideNavButtons && playlist.length > 1 && (
             <button
               type="button"
               onClick={handleNext}
               disabled={!hasNext}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-white/85 transition-colors hover:bg-white/[0.12] hover:text-white disabled:opacity-25"
             >
-              <i className="fas fa-forward-step text-xs" />
+              <i className="fas fa-step-forward text-xs" />
             </button>
           )}
         </div>
@@ -1760,7 +1916,7 @@ function MusicPlayer({
           className="flex items-center gap-1.5 rounded-full bg-black/22 px-2.5 py-1 text-[12px] text-white/88 transition-colors hover:bg-white/[0.09] hover:text-cyan-100"
         >
           <i className="fas fa-download text-cyan-200/82" />
-          {downloads > 0 ? <span>{formatCount(downloads)} downloads</span> : null}
+          {downloads > 0 ? <span>{formatCount(downloads)}</span> : null}
         </button>
       </div>
 
@@ -1907,6 +2063,7 @@ function VideoPlayer({ post }: { post: PostCardProps["post"] }) {
         fileUrl: post.fileUrl,
         fallbackBase: post.filename || post.postDescription || post.blogTitle || "video",
         extensionFallback: ".mp4",
+        uniqueSuffix: createDownloadSuffix(),
       });
 
       triggerFileDownload(post.fileUrl, downloadName);

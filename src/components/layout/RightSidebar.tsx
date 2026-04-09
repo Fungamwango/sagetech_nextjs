@@ -25,10 +25,15 @@ interface SidebarAdvert {
   fileType?: string | null;
 }
 
-function trimAdvertTitle(title?: string | null) {
+function getAdvertSidebarLabel(description?: string | null, title?: string | null) {
+  const desc = (description ?? "").trim();
+  if (desc) {
+    return desc.length > 25 ? `${desc.slice(0, 25).trimEnd()}...` : desc;
+  }
+
   const value = (title ?? "").trim();
   if (!value) return "Sponsored advert";
-  return value.length > 30 ? `${value.slice(0, 30).trimEnd()}...` : value;
+  return value.length > 25 ? `${value.slice(0, 25).trimEnd()}...` : value;
 }
 
 export default function RightSidebar() {
@@ -158,8 +163,8 @@ export default function RightSidebar() {
                           />
                         </div>
                         <div className="px-2.5 pb-2.5 pt-2">
-                          <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white">
-                            {trimAdvertTitle(advert.advertTitle)}
+                          <p className="truncate text-[14px] font-bold tracking-[0.01em] text-white">
+                            {getAdvertSidebarLabel(advert.postDescription, advert.advertTitle)}
                           </p>
                         </div>
                       </>
@@ -178,8 +183,8 @@ export default function RightSidebar() {
                         )}
 
                         <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(2,8,12,0.97))] px-2.5 pb-2.5 pt-8">
-                          <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
-                            {trimAdvertTitle(advert.advertTitle)}
+                          <p className="truncate text-[14px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
+                            {getAdvertSidebarLabel(advert.postDescription, advert.advertTitle)}
                           </p>
                         </div>
                       </div>
@@ -208,8 +213,8 @@ export default function RightSidebar() {
                           />
                         </div>
                         <div className="px-2.5 pb-2.5 pt-2">
-                          <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white">
-                            {trimAdvertTitle(advert.advertTitle)}
+                          <p className="truncate text-[14px] font-bold tracking-[0.01em] text-white">
+                            {getAdvertSidebarLabel(advert.postDescription, advert.advertTitle)}
                           </p>
                         </div>
                       </>
@@ -228,8 +233,8 @@ export default function RightSidebar() {
                         )}
 
                         <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(2,8,12,0.97))] px-2.5 pb-2.5 pt-8">
-                          <p className="truncate text-[13px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
-                            {trimAdvertTitle(advert.advertTitle)}
+                          <p className="truncate text-[14px] font-bold tracking-[0.01em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
+                            {getAdvertSidebarLabel(advert.postDescription, advert.advertTitle)}
                           </p>
                         </div>
                       </div>

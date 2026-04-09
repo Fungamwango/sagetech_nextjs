@@ -271,7 +271,7 @@ export default function AIPage() {
                 Sage AI
               </h1>
               <p className="mt-1 text-sm text-white/50">
-                Ask anything. Sage AI answers, and the response can be published as a post automatically.
+                <i className="text-brown-300">Note:</i> Responses are published as posts automatically. by continueing, you agree to that.
               </p>
             </div>
             <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-300">
@@ -298,7 +298,7 @@ export default function AIPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium uppercase tracking-[0.16em] text-white/35">Language</span>
+                <span className="text-sm font-medium text-white/35">Response language</span>
                 <div className="relative" ref={langRef}>
                   <button
                     type="button"
@@ -372,7 +372,7 @@ export default function AIPage() {
             </div>
           </form>
 
-          {!response && !loading ? (
+          {/*!response && !loading ? (
             <div className="grid gap-2 sm:grid-cols-2">
               {QUICK_PROMPTS.map((prompt) => (
                 <button
@@ -385,7 +385,7 @@ export default function AIPage() {
                 </button>
               ))}
             </div>
-          ) : null}
+          ) : null*/}
         </div>
       </section>
 

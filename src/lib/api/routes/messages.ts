@@ -162,6 +162,7 @@ export const messagesRouter = new Hono()
     if (!session) return c.json({ error: "Unauthorized" }, 401);
 
     const otherId = c.req.param("userId");
+    if (otherId === session.userId) return c.json({ error: "Cannot message yourself" }, 400);
     const offset = parseInt(c.req.query("offset") ?? "0");
 
     const chat = await db
@@ -232,6 +233,9 @@ export const messagesRouter = new Hono()
       if (!session) return c.json({ error: "Unauthorized" }, 401);
 
       const { receiverId, active } = c.req.valid("json");
+      if (receiverId === session.userId) {
+        return c.json({ error: "Cannot message yourself" }, 400);
+      }
 
       emitMessageEvent(receiverId, {
         type: active ? "typing_started" : "typing_stopped",
@@ -259,6 +263,9 @@ export const messagesRouter = new Hono()
       if (!session) return c.json({ error: "Unauthorized" }, 401);
 
       const receiverId = c.req.param("userId");
+      if (receiverId === session.userId) {
+        return c.json({ error: "Cannot message yourself" }, 400);
+      }
       const { content, fileUrl, fileType } = c.req.valid("json");
 
       if (!content && !fileUrl) {

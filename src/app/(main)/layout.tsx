@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import Header from "@/components/layout/Header";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import RightSidebar from "@/components/layout/RightSidebar";
+import NativeBannerAd from "@/components/ads/NativeBannerAd";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -39,6 +40,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             style={{ padding: "0", maxWidth: "650px" }}
           >
             {children}
+            <NativeBannerAd />
           </section>
 
           <div className="hidden lg:block">

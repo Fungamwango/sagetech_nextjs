@@ -26,6 +26,8 @@ declare global {
   }
 }
 
+type PointsUpdatedDetail = { points: number };
+
 const navLinks = [
   { href: "/", icon: "fas fa-home", label: "home", id: "home-link" },
   { href: "/messages", icon: "fas fa-envelope", label: "messages", id: "messages-link" },
@@ -74,6 +76,7 @@ export default function Header({ user }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [notifCount, setNotifCount] = useState(0);
   const [msgCount, setMsgCount] = useState(0);
+  const [livePoints, setLivePoints] = useState(parseFloat(String(user?.points ?? 0)));
   const [scrolled, setScrolled] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -122,6 +125,22 @@ export default function Header({ user }: HeaderProps) {
   useEffect(() => {
     setSearchQuery(searchParams.get("q") ?? "");
   }, [searchParams]);
+
+  useEffect(() => {
+    setLivePoints(parseFloat(String(user?.points ?? 0)));
+  }, [user?.points]);
+
+  useEffect(() => {
+    const handlePointsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<PointsUpdatedDetail>).detail;
+      if (typeof detail?.points === "number" && Number.isFinite(detail.points)) {
+        setLivePoints(detail.points);
+      }
+    };
+
+    window.addEventListener("points-updated", handlePointsUpdated);
+    return () => window.removeEventListener("points-updated", handlePointsUpdated);
+  }, []);
 
   useEffect(() => {
     setInstallAvailable(Boolean(window.__pwaInstallAvailable));
@@ -180,7 +199,9 @@ export default function Header({ user }: HeaderProps) {
       }
       setLogoutModalOpen(false);
       setShowMenu(false);
-      window.location.replace("/login");
+      router.replace("/login");
+      router.refresh();
+      window.location.assign(`/login?logout=${Date.now()}`);
     } finally {
       setLoggingOut(false);
     }
@@ -211,7 +232,7 @@ export default function Header({ user }: HeaderProps) {
       >
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <Image src="/files/sagetech_icon.jpg" alt="SageTech" width={35} height={35} className="rounded-sm object-cover" />
-          <span className="truncate text-[28px] font-bold text-white max-sm:text-[25px]" style={{ fontFamily: "serif", wordSpacing: "2.2px" }}>
+          <span className="truncate text-[28px] font-bold text-white max-sm:text-[18px]" style={{ fontFamily: "serif", wordSpacing: "2.2px" }}>
             Sage<span className="text-cyan-400">Tech</span>
           </span>
         </Link>
@@ -356,7 +377,7 @@ export default function Header({ user }: HeaderProps) {
                 <p className="text-sm font-semibold capitalize text-white">{user.username}</p>
                 <p className="text-xs text-cyan-400">
                   <i className="fas fa-coins mr-1" />
-                  {parseFloat(String(user.points ?? 0)).toFixed(2)} pts
+                  {livePoints.toFixed(2)} pts
                 </p>
               </div>
             </div>

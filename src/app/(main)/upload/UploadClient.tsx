@@ -47,6 +47,15 @@ const POST_TYPES: Array<{ type: UploadType; label: string; icon: string; cost: n
   { type: "advert", label: "Advertisement", icon: "fas fa-ad", cost: 100, description: "Run an advert with image or video media" },
 ];
 
+const DEFAULT_UPLOAD_COSTS: Record<UploadType, number> = {
+  general: 0,
+  song: 80,
+  video: 5,
+  document: 10,
+  product: 40,
+  advert: 100,
+};
+
 const PRODUCT_CATEGORIES = [
   "Electronics",
   "Phones & Tablets",
@@ -116,7 +125,6 @@ function validatePostDraft({
       }
       return null;
     case "advert":
-      if (!hasValue(formData.advertTitle)) return "Please enter the advert title.";
       if (!hasValue(formData.advertUrl)) return "Please enter the destination URL.";
       if (uploadItems.length === 0 && !hasValue(formData.postDescription)) return "Please add advert media or a short description.";
       return null;
@@ -153,7 +161,9 @@ export default function UploadClient({
   const [isDragging, setIsDragging] = useState(false);
   const [galleryPreviewOpen, setGalleryPreviewOpen] = useState(false);
   const closeGalleryPreview = useBackClosable(galleryPreviewOpen, () => setGalleryPreviewOpen(false));
-  const userPoints = parseFloat(String(user.points ?? 0));
+  const [livePoints, setLivePoints] = useState(parseFloat(String(user.points ?? 0)));
+  const [postTypeCosts, setPostTypeCosts] = useState<Record<UploadType, number>>(DEFAULT_UPLOAD_COSTS);
+  const userPoints = livePoints;
 
   useEffect(() => {
     uploadItemsRef.current = uploadItems;
@@ -181,6 +191,29 @@ export default function UploadClient({
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       });
       if (coverPreviewRef.current) URL.revokeObjectURL(coverPreviewRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/posts/points-config", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.costs) return;
+        setPostTypeCosts({
+          general: Number(data.costs.cost_general_post ?? DEFAULT_UPLOAD_COSTS.general),
+          song: Number(data.costs.cost_song_post ?? DEFAULT_UPLOAD_COSTS.song),
+          video: Number(data.costs.cost_video_post ?? DEFAULT_UPLOAD_COSTS.video),
+          document: Number(data.costs.cost_document_post ?? DEFAULT_UPLOAD_COSTS.document),
+          product: Number(data.costs.cost_product_post ?? DEFAULT_UPLOAD_COSTS.product),
+          advert: Number(data.costs.cost_advert_post ?? DEFAULT_UPLOAD_COSTS.advert),
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -290,7 +323,7 @@ export default function UploadClient({
       }
       return canUseMultipleImages ? [...current, ...nextItems] : nextItems;
     });
-    if (selectedType === "song" && !hasValue(formData.filename) && nextItems[0]) {
+    if ((selectedType === "song" || selectedType === "video" || selectedType === "document") && !hasValue(formData.filename) && nextItems[0]) {
       const baseName = nextItems[0].file.name.replace(/\.[^.]+$/, "").trim();
       if (baseName) {
         set("filename", baseName);
@@ -322,12 +355,10 @@ export default function UploadClient({
     onProgress: (progress: number) => void,
     onNotice: (notice: string) => void
   ) => {
-    onProgress(3);
+    onProgress(2);
     const { file: preparedFile, notice } = await prepareUploadFile(item.file);
     if (notice) onNotice(notice);
-
-    const payload = new FormData();
-    payload.append("file", preparedFile);
+    onProgress(5);
 
     const resourceType = preparedFile.type.startsWith("video/")
       ? "video"
@@ -335,70 +366,62 @@ export default function UploadClient({
         ? "audio"
         : "image";
 
-    return await new Promise<{ url: string; key: string; resourceType: string }>((resolve, reject) => {
+    // Step 1: get presigned URL from server
+    const presignRes = await fetch("/api/upload/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: preparedFile.name,
+        contentType: preparedFile.type,
+        fileSize: preparedFile.size,
+      }),
+    });
+    if (!presignRes.ok) {
+      const err = await presignRes.json().catch(() => ({})) as { error?: string };
+      throw new Error(err.error ?? "Failed to prepare upload");
+    }
+    const { uploadUrl, fileUrl, key } = await presignRes.json() as { uploadUrl: string; fileUrl: string; key: string };
+
+    onProgress(8);
+
+    // Step 2: upload directly from browser to R2 using presigned URL
+    await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       let settleTimer: ReturnType<typeof setInterval> | null = null;
       let settleProgress = 0;
 
       const stopSettling = () => {
-        if (settleTimer) {
-          clearInterval(settleTimer);
-          settleTimer = null;
-        }
+        if (settleTimer) { clearInterval(settleTimer); settleTimer = null; }
       };
-
       const startSettling = (fromProgress: number) => {
         stopSettling();
         settleProgress = fromProgress;
         settleTimer = setInterval(() => {
           settleProgress = Math.min(97, settleProgress + 1);
           onProgress(settleProgress);
-          if (settleProgress >= 97) {
-            stopSettling();
-          }
+          if (settleProgress >= 97) stopSettling();
         }, 140);
       };
 
-      xhr.open("POST", "/api/upload/file");
+      xhr.open("PUT", uploadUrl);
+      xhr.setRequestHeader("Content-Type", preparedFile.type);
 
       xhr.upload.onprogress = (event) => {
         if (!event.lengthComputable) return;
-        const uploadProgress = Math.max(6, Math.min(92, Math.round((event.loaded / event.total) * 92)));
-        onProgress(uploadProgress);
+        onProgress(Math.round(8 + (event.loaded / event.total) * 87));
       };
-
-      xhr.upload.onload = () => {
-        onProgress(93);
-        startSettling(93);
-      };
-
-      xhr.onerror = () => {
-        stopSettling();
-        reject(new Error("Upload failed. Please try again."));
-      };
+      xhr.upload.onload = () => { onProgress(96); startSettling(96); };
+      xhr.onerror = () => { stopSettling(); reject(new Error("Upload failed. Please try again.")); };
       xhr.onload = () => {
         stopSettling();
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            onProgress(100);
-            const response = JSON.parse(xhr.responseText) as { fileUrl: string; key: string };
-            resolve({ url: response.fileUrl, key: response.key, resourceType });
-          } catch {
-            reject(new Error("Upload completed but the server response was invalid."));
-          }
-          return;
-        }
-
-        try {
-          const response = JSON.parse(xhr.responseText) as { error?: string };
-          reject(new Error(response.error ?? "Failed to upload file"));
-        } catch {
-          reject(new Error("Failed to upload file"));
-        }
+        if (xhr.status >= 200 && xhr.status < 300) { onProgress(100); resolve(); }
+        else reject(new Error("Upload failed. Please try again."));
       };
 
-      xhr.send(payload);
+      xhr.send(preparedFile);
     });
+
+    return { url: fileUrl, key, resourceType };
   };
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -417,7 +440,7 @@ export default function UploadClient({
       return;
     }
 
-    const cost = currentTypeConfig?.cost ?? 0;
+    const cost = selectedType ? postTypeCosts[selectedType] ?? 0 : 0;
     if (userPoints < cost) {
       const message = `Insufficient points. You need ${cost} pts to post this.`;
       setError(message);
@@ -548,6 +571,15 @@ export default function UploadClient({
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Upload failed");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (typeof data.availablePoints === "number" && Number.isFinite(data.availablePoints)) {
+        setLivePoints(data.availablePoints);
+        window.dispatchEvent(
+          new CustomEvent("points-updated", {
+            detail: { points: data.availablePoints },
+          })
+        );
       }
 
       let stockSyncMessage = "";
@@ -685,8 +717,8 @@ export default function UploadClient({
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-end">
-                <span className={`text-xs font-semibold ${userPoints < pt.cost ? "text-red-400" : "text-cyan-400"}`}>
-                  {pt.cost > 0 ? `-${pt.cost} pts` : "Free"}
+                <span className={`text-xs font-semibold ${userPoints < (postTypeCosts[pt.type] ?? 0) ? "text-red-400" : "text-cyan-400"}`}>
+                  {(postTypeCosts[pt.type] ?? 0) > 0 ? `-${postTypeCosts[pt.type] ?? 0} pts` : "Free"}
                 </span>
               </div>
             </button>
@@ -926,9 +958,9 @@ export default function UploadClient({
                             onOpen={() => setGalleryPreviewOpen(true)}
                           />
                         </div>
-                      ) : (
+                      ) : selectedType !== "document" ? (
                         <SingleFilePreview item={uploadItems[0]} onRemove={() => removeUploadItem(uploadItems[0].id)} />
-                      )}
+                      ) : null}
 
                       <div className="space-y-3">
                         {uploadItems.map((item) => (
@@ -1197,19 +1229,8 @@ function UploadFormFields({
       return (
         <section className="upload-card grid gap-4">
           <div>
-            <label className={labelClass}>Advert Title</label>
-            <input
-              type="text"
-              value={formData.advertTitle ?? ""}
-              onChange={(e) => set("advertTitle", e.target.value)}
-              placeholder="Advert title"
-              className={`${inputClass} w-full`}
-              required
-            />
-          </div>
-          <div>
             <label className={labelClass}>Advert Description</label>
-            <textarea value={formData.postDescription ?? ""} onChange={(e) => set("postDescription", e.target.value)} placeholder="Describe your advert..." className={`${inputClass} w-full min-h-[100px] resize-none`} />
+            <textarea value={formData.postDescription ?? ""} onChange={(e) => set("postDescription", e.target.value)} placeholder="Describe your advert..." className={`${inputClass} w-full min-h-[100px] resize-none`} required />
           </div>
           <div>
             <label className={labelClass}>Destination URL</label>
@@ -1501,7 +1522,7 @@ function getFileAccept(type: UploadType) {
     case "video":
       return "video/*";
     case "document":
-      return ".pdf,.epub,.doc,.docx";
+      return "*";
     case "product":
       return "image/*";
     case "advert":

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import AdminModal from "./AdminModal";
 
 type AdminConfirmModalProps = {
@@ -10,6 +11,7 @@ type AdminConfirmModalProps = {
   cancelLabel?: string;
   intent?: "danger" | "success" | "warning";
   loading?: boolean;
+  children?: ReactNode;
   onConfirm: () => void;
   onClose: () => void;
 };
@@ -22,6 +24,7 @@ export default function AdminConfirmModal({
   cancelLabel = "Cancel",
   intent = "danger",
   loading = false,
+  children,
   onConfirm,
   onClose,
 }: AdminConfirmModalProps) {
@@ -35,6 +38,7 @@ export default function AdminConfirmModal({
   return (
     <AdminModal open={open} onClose={loading ? () => undefined : onClose} title={title} widthClassName="max-w-md">
       <p className="text-sm leading-6 text-white/70">{description}</p>
+      {children ? <div className="mt-4">{children}</div> : null}
       <div className="mt-6 flex items-center justify-end gap-3">
         <button
           type="button"

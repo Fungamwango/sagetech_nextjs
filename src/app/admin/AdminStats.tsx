@@ -16,10 +16,21 @@ interface Stats {
   unreadMessages: number;
   onlineUsers: number;
   newUsersToday: number;
+  todayVisitors: number;
+  todayGuestVisitors: number;
   pendingReports: number;
   visitsLast7Days: DayStat[];
   newUsersLast7Days: DayStat[];
   postsLast7Days: DayStat[];
+}
+
+interface DashboardCard {
+  label: string;
+  value: number | string;
+  icon: string;
+  color: string;
+  href: string;
+  subMetrics?: Array<{ label: string; value: number | string }>;
 }
 
 function StatSeries({ title, rows, tone }: { title: string; rows: DayStat[]; tone: "cyan" | "green" | "yellow" }) {
@@ -60,9 +71,25 @@ export default function AdminStats() {
     fetch("/api/admin/stats").then((r) => r.json()).then(setStats);
   }, []);
 
-  const cards = [
+  const cards: DashboardCard[] = [
     { label: "Total Users", value: stats?.totalUsers ?? "...", icon: "fas fa-users", color: "text-blue-400", href: "/admin/users" },
     { label: "Online Users", value: stats?.onlineUsers ?? "...", icon: "fas fa-signal", color: "text-emerald-400", href: "/admin/users" },
+    {
+      label: "Today's Visitors",
+      value:
+        stats
+          ? stats.todayVisitors + stats.todayGuestVisitors
+          : "...",
+      icon: "fas fa-chart-line",
+      color: "text-teal-400",
+      href: "/admin/users",
+      subMetrics: stats
+        ? [
+            { label: "Users", value: stats.todayVisitors },
+            { label: "Guests", value: stats.todayGuestVisitors },
+          ]
+        : [],
+    },
     { label: "New Users Today", value: stats?.newUsersToday ?? "...", icon: "fas fa-user-plus", color: "text-cyan-400", href: "/admin/users" },
     { label: "Total Posts", value: stats?.totalPosts ?? "...", icon: "fas fa-file-alt", color: "text-green-400", href: "/admin/posts" },
     { label: "Pending Posts", value: stats?.pendingPosts ?? "...", icon: "fas fa-clock", color: "text-yellow-400", href: "/admin/posts?status=pending" },
@@ -91,6 +118,16 @@ export default function AdminStats() {
             </div>
             <p className="text-2xl font-bold text-white">{card.value}</p>
             <p className="mt-1 text-xs text-white/50">{card.label}</p>
+            {card.subMetrics?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-white/55">
+                {card.subMetrics.map((metric) => (
+                  <span key={metric.label} className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-1">
+                    <span className="text-white/40">{metric.label}:</span>{" "}
+                    <span className="font-semibold text-white/80">{metric.value}</span>
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </Link>
         ))}
       </div>

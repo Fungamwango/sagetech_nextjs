@@ -34,6 +34,29 @@ function resolveStoredSlug(post: Parameters<typeof pickPostHeadline>[0]) {
   return post.slug?.trim() || slugifyPostText(pickPostHeadline(post));
 }
 
+function resolveShareImage(post: NonNullable<Awaited<ReturnType<typeof getPostById>>>) {
+  const primaryMedia = getPrimaryMediaUrl(post.fileUrl);
+  const fileType = (post.fileType ?? "").toLowerCase();
+
+  if (post.postType === "song") {
+    return post.albumCover || post.thumbnailUrl || post.linkImage || primaryMedia || "/files/sagetech_icon.jpg";
+  }
+
+  if (post.postType === "video" || fileType.startsWith("video/")) {
+    return post.thumbnailUrl || post.albumCover || post.linkImage || "/files/sagetech_icon.jpg";
+  }
+
+  if (fileType.startsWith("audio/")) {
+    return post.albumCover || post.thumbnailUrl || post.linkImage || "/files/sagetech_icon.jpg";
+  }
+
+  if (fileType.startsWith("image/")) {
+    return primaryMedia || post.thumbnailUrl || post.albumCover || post.linkImage || "/files/sagetech_icon.jpg";
+  }
+
+  return post.linkImage || post.thumbnailUrl || post.albumCover || primaryMedia || "/files/sagetech_icon.jpg";
+}
+
 export async function getPostById(id: string) {
   const [post] = await db
     .select({
@@ -165,7 +188,7 @@ export function getPostSeo(post: NonNullable<Awaited<ReturnType<typeof getPostBy
 
   description = description.slice(0, 180);
 
-  const image = post.linkImage || getPrimaryMediaUrl(post.fileUrl) || post.thumbnailUrl || post.albumCover || "/files/sagetech_icon.jpg";
+  const image = resolveShareImage(post);
 
   return { title, description, image };
 }

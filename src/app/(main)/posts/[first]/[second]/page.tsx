@@ -15,13 +15,17 @@ import { canUseAdsterraStats, fetchAdsterraStats } from "@/lib/adsterra";
 import { getPostSeo, getRelatedPostsByType, getVisiblePostById } from "@/lib/posts";
 import { getPostPath } from "@/lib/postUrls";
 import { getPrimaryMediaUrl } from "@/lib/postMedia";
+import { headers } from "next/headers";
 
 interface PostPageProps {
   params: Promise<{ first: string; second: string }>;
 }
 
-function getSiteUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "https://sageteche.com";
+async function getSiteUrl() {
+  const hdrs = await headers();
+  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host") ?? "sageteche.com";
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  return `${proto}://${host}`;
 }
 
 function stripHtml(value: string | null | undefined) {
@@ -34,6 +38,10 @@ function stripFileExtension(value: string | null | undefined) {
 
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function toAbsoluteUrl(url: string, siteUrl: string) {
+  return url.startsWith("http") ? url : `${siteUrl}${url}`;
 }
 
 function resolveRouteParts(first: string, second: string) {
@@ -69,10 +77,15 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
     };
   }
 
-  const siteUrl = getSiteUrl();
+  const siteUrl = await getSiteUrl();
   const canonical = `${siteUrl}${getPostPath(post)}`;
   const seo = getPostSeo(post);
-  const imageUrl = seo.image.startsWith("http") ? seo.image : `${siteUrl}${seo.image}`;
+  const imageUrl = toAbsoluteUrl(seo.image, siteUrl);
+  const videoUrl =
+    post.postType === "video" || (post.fileType ?? "").toLowerCase().startsWith("video/")
+      ? getPrimaryMediaUrl(post.fileUrl)
+      : null;
+  const absoluteVideoUrl = videoUrl ? toAbsoluteUrl(videoUrl, siteUrl) : null;
 
   return {
     title: seo.title,
@@ -85,6 +98,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       url: canonical,
       siteName: "SageTech",
       images: [{ url: imageUrl, alt: seo.title }],
+      ...(absoluteVideoUrl ? { videos: [{ url: absoluteVideoUrl }] } : {}),
     },
     twitter: {
       card: "summary_large_image",
@@ -110,10 +124,15 @@ export default async function PostPage({ params }: PostPageProps) {
     permanentRedirect(canonicalPath);
   }
 
-  const siteUrl = getSiteUrl();
+  const siteUrl = await getSiteUrl();
   const canonical = `${siteUrl}${canonicalPath}`;
   const seo = getPostSeo(post);
-  const imageUrl = seo.image.startsWith("http") ? seo.image : `${siteUrl}${seo.image}`;
+  const imageUrl = toAbsoluteUrl(seo.image, siteUrl);
+  const videoUrl =
+    post.postType === "video" || (post.fileType ?? "").toLowerCase().startsWith("video/")
+      ? getPrimaryMediaUrl(post.fileUrl)
+      : null;
+  const absoluteVideoUrl = videoUrl ? toAbsoluteUrl(videoUrl, siteUrl) : null;
   let monetiseStats = null;
   const isOwnerViewing = currentUser?.id === post.userId;
   const relatedPosts = await getRelatedPostsByType(post.id, post.postType, 5);
@@ -150,6 +169,7 @@ export default async function PostPage({ params }: PostPageProps) {
     },
     mainEntityOfPage: canonical,
     image: imageUrl,
+    ...(absoluteVideoUrl ? { video: absoluteVideoUrl } : {}),
     publisher: {
       "@type": "Organization",
       name: "SageTech",
@@ -177,7 +197,7 @@ export default async function PostPage({ params }: PostPageProps) {
         fullContent
       />
       {relatedPosts.length > 0 ? (
-        <section className="mt-4 rounded-[20px] border border-white/10 bg-white/[0.03] px-3 py-3">
+        <section className="mt-4 rounded-[20px] border border-white/6 bg-white/[0.025] px-3 py-3">
           <div className="mb-3">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/38">
               More {post.postType === "general" ? "Posts" : `${post.postType} Posts`}
@@ -201,17 +221,21 @@ export default async function PostPage({ params }: PostPageProps) {
                 stripHtml(related.generalPost) ||
                 stripHtml(related.blogContent) ||
                 stripHtml(title);
-              const mediaUrl = getPrimaryMediaUrl(related.fileUrl) || related.thumbnailUrl || related.albumCover;
+              const primaryMediaUrl = getPrimaryMediaUrl(related.fileUrl);
+              const mediaUrl =
+                related.postType === "song"
+                  ? related.albumCover || related.thumbnailUrl || primaryMediaUrl
+                  : primaryMediaUrl || related.thumbnailUrl || related.albumCover;
 
               if (related.postType === "song") {
                 return (
                   <Link
                     key={related.id}
                     href={getPostPath(related)}
-                    className="block rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3 transition-colors hover:border-cyan-400/18 hover:bg-white/[0.05]"
+                    className="block rounded-2xl border border-white/5 bg-white/[0.025] px-3 py-3 transition-colors hover:border-cyan-400/16 hover:bg-white/[0.045]"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="relative h-[60px] w-[60px] flex-shrink-0 overflow-hidden rounded-2xl border border-white/8 bg-black/20">
+                      <div className="relative h-[60px] w-[60px] flex-shrink-0 overflow-hidden rounded-2xl border border-white/5 bg-black/20">
                         {mediaUrl ? (
                           <Image src={mediaUrl} alt={title} fill className="object-cover" />
                         ) : (
@@ -242,11 +266,20 @@ export default async function PostPage({ params }: PostPageProps) {
                   <Link
                     key={related.id}
                     href={getPostPath(related)}
-                    className="block overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] transition-colors hover:border-cyan-400/18 hover:bg-white/[0.05]"
+                    className="block overflow-hidden rounded-2xl border border-white/5 bg-white/[0.025] transition-colors hover:border-cyan-400/16 hover:bg-white/[0.045]"
                   >
                     <div className="flex gap-3 p-3">
-                      <div className="relative h-[78px] w-[132px] flex-shrink-0 overflow-hidden rounded-xl border border-white/8 bg-black/20">
-                        {mediaUrl ? (
+                      <div className="relative h-[78px] w-[132px] flex-shrink-0 overflow-hidden rounded-xl border border-white/5 bg-black/20">
+                        {primaryMediaUrl ? (
+                          <video
+                            src={primaryMediaUrl}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            poster={related.thumbnailUrl ?? related.albumCover ?? undefined}
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : mediaUrl ? (
                           <Image src={mediaUrl} alt={title} fill className="object-cover" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-cyan-300/70">
@@ -276,7 +309,7 @@ export default async function PostPage({ params }: PostPageProps) {
                   <Link
                     key={related.id}
                     href={getPostPath(related)}
-                    className="block rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3 transition-colors hover:border-cyan-400/18 hover:bg-white/[0.05]"
+                    className="block rounded-2xl border border-white/5 bg-white/[0.025] px-3 py-3 transition-colors hover:border-cyan-400/16 hover:bg-white/[0.045]"
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center rounded-2xl border border-blue-400/18 bg-blue-400/10 text-blue-300">
@@ -287,7 +320,7 @@ export default async function PostPage({ params }: PostPageProps) {
                           <p className="truncate text-sm font-semibold text-white/90">
                             {related.filename || related.bookTitle || "Document"}
                           </p>
-                          <span className="whitespace-nowrap text-[11px] text-white/36">{related.downloadsCount ?? 0} downloads</span>
+                          <span className="whitespace-nowrap text-[11px] text-white/36"><i className="fas fa-download mr-1" />{related.downloadsCount ?? 0}</span>
                         </div>
                         <p className="mt-1 truncate text-xs text-white/58">
                           {related.author || related.bookCategory || "Document file"}
@@ -303,7 +336,7 @@ export default async function PostPage({ params }: PostPageProps) {
                 <Link
                   key={related.id}
                   href={getPostPath(related)}
-                  className="block rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2.5 transition-colors hover:border-cyan-400/18 hover:bg-white/[0.05]"
+                  className="block rounded-2xl border border-white/5 bg-white/[0.025] px-3 py-2.5 transition-colors hover:border-cyan-400/16 hover:bg-white/[0.045]"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="line-clamp-1 text-sm font-semibold text-white/85">{title}</p>

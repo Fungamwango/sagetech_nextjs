@@ -62,6 +62,11 @@ const PROVIDERS = [
   },
 ];
 
+const PROVIDER_LINKS = {
+  monetag: "https://monetag.com/?ref_id=u70r",
+  adsterra: "https://beta.publishers.adsterra.com/referral/CEuAQ7fHgZ",
+};
+
 export default function MonetiseClient({
   userId,
   initialProvider,
@@ -160,16 +165,16 @@ export default function MonetiseClient({
         style={{
           background:
             status === "not-ready"
-              ? "linear-gradient(to bottom, rgba(60,10,20,0.98), rgba(35,8,16,0.98), rgba(80,12,20,0.25))"
+              ? "linear-gradient(to bottom, rgba(34,16,20,0.98), rgba(24,12,16,0.98), rgba(82,40,48,0.14))"
               : "linear-gradient(to bottom, #123, #023, rgba(0,128,128,0.2))",
-          borderColor: status === "not-ready" ? "rgba(248,113,113,0.25)" : undefined,
+          borderColor: status === "not-ready" ? "rgba(248,113,113,0.16)" : undefined,
         }}
       >
         <h1 className="text-lg font-bold text-white mb-2">
           <i className="fas fa-donate text-cyan-400 mr-2" />
           Monetisation Settings
         </h1>
-        <p className={`text-sm ${status === "not-ready" ? "font-semibold text-red-200" : "text-white/75"}`}>
+        <p className={`text-sm ${status === "not-ready" ? "font-semibold text-white/78" : "text-white/75"}`}>
           {status === "running" && "Your monetisation is active and your chosen provider is connected."}
           {status === "paused" && "Your monetisation is paused because your content count is below the requirement."}
           {status === "ready" && "Your account is ready for monetisation."}
@@ -177,15 +182,15 @@ export default function MonetiseClient({
         </p>
         <p className="text-xs mt-1">
           {status === "running" && <span className="text-cyan-400">Running..</span>}
-          {status === "paused" && <span className="text-red-400">Paused</span>}
+          {status === "paused" && <span className="text-red-300">Paused</span>}
           {status === "ready" && <span className="text-cyan-400">Ready</span>}
-          {status === "not-ready" && <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-red-300">Not Ready</span>}
+          {status === "not-ready" && <span className="rounded-full bg-white/8 px-2 py-0.5 text-rose-200">Not Ready</span>}
         </p>
-        <p className={`text-xs mt-2 ${status === "not-ready" ? "text-red-200/90" : "text-white/55"}`}>
+        <p className={`text-xs mt-2 ${status === "not-ready" ? "text-white/58" : "text-white/55"}`}>
           Current posts: {postCount}. Minimum required: {minimumPosts} posts.
         </p>
         {status === "not-ready" ? (
-          <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-950/20 px-4 py-3 text-sm text-red-200">
+          <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/72">
             You need {Math.max(minimumPosts - postCount, 0)} more post{minimumPosts - postCount === 1 ? "" : "s"} before monetisation unlocks.
           </div>
         ) : null}
@@ -350,6 +355,24 @@ export default function MonetiseClient({
 
           {provider === "monetag" ? (
             <div className="space-y-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/70">
+                <p className="font-semibold text-white">Monetag setup</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>Create or log in to your Monetag publisher account.</li>
+                  <li>Open your Monetag dashboard and create the monetisation link you want to use.</li>
+                  <li>Paste that link below, choose the display frequency, then save.</li>
+                </ol>
+                <a
+                  href={PROVIDER_LINKS.monetag}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200"
+                >
+                  <i className="fas fa-external-link-alt" />
+                  Open Monetag
+                </a>
+              </div>
+
               <ol className="list-decimal pl-5 text-sm text-white/65 space-y-1">
                 <li>Create your Monetag account and copy the direct link.</li>
                 <li>Paste the direct link below.</li>
@@ -384,8 +407,22 @@ export default function MonetiseClient({
           ) : (
             <div className="space-y-3">
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/70">
-                Paste your Adsterra banner code below. If you also want stats on your profile, add your Adsterra API
-                token and optional domain or placement IDs.
+                <p className="font-semibold text-white">Adsterra setup</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>Create or log in to your Adsterra publisher account.</li>
+                  <li>Add your domain or website inside Adsterra and create a banner placement.</li>
+                  <li>Copy the banner code and paste it below.</li>
+                  <li>If you want stats on this page too, add your Adsterra API token and optional domain or placement IDs.</li>
+                </ol>
+                <a
+                  href={PROVIDER_LINKS.adsterra}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200"
+                >
+                  <i className="fas fa-external-link-alt" />
+                  Open Adsterra
+                </a>
               </div>
 
               <div>

@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth";
 import { getPostTypeCost, getUserLevel } from "@/lib/utils";
 import { fetchLinkPreviewFromText } from "@/lib/linkPreview";
 import { slugifyPostText } from "@/lib/postUrls";
+import { getPointCostSettings, getPointRewardSettings } from "@/lib/websiteSettings";
 
 function pickPostHeadline(post: {
   blogTitle?: string | null;
@@ -225,7 +226,64 @@ function getAdvertActiveWhereClause() {
   )!;
 }
 
+async function getConfiguredPostTypeCost(postType: string) {
+  const costs = await getPointCostSettings();
+
+  switch (postType) {
+    case "song":
+      return costs.cost_song_post;
+    case "video":
+      return costs.cost_video_post;
+    case "book":
+      return costs.cost_book_post;
+    case "document":
+      return costs.cost_document_post;
+    case "product":
+      return costs.cost_product_post;
+    case "advert":
+      return costs.cost_advert_post;
+    default:
+      return costs.cost_general_post;
+  }
+}
+
+async function addPointsToUser(userId: string, points: number) {
+  if (!points) return;
+
+  const [user] = await db
+    .select({ points: users.points })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const currentPoints = parseFloat(String(user?.points ?? 0));
+  const nextPoints = currentPoints + points;
+  const nextLevel = getUserLevel(nextPoints);
+
+  await db
+    .update(users)
+    .set({
+      points: String(nextPoints),
+      level: nextLevel as typeof users.level._.data,
+    })
+    .where(eq(users.id, userId));
+}
+
+async function getUserPoints(userId: string) {
+  const [user] = await db
+    .select({ points: users.points })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return parseFloat(String(user?.points ?? 0));
+}
+
 export const postsRouter = new Hono()
+  .get("/points-config", async (c) => {
+    const [costs, rewards] = await Promise.all([getPointCostSettings(), getPointRewardSettings()]);
+    return c.json({ costs, rewards });
+  })
 
   // ─── Get posts feed ─────────────────────────────────────────
   .get("/", async (c) => {
@@ -342,8 +400,8 @@ export const postsRouter = new Hono()
               WHEN ${posts.createdAt} >= NOW() - INTERVAL '30 days' THEN 2
               ELSE 3
             END`,
-            desc(posts.createdAt),
             sql`md5(${posts.id}::text || ${seed})`,
+            desc(posts.createdAt),
           ]
         : [desc(posts.createdAt)];
 
@@ -487,7 +545,7 @@ export const postsRouter = new Hono()
       adverts,
       totalCount: Number(totals?.total ?? 0),
       availablePoints: parseFloat(String(me?.points ?? 0)),
-      renewCost: getPostTypeCost("advert"),
+      renewCost: await getConfiguredPostTypeCost("advert"),
       advertDurationDays: ADVERT_DURATION_DAYS,
     });
   })
@@ -563,7 +621,7 @@ export const postsRouter = new Hono()
       return c.json({ error: "This advert is still active." }, 400);
     }
 
-    const cost = getPostTypeCost("advert");
+    const cost = await getConfiguredPostTypeCost("advert");
     const [user] = await db
       .select({ points: users.points })
       .from(users)
@@ -608,7 +666,7 @@ export const postsRouter = new Hono()
     if (!session) return c.json({ error: "Unauthorized" }, 401);
 
     const data = c.req.valid("json");
-    const cost = getPostTypeCost(data.postType);
+    const cost = await getConfiguredPostTypeCost(data.postType);
 
     // Check and deduct points if cost > 0
     if (cost > 0) {
@@ -704,7 +762,30 @@ export const postsRouter = new Hono()
       })
       .returning();
 
-    return c.json({ success: true, post: newPost }, 201);
+    if (newPost.approved && newPost.privacy === "public") {
+      const followerRows = await db
+        .select({ userId: follows.followerId })
+        .from(follows)
+        .where(eq(follows.followingId, session.userId));
+
+      if (followerRows.length > 0) {
+        await db.insert(notifications).values(
+          followerRows.map((row) => ({
+            userId: row.userId,
+            actorId: session.userId,
+            type: "system" as const,
+            content: `${session.username} shared a new ${data.postType} post`,
+            postId: newPost.id,
+          }))
+        );
+      }
+    }
+
+    const pointSettings = await getPointRewardSettings();
+    await addPointsToUser(session.userId, pointSettings.points_post_create_reward);
+
+    const availablePoints = await getUserPoints(session.userId);
+    return c.json({ success: true, post: newPost, availablePoints }, 201);
   })
 
   // ─── Delete post ─────────────────────────────────────────────
@@ -844,6 +925,8 @@ export const postsRouter = new Hono()
           content: `${session.username} liked your post`,
           postId,
         });
+        const pointSettings = await getPointRewardSettings();
+        await addPointsToUser(session.userId, pointSettings.points_like_reward);
       }
 
       return c.json({ liked: true });
@@ -940,11 +1023,11 @@ export const postsRouter = new Hono()
           content: `${session.username} commented on your post`,
           postId,
         });
-        // Award +0.02 pts for commenting on someone else's post
-        await db
-          .update(users)
-          .set({ points: sql`${users.points} + 0.02` })
-          .where(eq(users.id, session.userId));
+        const pointSettings = await getPointRewardSettings();
+        await addPointsToUser(
+          session.userId,
+          parentId ? pointSettings.points_reply_reward : pointSettings.points_comment_reward
+        );
       }
 
       return c.json({ success: true, comment }, 201);
@@ -1040,11 +1123,30 @@ export const postsRouter = new Hono()
 
   // ─── Track download ──────────────────────────────────────────
   .post("/:id/download", async (c) => {
+    const session = await getSession();
     const postId = c.req.param("id");
+    const [targetPost] = await db
+      .select({ userId: posts.userId, postType: posts.postType })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
+
+    if (!targetPost) return c.json({ error: "Post not found" }, 404);
+
     await db
       .update(posts)
       .set({ downloadsCount: sql`${posts.downloadsCount} + 1` })
       .where(eq(posts.id, postId));
+
+    if (
+      session?.userId &&
+      targetPost.postType !== "guest_ai" &&
+      targetPost.userId !== session.userId
+    ) {
+      const pointSettings = await getPointRewardSettings();
+      await addPointsToUser(session.userId, pointSettings.points_download_reward);
+    }
+
     return c.json({ success: true });
   })
 

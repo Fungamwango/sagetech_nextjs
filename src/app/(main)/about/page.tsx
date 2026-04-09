@@ -1,7 +1,47 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getPointCostSettings, getPointRewardSettings } from "@/lib/websiteSettings";
 
-export default function AboutPage() {
+function pointLabel(value: number, sign: "+" | "-") {
+  return `${sign}${value} pt${value === 1 ? "" : "s"}`;
+}
+
+export default async function AboutPage() {
+  const [rewards, costs] = await Promise.all([getPointRewardSettings(), getPointCostSettings()]);
+
+  const earnRows = [
+    {
+      label: "When another user likes your content",
+      value: pointLabel(rewards.points_like_reward, "+"),
+    },
+    {
+      label: "When another user comments on your content",
+      value: pointLabel(rewards.points_comment_reward, "+"),
+    },
+    {
+      label: "When another user replies to your discussion",
+      value: pointLabel(rewards.points_reply_reward, "+"),
+    },
+    {
+      label: "When another user downloads your file",
+      value: pointLabel(rewards.points_download_reward, "+"),
+    },
+    {
+      label: "When you publish a normal post",
+      value: pointLabel(rewards.points_post_create_reward, "+"),
+    },
+  ];
+
+  const spendRows = [
+    { label: "General text / photo / short-video post", value: pointLabel(costs.cost_general_post, "-") },
+    { label: "Song upload", value: pointLabel(costs.cost_song_post, "-") },
+    { label: "Video upload", value: pointLabel(costs.cost_video_post, "-") },
+    { label: "Document upload", value: pointLabel(costs.cost_document_post, "-") },
+    { label: "Product listing", value: pointLabel(costs.cost_product_post, "-") },
+    { label: "Advert post", value: pointLabel(costs.cost_advert_post, "-") },
+    { label: "Book upload", value: pointLabel(costs.cost_book_post, "-") },
+  ];
+
   return (
     <div className="space-y-4">
       <h1 className="mb-4 text-lg font-bold text-white">
@@ -48,7 +88,7 @@ export default function AboutPage() {
               ].map((skill) => (
                 <span
                   key={skill}
-                  className="rounded-full border border-cyan-300/18 bg-cyan-400/[0.06] px-3 py-1.5 text-white/78"
+                  className="rounded-full border border-cyan-300/5 bg-cyan-400/[0.06] px-3 py-1.5 text-white/78"
                 >
                   {skill}
                 </span>
@@ -102,34 +142,45 @@ export default function AboutPage() {
 
       <section className="sage-card">
         <h2 className="mb-3 text-base font-bold text-white">Points System</h2>
-        <p className="mb-3 text-sm text-white/60">Earn and spend points to unlock more activity across the platform.</p>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between gap-4">
-            <span className="text-white/60">Receive a like</span>
-            <span className="text-green-400">+0.01 pts</span>
+        <p className="mb-4 text-sm leading-relaxed text-white/80">
+          Points are SageTech&apos;s activity currency. You earn them when people interact with your posts, and you spend them
+          on premium actions like music, adverts, documents, and products.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-[14px] border border-white/8 bg-white/[0.03] p-4">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+              <i className="fas fa-arrow-trend-up text-emerald-400" />
+              How Points Are Earned
+            </div>
+            <div className="space-y-2 text-sm">
+              {earnRows.map((row) => (
+                <div key={row.label} className="flex justify-between gap-4">
+                  <span className="text-white/60">{row.label}</span>
+                  <span className="text-emerald-400">{row.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-white/60">Receive a comment</span>
-            <span className="text-green-400">+0.02 pts</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-white/60">Content downloaded</span>
-            <span className="text-green-400">+0.03 pts</span>
-          </div>
-          <div className="my-2 h-px bg-white/10" />
-          <div className="flex justify-between gap-4">
-            <span className="text-white/60">Upload a song</span>
-            <span className="text-red-400">-80 pts</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-white/60">Upload a video</span>
-            <span className="text-red-400">-5 pts</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-white/60">Upload a photo</span>
-            <span className="text-red-400">-0.5 pts</span>
+
+          <div className="rounded-[14px] border border-white/8 bg-white/[0.03] p-4">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+              <i className="fas fa-arrow-trend-down text-rose-400" />
+              How Points Are Used
+            </div>
+            <div className="space-y-2 text-sm">
+              {spendRows.map((row) => (
+                <div key={row.label} className="flex justify-between gap-4">
+                  <span className="text-white/60">{row.label}</span>
+                  <span className={costs.cost_general_post === 0 && row.label === "General text / photo / short-video post" ? "text-cyan-300" : "text-rose-400"}>
+                    {costs.cost_general_post === 0 && row.label === "General text / photo / short-video post" ? "Free" : row.value}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+
       </section>
 
       <section className="sage-card">

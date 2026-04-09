@@ -54,7 +54,7 @@ export default async function LeaderboardPage() {
                   alt={user.username}
                   width={40}
                   height={40}
-                  className="rounded-full object-cover border border-white/20"
+                  className="h-10 w-10 rounded-full border border-white/10 object-cover"
                 />
                 {user.isOnline && <span className="absolute bottom-0 right-0 online-dot" />}
               </div>

@@ -203,7 +203,7 @@ html, body {
   right: 0;
   height: 3px;
   z-index: 100;
-  overflow: hidden;
+  overflow: visible;
   background: rgba(255, 255, 255, 0.05);
 }
 

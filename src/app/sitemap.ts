@@ -1,11 +1,22 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
 import { and, desc, eq, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { posts } from "@/lib/db/schema";
 import { getPostPath } from "@/lib/postUrls";
 
-function getSiteUrl() {
+async function getSiteUrl() {
+  const headerStore = await headers();
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const host = forwardedHost || headerStore.get("host");
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const proto = forwardedProto || (host?.includes("localhost") ? "http" : "https");
+
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
   return process.env.NEXT_PUBLIC_APP_URL || "https://sageteche.com";
 }
 
@@ -32,6 +43,10 @@ const staticRoutes: Array<{
   { path: "/leaderboard", changeFrequency: "daily", priority: 0.78 },
   { path: "/cyber", changeFrequency: "weekly", priority: 0.72 },
   { path: "/tools", changeFrequency: "weekly", priority: 0.82 },
+  { path: "/tools/image-converter", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/tools/audio-converter", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/tools/video-converter", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/tools/document-converter", changeFrequency: "weekly", priority: 0.8 },
   { path: "/recharge", changeFrequency: "weekly", priority: 0.65 },
   { path: "/about", changeFrequency: "monthly", priority: 0.6 },
   { path: "/contact", changeFrequency: "monthly", priority: 0.6 },
@@ -41,7 +56,7 @@ const staticRoutes: Array<{
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = getSiteUrl();
+  const siteUrl = await getSiteUrl();
 
   const staticEntries: MetadataRoute.Sitemap = staticRoutes.map((route) => ({
     url: `${siteUrl}${route.path}`,

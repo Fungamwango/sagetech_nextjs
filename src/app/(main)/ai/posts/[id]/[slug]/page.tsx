@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import Script from "next/script";
+import { headers } from "next/headers";
 
 import PostShareBar from "@/components/posts/PostShareBar";
 import { getAiPostById, incrementAiPostViews } from "@/lib/aiPosts";
@@ -14,6 +15,18 @@ function getSiteUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || "https://sageteche.com";
 }
 
+async function getLiveSiteUrl() {
+  const hdrs = await headers();
+  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  if (host) return `${proto}://${host}`;
+  return getSiteUrl();
+}
+
+function stripHtml(value: string | null | undefined) {
+  return (value ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 export async function generateMetadata({ params }: AiPostPageProps): Promise<Metadata> {
   const { id } = await params;
   const post = await getAiPostById(id);
@@ -25,14 +38,12 @@ export async function generateMetadata({ params }: AiPostPageProps): Promise<Met
     };
   }
 
-  const siteUrl = getSiteUrl();
+  const siteUrl = await getLiveSiteUrl();
   const canonical = `${siteUrl}${getAiPostPath(post)}`;
   const title = `${post.title} | Sage AI`;
-  const description = (post.content || "AI-generated answer on SageTech")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 180);
+  const description = (stripHtml(post.content || "AI-generated answer on SageTech") || "AI-generated answer on SageTech").slice(0, 180);
+  const imageUrl = `${siteUrl}/files/sagetech_icon.jpg`;
+  const publishedTime = post.createdAt ? new Date(post.createdAt).toISOString() : undefined;
 
   return {
     title,
@@ -44,13 +55,15 @@ export async function generateMetadata({ params }: AiPostPageProps): Promise<Met
       description,
       url: canonical,
       siteName: "SageTech",
-      images: [{ url: `${siteUrl}/files/sagetech_icon.jpg`, alt: title }],
+      images: [{ url: imageUrl, alt: title }],
+      publishedTime,
+      authors: ["Sage AI"],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [`${siteUrl}/files/sagetech_icon.jpg`],
+      images: [imageUrl],
     },
   };
 }
@@ -67,22 +80,31 @@ export default async function AiPostPage({ params }: AiPostPageProps) {
 
   await incrementAiPostViews(id);
 
-  const siteUrl = getSiteUrl();
+  const siteUrl = await getLiveSiteUrl();
   const canonicalUrl = `${siteUrl}${canonicalPath}`;
+  const imageUrl = `${siteUrl}/files/sagetech_icon.jpg`;
+  const articleBody = stripHtml(post.content || "");
 
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SocialMediaPosting",
     headline: post.title,
-    articleBody: (post.content || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    description: articleBody.slice(0, 180),
+    articleBody,
     datePublished: post.createdAt,
+    mainEntityOfPage: canonicalUrl,
+    image: imageUrl,
     author: {
-      "@type": "Organization",
+      "@type": "Person",
       name: "Sage AI",
     },
     publisher: {
       "@type": "Organization",
       name: "SageTech",
+      logo: {
+        "@type": "ImageObject",
+        url: imageUrl,
+      },
     },
   };
 

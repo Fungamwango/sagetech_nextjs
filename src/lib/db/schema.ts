@@ -225,6 +225,8 @@ export const rechargeRequests = pgTable("recharge_requests", {
   points: decimal("points", { precision: 10, scale: 2 }).notNull(),
   method: varchar("method", { length: 50 }).notNull(),
   transactionId: varchar("transaction_id", { length: 100 }),
+  requestReason: text("request_reason"),
+  decisionReason: text("decision_reason"),
   status: varchar("status", { length: 20 }).default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
   processedAt: timestamp("processed_at"),
@@ -403,6 +405,24 @@ export const contactMessages = pgTable("contact_messages", {
   seen: boolean("seen").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ============ GUEST VISITORS ============
+export const guestVisitors = pgTable(
+  "guest_visitors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    visitorKey: varchar("visitor_key", { length: 120 }).notNull().unique(),
+    lastPath: text("last_path"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    lastSeen: timestamp("last_seen").defaultNow(),
+  },
+  (t) => ({
+    visitorKeyIdx: index("guest_visitors_key_idx").on(t.visitorKey),
+    lastSeenIdx: index("guest_visitors_last_seen_idx").on(t.lastSeen),
+  })
+);
 
 // ============ PASSWORD RESET CODES ============
 export const passwordResetCodes = pgTable("password_reset_codes", {

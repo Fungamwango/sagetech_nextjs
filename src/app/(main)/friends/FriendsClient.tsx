@@ -260,7 +260,11 @@ export default function FriendsClient({ currentUserId }: FriendsClientProps) {
                         type="button"
                         onClick={() => void handleFollow(user.id)}
                         disabled={isBusy}
-                        className={`btn-sage shrink-0 rounded-full px-4 py-2 text-xs ${isFollowing ? "opacity-75" : ""} ${isBusy ? "cursor-not-allowed" : ""}`}
+                        className={`shrink-0 rounded-full border px-4 py-2 text-xs transition-colors ${
+                          isFollowing
+                            ? "border-white/12 bg-white/[0.04] text-white/75"
+                            : "border-cyan-400/25 bg-cyan-400/[0.06] text-cyan-200 hover:border-cyan-300/40 hover:bg-cyan-400/[0.1] hover:text-cyan-100"
+                        } ${isBusy ? "cursor-not-allowed opacity-75" : ""}`}
                       >
                         {isBusy ? (
                           <span className="inline-flex items-center gap-2">

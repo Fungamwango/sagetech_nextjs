@@ -9,11 +9,11 @@ import { adminRouter } from "./routes/admin";
 import { businessRouter } from "./routes/business";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { promises as fs } from "fs";
-import path from "path";
-import vm from "vm";
 import { sql } from "drizzle-orm";
 import { DICTIONARY_SEED_WORDS } from "@/lib/dictionarySeed";
+import { getDictionaryLanguageLabel } from "@/lib/dictionaryLanguages";
+import { verifyToken } from "@/lib/auth";
+import { fetchConversionCapabilities, proxyConversionRequest, type ConversionKind } from "@/lib/conversionService";
 
 const app = new Hono().basePath("/api");
 
@@ -28,6 +28,58 @@ app.use(
 
 // Health check
 app.get("/health", (c) => c.json({ status: "ok", timestamp: new Date().toISOString() }));
+
+app.post("/visitors/ping", async (c) => {
+  try {
+    const body = await c.req.json().catch(() => null) as { visitorKey?: string; path?: string } | null;
+    const visitorKey = body?.visitorKey?.trim();
+
+    if (!visitorKey || visitorKey.length < 8) {
+      return c.json({ error: "Invalid visitor key." }, 400);
+    }
+
+    const cookieHeader = c.req.header("cookie") ?? "";
+    const token = cookieHeader
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("sagetech_session="))
+      ?.slice("sagetech_session=".length);
+
+    if (token) {
+      const session = await verifyToken<{ userId?: string }>(token);
+      if (session?.userId) {
+        return c.json({ success: true, skipped: "authenticated" });
+      }
+    }
+
+    const { db } = await import("@/lib/db");
+    const { guestVisitors } = await import("@/lib/db/schema");
+
+    await db
+      .insert(guestVisitors)
+      .values({
+        visitorKey,
+        lastPath: body?.path?.trim() || "/",
+        userAgent: c.req.header("user-agent") ?? null,
+        lastSeen: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: guestVisitors.visitorKey,
+        set: {
+          lastPath: body?.path?.trim() || "/",
+          userAgent: c.req.header("user-agent") ?? null,
+          lastSeen: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("visitor ping failed", error);
+    return c.json({ error: "Unable to record visitor." }, 500);
+  }
+});
 
 // Mount routers
 app.route("/auth", authRouter);
@@ -55,7 +107,13 @@ app.route("/business", businessRouter);
       level: users.level,
       })
       .from(users)
-      .where(and(ne(users.username, GUEST_AI_USERNAME), ne(users.email, GUEST_AI_EMAIL)))
+      .where(
+        and(
+          ne(users.username, GUEST_AI_USERNAME),
+          ne(users.email, GUEST_AI_EMAIL),
+          ne(users.bio, "System guest AI author"),
+        )
+      )
       .orderBy(desc(users.points))
       .limit(50);
 
@@ -194,6 +252,44 @@ app.get("/tools/currency", async (c) => {
   }
 });
 
+app.get("/tools/conversion-capabilities", async (c) => {
+  const capabilities = await fetchConversionCapabilities();
+  return c.json(capabilities);
+});
+
+app.post("/tools/convert/:kind", async (c) => {
+  const kind = c.req.param("kind") as ConversionKind;
+  if (!["image", "audio", "video", "document"].includes(kind)) {
+    return c.json({ error: "Unsupported conversion type." }, 400);
+  }
+
+  try {
+    const formData = await c.req.formData();
+    const response = await proxyConversionRequest(kind, formData);
+
+    if (!response.ok) {
+      const message = await response.text().catch(() => "Conversion failed.");
+      return c.json({ error: message || "Conversion failed." }, { status: response.status as 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503 | 504 });
+    }
+
+    const outputBuffer = await response.arrayBuffer();
+    const headers = new Headers();
+    headers.set("content-type", response.headers.get("content-type") || "application/octet-stream");
+    headers.set(
+      "content-disposition",
+      response.headers.get("content-disposition") || `attachment; filename="converted-file"`
+    );
+
+    return new Response(outputBuffer, {
+      status: 200,
+      headers,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Conversion failed.";
+    return c.json({ error: message }, 502);
+  }
+});
+
 // ── AI helpers ────────────────────────────────────────────────────
 function mdToHtml(raw: string): string {
   if (!raw) return "";
@@ -243,10 +339,19 @@ async function translateText(text: string, lang: string): Promise<string> {
 
 async function translateHtml(html: string, lang: string): Promise<string> {
   try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(lang)}&dt=t&q=${encodeURIComponent(html)}`;
-    const res = await fetch(url);
-    const data = await res.json() as unknown[][];
-    return (data[0] as unknown[][]).map((s) => (s as unknown[])[0]).join("") || html;
+    // Split on HTML tags, translate only text segments, preserve tag structure
+    const parts = html.split(/(<[^>]+>)/);
+    const textIndexes = parts.reduce<number[]>((acc, p, i) => {
+      if (!p.startsWith("<") && p.trim()) acc.push(i);
+      return acc;
+    }, []);
+    if (!textIndexes.length) return html;
+
+    const translated = await Promise.all(
+      textIndexes.map((i) => translateText(parts[i], lang))
+    );
+    textIndexes.forEach((i, j) => { parts[i] = translated[j]; });
+    return parts.join("");
   } catch { return html; }
 }
 
@@ -283,11 +388,7 @@ function extractBembaExampleFromHtml(html: string) {
 
 async function getBembaDictionaryEntries() {
   if (bembaDictionaryCache) return bembaDictionaryCache;
-  const dictionaryPath = path.join(process.cwd(), "dictionary", "dictionary", "dictionary.js");
-  const raw = await fs.readFile(dictionaryPath, "utf8");
-  const sandbox: { dictionary?: Record<string, string> } = {};
-  vm.runInNewContext(raw, sandbox);
-  const parsed = sandbox.dictionary ?? {};
+  const { default: parsed } = await import("../../../dictionary/dictionary/dictionary.json") as { default: Record<string, string> };
   bembaDictionaryCache = Object.entries(parsed).map(([word, html]) => ({
     word,
     html,
@@ -494,7 +595,10 @@ RULES:
 - Never cut off mid-answer. Always complete your response fully.`,
           },
           ...historyMessages,
-          { role: "user", content: question },
+          {
+            role: "user",
+            content: question,
+          },
         ],
         max_tokens: 2048,
         temperature: 0.8,
@@ -757,7 +861,8 @@ app.get("/dictionary/challenge-users", async (c) => {
   const { getSession } = await import("@/lib/auth");
   const { db } = await import("@/lib/db");
   const { users } = await import("@/lib/db/schema");
-  const { ilike, not, eq, and } = await import("drizzle-orm");
+  const { GUEST_AI_EMAIL, GUEST_AI_USERNAME } = await import("@/lib/aiPosts");
+  const { ilike, not, eq, and, ne } = await import("drizzle-orm");
   const session = await getSession();
   const q = (c.req.query("q") ?? "").toLowerCase().trim();
   let qb = db.select({
@@ -769,6 +874,8 @@ app.get("/dictionary/challenge-users", async (c) => {
     isOnline: sql<boolean>`(${users.lastSeen} IS NOT NULL AND ${users.lastSeen} >= NOW() - INTERVAL '1 minute')`,
   }).from(users);
   const conds: any[] = [];
+  conds.push(ne(users.username, GUEST_AI_USERNAME));
+  conds.push(ne(users.email, GUEST_AI_EMAIL));
   if (session) conds.push(not(eq(users.id, session.userId)));
   if (q) conds.push(ilike(users.username, `%${q}%`));
   const result = conds.length > 0 ? await qb.where(and(...conds)).limit(30) : await qb.limit(30);
@@ -856,15 +963,6 @@ app.post("/dictionary/challenges/:id/complete", async (c) => {
   await db.insert(notifications).values({ userId: ch.senderId, actorId: session.userId, type: "system", content: msg });
   await db.update(quizChallenges).set({ status: "completed" }).where(eq(quizChallenges.id, ch.id));
   return c.json({ success: true, result, receiverPoints: rPts, senderPoints: sPts });
-});
-
-// Dictionary - leaderboard
-app.get("/dictionary/leaderboard", async (c) => {
-  const { db } = await import("@/lib/db");
-  const { users } = await import("@/lib/db/schema");
-  const { desc } = await import("drizzle-orm");
-  const leaders = await db.select({ id: users.id, username: users.username, picture: users.picture, level: users.level, points: users.points }).from(users).orderBy(desc(users.points)).limit(10);
-  return c.json({ leaders });
 });
 
 // Dictionary - save quiz points
@@ -1004,6 +1102,56 @@ app.post("/recharge", async (c) => {
   });
 
   return c.json({ success: true, message: "International payment submitted for verification." });
+});
+
+app.post("/recharge/mobile-money/manual", async (c) => {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+  const body = await c.req.json();
+  const amount = Number(body?.amount);
+  const points = Number(body?.points);
+  const transactionId = String(body?.transactionId ?? "").trim();
+
+  if (!Number.isFinite(amount) || amount < 0.1 || amount > 1000) {
+    return c.json({ error: "Invalid recharge amount." }, 400);
+  }
+  if (!Number.isFinite(points) || points < 10 || points > 100000 || !Number.isInteger(points)) {
+    return c.json({ error: "Invalid points amount." }, 400);
+  }
+  if (transactionId.length < 4) {
+    return c.json({ error: "Enter a valid mobile money transaction ID." }, 400);
+  }
+
+  const { db } = await import("@/lib/db");
+  const { rechargeRequests } = await import("@/lib/db/schema");
+  const { and, eq } = await import("drizzle-orm");
+
+  const [existing] = await db
+    .select({ id: rechargeRequests.id })
+    .from(rechargeRequests)
+    .where(and(eq(rechargeRequests.userId, session.userId), eq(rechargeRequests.transactionId, transactionId)))
+    .limit(1);
+
+  if (existing) {
+    return c.json({ error: "This transaction ID has already been submitted." }, 400);
+  }
+
+  await db.insert(rechargeRequests).values({
+    userId: session.userId,
+    amount: amount.toFixed(2),
+    points: String(points),
+    method: "mobile_money_manual",
+    transactionId,
+    requestReason: "Manual mobile money recharge request.",
+    status: "pending",
+  });
+
+  return c.json({
+    success: true,
+    message: "Recharge request submitted. It will be reviewed after payment verification.",
+  });
 });
 
 app.post("/recharge/international-link", async (c) => {
@@ -1189,6 +1337,85 @@ app.post("/recharge/mobile-money/verify", async (c) => {
   }
 
   return c.json({ success: true, status: "pending", message: "Payment is still pending." });
+});
+
+app.get("/recharge/history", async (c) => {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+  const { db } = await import("@/lib/db");
+  const { rechargeRequests } = await import("@/lib/db/schema");
+  const { desc, eq } = await import("drizzle-orm");
+
+  const history = await db
+    .select({
+      id: rechargeRequests.id,
+      amount: rechargeRequests.amount,
+      points: rechargeRequests.points,
+      method: rechargeRequests.method,
+      transactionId: rechargeRequests.transactionId,
+      requestReason: rechargeRequests.requestReason,
+      decisionReason: rechargeRequests.decisionReason,
+      status: rechargeRequests.status,
+      createdAt: rechargeRequests.createdAt,
+      processedAt: rechargeRequests.processedAt,
+    })
+    .from(rechargeRequests)
+    .where(eq(rechargeRequests.userId, session.userId))
+    .orderBy(desc(rechargeRequests.createdAt))
+    .limit(10);
+
+  return c.json({ history });
+});
+
+app.post("/recharge/mobile-money/request-review", async (c) => {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+  const body = await c.req.json();
+  const txRef = String(body?.txRef ?? "").trim();
+  const reason = String(body?.reason ?? "").trim();
+
+  if (!txRef) {
+    return c.json({ error: "Transaction reference is required." }, 400);
+  }
+  if (reason.length < 4) {
+    return c.json({ error: "Add a short reason so admin knows what to check." }, 400);
+  }
+  if (reason.length > 300) {
+    return c.json({ error: "Reason is too long." }, 400);
+  }
+
+  const { db } = await import("@/lib/db");
+  const { rechargeRequests } = await import("@/lib/db/schema");
+  const { and, eq } = await import("drizzle-orm");
+
+  const [recharge] = await db
+    .select()
+    .from(rechargeRequests)
+    .where(and(eq(rechargeRequests.userId, session.userId), eq(rechargeRequests.transactionId, txRef)))
+    .limit(1);
+
+  if (!recharge) {
+    return c.json({ error: "Recharge request not found." }, 404);
+  }
+  if (recharge.status === "approved") {
+    return c.json({ error: "This recharge has already been approved." }, 400);
+  }
+
+  await db
+    .update(rechargeRequests)
+    .set({
+      status: "pending",
+      requestReason: reason,
+      decisionReason: null,
+      processedAt: null,
+    })
+    .where(eq(rechargeRequests.id, recharge.id));
+
+  return c.json({ success: true, message: "Recharge request sent for admin review." });
 });
 
 export const GET = handle(app);

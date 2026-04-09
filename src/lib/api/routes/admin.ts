@@ -20,13 +20,16 @@ import {
   quizChallenges,
   cyberAttacks,
   cyberHacked,
+  guestVisitors,
 } from "@/lib/db/schema";
-import { eq, desc, sql, or, and } from "drizzle-orm";
+import { eq, desc, sql, or, and, ne } from "drizzle-orm";
 import { getPostPath } from "@/lib/postUrls";
 import { createAdminSession, destroyAdminSession, getAdminSession } from "@/lib/auth";
 import { getUserLevel } from "@/lib/utils";
 import { parseMediaUrls } from "@/lib/postMedia";
 import { deleteR2Keys, extractR2KeyFromUrl } from "@/lib/r2";
+import { GUEST_AI_EMAIL, GUEST_AI_USERNAME } from "@/lib/aiPosts";
+import { DEFAULT_MONETISE_MIN_POSTS, DEFAULT_POINT_COST_SETTINGS, DEFAULT_POINT_REWARD_SETTINGS } from "@/lib/websiteSettings";
 
 async function requireAdmin(c: Context, next: Next) {
   const session = await getAdminSession();
@@ -37,6 +40,7 @@ async function requireAdmin(c: Context, next: Next) {
 }
 
 const ONLINE_WINDOW_SQL = sql`(${users.lastSeen} IS NOT NULL AND ${users.lastSeen} >= NOW() - INTERVAL '5 minutes')`;
+const REAL_USER_FILTER = and(ne(users.username, GUEST_AI_USERNAME), ne(users.email, GUEST_AI_EMAIL));
 
 async function createSystemNotification(userId: string, content: string, postId?: string | null) {
   await db.insert(notifications).values({
@@ -122,31 +126,7 @@ async function deleteUserWithAssets(userId: string) {
     ...userMessages.map((message) => extractR2KeyFromUrl(message.fileUrl)),
   ].filter((key): key is string => Boolean(key));
 
-  await db.transaction(async (tx) => {
-    await tx.delete(cyberHacked).where(eq(cyberHacked.receiverId, userId));
-    await tx.delete(cyberAttacks).where(eq(cyberAttacks.senderId, userId));
-
-    await tx.delete(quizChallenges).where(eq(quizChallenges.senderId, userId));
-    await tx.delete(quizChallenges).where(eq(quizChallenges.receiverId, userId));
-
-    await tx.delete(notifications).where(eq(notifications.actorId, userId));
-    await tx.delete(notifications).where(eq(notifications.userId, userId));
-
-    await tx.delete(messages).where(eq(messages.senderId, userId));
-    await tx.delete(messages).where(eq(messages.receiverId, userId));
-
-    await tx.delete(follows).where(eq(follows.followerId, userId));
-    await tx.delete(follows).where(eq(follows.followingId, userId));
-
-    await tx.delete(likes).where(eq(likes.userId, userId));
-    await tx.delete(comments).where(eq(comments.userId, userId));
-    await tx.delete(reports).where(eq(reports.reporterId, userId));
-    await tx.delete(rechargeRequests).where(eq(rechargeRequests.userId, userId));
-    await tx.delete(passwordResetCodes).where(eq(passwordResetCodes.userId, userId));
-
-    await tx.delete(posts).where(eq(posts.userId, userId));
-    await tx.delete(users).where(eq(users.id, userId));
-  });
+  await db.delete(users).where(eq(users.id, userId));
 
   if (keysToDelete.length > 0) {
     await deleteR2Keys(keysToDelete);
@@ -310,7 +290,7 @@ export const adminRouter = new Hono()
     return c.json({ success: true });
   })
   .get("/stats", requireAdmin, async (c) => {
-    const [totalUsers] = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
+    const [totalUsers] = await db.select({ count: sql<number>`COUNT(*)` }).from(users).where(REAL_USER_FILTER);
     const [totalPosts] = await db.select({ count: sql<number>`COUNT(*)` }).from(posts);
     const [pendingPosts] = await db
       .select({ count: sql<number>`COUNT(*)` })
@@ -327,11 +307,19 @@ export const adminRouter = new Hono()
     const [onlineUsers] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(users)
-      .where(ONLINE_WINDOW_SQL);
+      .where(and(ONLINE_WINDOW_SQL, REAL_USER_FILTER));
     const [newUsersToday] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(users)
-      .where(sql`DATE(${users.createdAt}) = CURRENT_DATE`);
+      .where(and(sql`DATE(${users.createdAt}) = CURRENT_DATE`, REAL_USER_FILTER));
+    const [todayVisitors] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(users)
+      .where(and(sql`DATE(${users.lastSeen}) = CURRENT_DATE`, REAL_USER_FILTER));
+    const [todayGuestVisitors] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(guestVisitors)
+      .where(sql`DATE(${guestVisitors.lastSeen}) = CURRENT_DATE`);
     const [pendingReports] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(reports)
@@ -341,6 +329,8 @@ export const adminRouter = new Hono()
       select to_char(date(last_seen), 'YYYY-MM-DD') as day, count(*)::int as value
       from users
       where date(last_seen) >= current_date - interval '6 day'
+        and username <> ${GUEST_AI_USERNAME}
+        and email <> ${GUEST_AI_EMAIL}
       group by date(last_seen)
       order by date(last_seen) asc
     `);
@@ -349,6 +339,8 @@ export const adminRouter = new Hono()
       select to_char(date(created_at), 'YYYY-MM-DD') as day, count(*)::int as value
       from users
       where date(created_at) >= current_date - interval '6 day'
+        and username <> ${GUEST_AI_USERNAME}
+        and email <> ${GUEST_AI_EMAIL}
       group by date(created_at)
       order by date(created_at) asc
     `);
@@ -383,6 +375,8 @@ export const adminRouter = new Hono()
       unreadMessages: Number(unreadMessages?.count ?? 0),
       onlineUsers: Number(onlineUsers?.count ?? 0),
       newUsersToday: Number(newUsersToday?.count ?? 0),
+      todayVisitors: Number(todayVisitors?.count ?? 0),
+      todayGuestVisitors: Number(todayGuestVisitors?.count ?? 0),
       pendingReports: Number(pendingReports?.count ?? 0),
       visitsLast7Days: makeSevenDaySeries((visitsSeries.rows as Array<{ day: string; value: number }>) ?? []),
       newUsersLast7Days: makeSevenDaySeries((newUsersSeries.rows as Array<{ day: string; value: number }>) ?? []),
@@ -401,6 +395,7 @@ export const adminRouter = new Hono()
           OR CAST(COALESCE(${users.points}, '0') AS TEXT) LIKE ${`%${query}%`}
         )`
       : undefined;
+    const usersFilter = userSearch ? and(REAL_USER_FILTER, userSearch) : REAL_USER_FILTER;
     const allUsers = await db
       .select({
         id: users.id,
@@ -417,7 +412,7 @@ export const adminRouter = new Hono()
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(userSearch)
+      .where(usersFilter)
       .orderBy(desc(users.createdAt))
       .limit(30)
       .offset(offset);
@@ -443,7 +438,7 @@ export const adminRouter = new Hono()
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(eq(users.id, id))
+      .where(and(eq(users.id, id), REAL_USER_FILTER))
       .limit(1);
     if (!user) return c.json({ error: "User not found" }, 404);
 
@@ -469,13 +464,13 @@ export const adminRouter = new Hono()
       const id = c.req.param("id") as string;
       const data = c.req.valid("json");
 
-      const [existingUser] = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
+      const [existingUser] = await db.select({ id: users.id }).from(users).where(and(eq(users.id, id), REAL_USER_FILTER)).limit(1);
       if (!existingUser) return c.json({ error: "User not found" }, 404);
 
-      const [usernameOwner] = await db.select({ id: users.id }).from(users).where(eq(users.username, data.username)).limit(1);
+      const [usernameOwner] = await db.select({ id: users.id }).from(users).where(and(eq(users.username, data.username), REAL_USER_FILTER)).limit(1);
       if (usernameOwner && usernameOwner.id !== id) return c.json({ error: "Username already exists" }, 409);
 
-      const [emailOwner] = await db.select({ id: users.id }).from(users).where(eq(users.email, data.email)).limit(1);
+      const [emailOwner] = await db.select({ id: users.id }).from(users).where(and(eq(users.email, data.email), REAL_USER_FILTER)).limit(1);
       if (emailOwner && emailOwner.id !== id) return c.json({ error: "Email already exists" }, 409);
 
       await db.update(users).set({
@@ -501,6 +496,8 @@ export const adminRouter = new Hono()
         select count(*)::int as count
         from users
         where coalesce(last_seen, created_at) < now() - (${days} * interval '1 day')
+          and username <> ${GUEST_AI_USERNAME}
+          and email <> ${GUEST_AI_EMAIL}
       `);
       const count = Number((result.rows?.[0] as { count?: number } | undefined)?.count ?? 0);
       return c.json({ count, days });
@@ -516,6 +513,8 @@ export const adminRouter = new Hono()
         select id
         from users
         where coalesce(last_seen, created_at) < now() - (${days} * interval '1 day')
+          and username <> ${GUEST_AI_USERNAME}
+          and email <> ${GUEST_AI_EMAIL}
       `);
       const userIds = ((inactiveUsers.rows as Array<{ id: string }>) ?? []).map((row) => row.id);
 
@@ -528,9 +527,20 @@ export const adminRouter = new Hono()
   )
   .delete("/users/:id", requireAdmin, async (c) => {
     const userId = c.req.param("id") as string;
-    const deleted = await deleteUserWithAssets(userId);
-    if (!deleted) return c.json({ error: "User not found" }, 404);
-    return c.json({ success: true });
+    try {
+      const [targetUser] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.id, userId), REAL_USER_FILTER))
+        .limit(1);
+      if (!targetUser) return c.json({ error: "User not found" }, 404);
+      const deleted = await deleteUserWithAssets(userId);
+      if (!deleted) return c.json({ error: "User not found" }, 404);
+      return c.json({ success: true });
+    } catch (error) {
+      console.error("admin delete user failed", error);
+      return c.json({ error: "Unable to delete user right now." }, 500);
+    }
   })
   .get("/posts", requireAdmin, async (c) => {
     const offset = parseInt(c.req.query("offset") ?? "0");
@@ -626,6 +636,8 @@ export const adminRouter = new Hono()
         points: rechargeRequests.points,
         method: rechargeRequests.method,
         transactionId: rechargeRequests.transactionId,
+        requestReason: rechargeRequests.requestReason,
+        decisionReason: rechargeRequests.decisionReason,
         status: rechargeRequests.status,
         createdAt: rechargeRequests.createdAt,
         processedAt: rechargeRequests.processedAt,
@@ -645,10 +657,11 @@ export const adminRouter = new Hono()
   .patch(
     "/recharges/:id/approve",
     requireAdmin,
-    zValidator("json", z.object({ approve: z.boolean() })),
+    zValidator("json", z.object({ approve: z.boolean(), reason: z.string().trim().max(300).optional() })),
     async (c) => {
-      const { approve } = c.req.valid("json");
+      const { approve, reason } = c.req.valid("json");
       const id = c.req.param("id");
+      const decisionReason = reason?.trim() ? reason.trim() : null;
 
       const [recharge] = await db
         .select()
@@ -674,14 +687,14 @@ export const adminRouter = new Hono()
 
       await db
         .update(rechargeRequests)
-        .set({ status: approve ? "approved" : "rejected", processedAt: new Date() })
+        .set({ status: approve ? "approved" : "rejected", processedAt: new Date(), decisionReason })
         .where(eq(rechargeRequests.id, id));
 
       await createSystemNotification(
         recharge.userId,
         approve
-          ? `Your recharge request for ${recharge.points} points has been approved.`
-          : `Your recharge request for ${recharge.points} points has been rejected.`
+          ? `Your recharge request for ${recharge.points} points has been approved.${decisionReason ? ` Reason: ${decisionReason}` : ""}`
+          : `Your recharge request for ${recharge.points} points has been rejected.${decisionReason ? ` Reason: ${decisionReason}` : ""}`
       );
 
       return c.json({ success: true });
@@ -884,8 +897,24 @@ export const adminRouter = new Hono()
   })
   .get("/website-settings", requireAdmin, async (c) => {
     const rows = await db.select().from(websiteInfo).orderBy(websiteInfo.key);
+    const savedSettings = Object.fromEntries(rows.map((row) => [row.key, row.value ?? ""]));
     return c.json({
-      settings: Object.fromEntries(rows.map((row) => [row.key, row.value ?? ""])),
+      settings: {
+        monetise_min_posts: String(savedSettings.monetise_min_posts ?? DEFAULT_MONETISE_MIN_POSTS),
+        ...Object.fromEntries(
+          Object.entries(DEFAULT_POINT_REWARD_SETTINGS).map(([key, value]) => [
+            key,
+            String(savedSettings[key] ?? value),
+          ])
+        ),
+        ...Object.fromEntries(
+          Object.entries(DEFAULT_POINT_COST_SETTINGS).map(([key, value]) => [
+            key,
+            String(savedSettings[key] ?? value),
+          ])
+        ),
+        ...savedSettings,
+      },
     });
   })
   .patch(
@@ -900,6 +929,24 @@ export const adminRouter = new Hono()
         const minimumPosts = Number(minimumPostsRaw);
         if (!Number.isFinite(minimumPosts) || minimumPosts < 1 || !Number.isInteger(minimumPosts)) {
           return c.json({ error: "Monetise minimum posts must be a whole number of at least 1." }, 400);
+        }
+      }
+
+      for (const key of Object.keys(DEFAULT_POINT_REWARD_SETTINGS)) {
+        const raw = settings[key];
+        if (raw == null) continue;
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+          return c.json({ error: `${key.replaceAll("_", " ")} must be a whole number of at least 0.` }, 400);
+        }
+      }
+
+      for (const key of Object.keys(DEFAULT_POINT_COST_SETTINGS)) {
+        const raw = settings[key];
+        if (raw == null) continue;
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+          return c.json({ error: `${key.replaceAll("_", " ")} must be a whole number of at least 0.` }, 400);
         }
       }
 

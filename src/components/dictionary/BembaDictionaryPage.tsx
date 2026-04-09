@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE } from "@/lib/dictionaryLanguages";
+import { speakResponsiveText, stopResponsiveSpeech } from "@/lib/responsiveVoice";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface DictEntry { word: string; bemba: string; html: string; base?: string; sourceLang?: string; targetLang?: string }
@@ -12,8 +13,6 @@ interface IncomingChallenge {
   id: string; senderId: string; senderScore: number; questions: string;
   status: string | null; createdAt: string | null; senderUsername: string | null; senderPicture: string | null;
 }
-interface Leader { id: string; username: string; picture: string | null; level: string | null; points: string | null }
-
 type QuizMode = "solo" | "challenge-friend" | "accepted-challenge";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -64,10 +63,7 @@ function getEntrySpeechText(entry: DictEntry) {
 }
 
 function speak(text: string) {
-  if ("speechSynthesis" in window) {
-    const u = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(u);
-  }
+  speakResponsiveText(text);
 }
 
 function Avatar({ src, size = 32 }: { src: string | null; size?: number }) {
@@ -236,7 +232,7 @@ function QuizRunner({ questions, mode, challengeData, challengeTarget, onComplet
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-type Tab = "translate" | "quiz" | "challenge" | "my-challenges" | "leaderboard" | "wotd" | "random";
+type Tab = "translate" | "quiz" | "challenge" | "my-challenges" | "wotd" | "random";
 
 export default function DictionaryPage() {
   const [tab, setTab] = useState<Tab>("translate");
@@ -292,9 +288,6 @@ export default function DictionaryPage() {
   const [acceptedResult, setAcceptedResult] = useState<{ result: string; receiverPoints: number; receiverScore: number } | null>(null);
 
   // ── Leaderboard state
-  const [leaders, setLeaders] = useState<Leader[]>([]);
-  const [loadingLeaders, setLoadingLeaders] = useState(false);
-
   // ── Word of Day state
   const [wotd, setWotd] = useState<DictEntry | null>(null);
   const [randomEntry, setRandomEntry] = useState<DictEntry | null>(null);
@@ -325,9 +318,7 @@ export default function DictionaryPage() {
 
   useEffect(() => {
     return () => {
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopResponsiveSpeech();
     };
   }, []);
 
@@ -405,14 +396,19 @@ export default function DictionaryPage() {
   }, [fetchRandomWord]);
 
   const loadNextHomeEntry = useCallback(async () => {
+    setLoadingWords(true);
     const entry = await fetchRandomWord();
-    if (!entry) return;
+    if (!entry) {
+      setLoadingWords(false);
+      return;
+    }
     setCurrentEntry(entry);
     setEntryHistory((prev) => {
       const next = [...prev.slice(0, historyCursor + 1), entry];
       setHistoryCursor(next.length - 1);
       return next;
     });
+    setLoadingWords(false);
   }, [fetchRandomWord, historyCursor]);
 
   const goPrevEntry = useCallback(() => {
@@ -420,33 +416,39 @@ export default function DictionaryPage() {
     const nextCursor = historyCursor - 1;
     setHistoryCursor(nextCursor);
     setCurrentEntry(entryHistory[nextCursor] ?? null);
-    window.speechSynthesis.cancel();
+    stopResponsiveSpeech();
     setSpeaking(false);
     setSpeechPending(false);
   }, [entryHistory, historyCursor]);
 
   const toggleSpeak = useCallback(() => {
-    if (!currentEntry || !("speechSynthesis" in window)) return;
+    if (!currentEntry) return;
     if (speaking) {
-      window.speechSynthesis.cancel();
+      stopResponsiveSpeech();
       setSpeaking(false);
       setSpeechPending(false);
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(getEntrySpeechText(currentEntry));
-    utterance.onstart = () => {
-      setSpeechPending(false);
-      setSpeaking(true);
-    };
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => {
+    setSpeechPending(true);
+    const didStart = speakResponsiveText(getEntrySpeechText(currentEntry), {
+      onstart: () => {
+        setSpeechPending(false);
+        setSpeaking(true);
+      },
+      onend: () => {
+        setSpeechPending(false);
+        setSpeaking(false);
+      },
+      onerror: () => {
+        setSpeechPending(false);
+        setSpeaking(false);
+      },
+    });
+    if (!didStart) {
       setSpeechPending(false);
       setSpeaking(false);
-    };
-    setSpeechPending(true);
-    window.speechSynthesis.speak(utterance);
+    }
   }, [currentEntry, speaking]);
 
   const shareDictionary = useCallback(async () => {
@@ -636,16 +638,6 @@ export default function DictionaryPage() {
   };
 
   // ── Leaderboard tab
-  useEffect(() => {
-    if (tab === "leaderboard") {
-      setLoadingLeaders(true);
-      fetch("/api/dictionary/leaderboard").then(r => r.json()).then(d => {
-        setLeaders(d.leaders ?? []);
-        setLoadingLeaders(false);
-      });
-    }
-  }, [tab]);
-
   // ── Tab labels
   return (
     <div>
@@ -762,10 +754,6 @@ export default function DictionaryPage() {
               <i className="fas fa-random w-4 text-center" />
               Randomise Words
             </button>
-            <button type="button" onClick={() => switchTab("leaderboard")} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-white/70 transition-colors hover:bg-white/5 hover:text-cyan-400">
-              <i className="fas fa-trophy w-4 text-center" />
-              Leaderboard
-            </button>
             <button type="button" onClick={shareDictionary} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-white/70 transition-colors hover:bg-white/5 hover:text-cyan-400">
               <i className="fas fa-share w-4 text-center" />
               Invite Friends
@@ -830,10 +818,17 @@ export default function DictionaryPage() {
                           <div className="text-left">
                             <button
                               onClick={goPrevEntry}
-                              disabled={historyCursor <= 0}
+                              disabled={historyCursor <= 0 || loadingWords}
                               className="rounded-full border border-white/15 bg-black/20 px-4 py-2 text-sm text-white/70 transition-colors hover:border-cyan-400 hover:text-cyan-400 disabled:cursor-not-allowed disabled:opacity-30"
                             >
-                              &lt;&lt; prev
+                              {loadingWords ? (
+                                <>
+                                  <i className="fas fa-spinner fa-spin mr-2" />
+                                  Loading...
+                                </>
+                              ) : (
+                                <>&lt;&lt; prev</>
+                              )}
                             </button>
                           </div>
                           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2">
@@ -849,9 +844,17 @@ export default function DictionaryPage() {
                           <div className="text-right">
                             <button
                               onClick={loadNextHomeEntry}
-                              className="rounded-full border border-white/15 bg-black/20 px-4 py-2 text-sm text-white/70 transition-colors hover:border-cyan-400 hover:text-cyan-400"
+                              disabled={loadingWords}
+                              className="rounded-full border border-white/15 bg-black/20 px-4 py-2 text-sm text-white/70 transition-colors hover:border-cyan-400 hover:text-cyan-400 disabled:cursor-not-allowed disabled:opacity-30"
                             >
-                              next &gt;&gt;
+                              {loadingWords ? (
+                                <>
+                                  <i className="fas fa-spinner fa-spin mr-2" />
+                                  Loading...
+                                </>
+                              ) : (
+                                <>next &gt;&gt;</>
+                              )}
                             </button>
                           </div>
                         </div>
@@ -924,7 +927,7 @@ export default function DictionaryPage() {
                     resetQuiz();
                     setTab("challenge");
                   }}
-                  className="px-6 py-2 border border-cyan-400/50 text-cyan-400 rounded-full text-sm hover:bg-cyan-400/10 transition-colors"
+                  className="rounded-full border border-cyan-400/25 bg-cyan-400/[0.06] px-6 py-2 text-sm text-cyan-200 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/[0.1] hover:text-cyan-100"
                 >
                   Challenge a Friend
                 </button>
@@ -965,7 +968,12 @@ export default function DictionaryPage() {
                   <div className="text-4xl mb-3">🎯</div>
                   <h3 className="text-lg font-bold text-white mb-1">Challenge Sent!</h3>
                   <p className="text-white/60 text-sm mb-4">Challenge sent to <strong className="text-cyan-400">{challengeTarget.username}</strong>!</p>
-                  <button onClick={resetChallenge} className="btn-sage px-6">Challenge Another</button>
+                  <button
+                    onClick={resetChallenge}
+                    className="rounded-full border border-cyan-400/25 bg-cyan-400/[0.06] px-6 py-2 text-sm text-cyan-200 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/[0.1] hover:text-cyan-100"
+                  >
+                    Challenge Another
+                  </button>
                 </>
               ) : (
                 <p className="text-red-400 text-sm">Failed to send challenge. <button onClick={resetChallenge} className="underline text-cyan-400">Try again</button></p>
@@ -1005,7 +1013,12 @@ export default function DictionaryPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {u.isOnline && <span className="w-2 h-2 rounded-full bg-green-400 inline-block" title="Online" />}
-                      <button onClick={() => startChallengeQuiz(u)} className="btn-sage text-xs px-3 py-1">Challenge</button>
+                      <button
+                        onClick={() => startChallengeQuiz(u)}
+                        className="rounded-full border border-cyan-400/25 bg-cyan-400/[0.06] px-3 py-1 text-xs text-cyan-200 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/[0.1] hover:text-cyan-100"
+                      >
+                        Challenge
+                      </button>
                     </div>
                   </li>
                 ))}
@@ -1091,7 +1104,12 @@ export default function DictionaryPage() {
                       </div>
                       {ch.status === "pending" && (
                         <div className="flex gap-2">
-                          <button onClick={() => acceptChallenge(ch)} className="btn-sage text-xs px-4 py-1.5 flex-1">Accept</button>
+                          <button
+                            onClick={() => acceptChallenge(ch)}
+                            className="flex-1 rounded-full border border-cyan-400/25 bg-cyan-400/[0.06] px-4 py-1.5 text-xs text-cyan-200 transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/[0.1] hover:text-cyan-100"
+                          >
+                            Accept
+                          </button>
                           <button
                             onClick={() => declineChallenge(ch.id)}
                             className="text-xs px-4 py-1.5 flex-1 rounded border border-white/20 text-white/60 hover:border-red-400 hover:text-red-400 transition-colors"
@@ -1110,39 +1128,8 @@ export default function DictionaryPage() {
       )}
 
       {/* ── LEADERBOARD TAB ── */}
-      {tab === "leaderboard" && (
-        <div>
-          <h2 className="text-sm font-semibold text-white/80 mb-3 flex items-center gap-2">
-            <i className="fas fa-trophy text-yellow-400" />Top 10 Leaderboard
-          </h2>
-          {loadingLeaders ? (
-            <div className="text-center py-8 text-white/40"><i className="fas fa-spinner fa-spin mr-2" />Loading...</div>
-          ) : (
-            <ol className="space-y-2">
-              {leaders.map((u, i) => (
-                <li
-                  key={u.id}
-                  className="flex items-center gap-3 p-3 rounded"
-                  style={{
-                    background: i === 0 ? "rgba(255,215,0,0.08)" : i === 1 ? "rgba(192,192,192,0.06)" : i === 2 ? "rgba(205,127,50,0.06)" : "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <div className="w-7 text-center font-bold text-sm" style={{ color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "rgba(255,255,255,0.4)" }}>
-                    {i + 1}
-                  </div>
-                  <Avatar src={u.picture} size={32} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">{u.username}</div>
-                    <div className="text-xs text-white/40 capitalize">{u.level ?? "amateur"}</div>
-                  </div>
-                  <div className="text-sm font-bold text-cyan-400">{u.points ?? "0"} <span className="text-xs text-white/40 font-normal">pts</span></div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-      )}
+      
+
 
       {/* ── WORD OF DAY TAB ── */}
       {tab === "wotd" && (
@@ -1212,5 +1199,4 @@ export default function DictionaryPage() {
     </div>
   );
 }
-
 

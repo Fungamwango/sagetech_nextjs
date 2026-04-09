@@ -286,10 +286,7 @@ export default function BibleStudyClient({ contentHtml }: { contentHtml: string 
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <SelectionPill label="Book" value={bookLabel} />
-            <SelectionPill label="Focus" value={keypointLabel} />
-          </div>
+        
         </div>
 
         <div className="grid grid-cols-2 gap-3">

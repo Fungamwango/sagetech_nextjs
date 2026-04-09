@@ -82,13 +82,10 @@ export function getPostTypeCost(postType: string): number {
   switch (postType) {
     case "song": return 80;
     case "video": return 5;
-    case "photo": return 0.5;
-    case "app": return 50;
-    case "book": return 40;
-    case "blog": return 5;
+    case "book": return 10;
+    case "document": return 10;
     case "product": return 40;
     case "advert": return 100;
-    case "document": return 2;
     default: return 0;
   }
 }

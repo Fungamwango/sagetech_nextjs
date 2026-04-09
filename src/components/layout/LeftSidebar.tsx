@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -20,6 +20,8 @@ interface SidebarUser {
 interface LeftSidebarProps {
   user: SidebarUser | null;
 }
+
+type PointsUpdatedDetail = { points: number };
 
 const sidebarLinks = [
   { href: "/profile", icon: "fas fa-user", label: "My profile", authOnly: true },
@@ -57,11 +59,28 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
   const hideProfileSummaryOnly = /^\/profile\/[^/]+/.test(pathname);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [livePoints, setLivePoints] = useState(parseFloat(String(user?.points ?? 0)));
   const closeLogoutModal = useBackClosable(logoutModalOpen, () => {
     if (!loggingOut) setLogoutModalOpen(false);
   });
   const visibleLinks = sidebarLinks.filter((link) => !link.authOnly || user);
   const profileHref = user ? `/profile/${user.id}` : "/login";
+
+  useEffect(() => {
+    setLivePoints(parseFloat(String(user?.points ?? 0)));
+  }, [user?.points]);
+
+  useEffect(() => {
+    const handlePointsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<PointsUpdatedDetail>).detail;
+      if (typeof detail?.points === "number" && Number.isFinite(detail.points)) {
+        setLivePoints(detail.points);
+      }
+    };
+
+    window.addEventListener("points-updated", handlePointsUpdated);
+    return () => window.removeEventListener("points-updated", handlePointsUpdated);
+  }, []);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -75,7 +94,7 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
         throw new Error("Logout failed");
       }
       setLogoutModalOpen(false);
-      window.location.replace("/login");
+      window.location.assign(`/login?logout=${Date.now()}`);
     } finally {
       setLoggingOut(false);
     }
@@ -117,7 +136,7 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
                 </p>
                 <p className="text-cyan-400 text-sm mt-1">
                   <i className="fas fa-coins mr-1" />
-                  {parseFloat(String(user.points ?? 0)).toFixed(2)} pts
+                  {livePoints.toFixed(2)} pts
                 </p>
               </div>
             </>

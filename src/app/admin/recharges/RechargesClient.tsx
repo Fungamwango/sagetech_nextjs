@@ -13,6 +13,8 @@ interface Recharge {
   points: string;
   method: string;
   transactionId?: string | null;
+  requestReason?: string | null;
+  decisionReason?: string | null;
   status: string;
   createdAt: string;
   processedAt?: string | null;
@@ -34,6 +36,7 @@ export default function RechargesClient() {
   const [pendingAction, setPendingAction] = useState<{ recharge: Recharge; approve: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Recharge | null>(null);
   const [processing, setProcessing] = useState<false | "decision" | "delete">(false);
+  const [decisionReason, setDecisionReason] = useState("");
 
   const loadRecharges = async (nextStatus = status, nextQuery = query) => {
     setLoading(true);
@@ -51,13 +54,19 @@ export default function RechargesClient() {
     void loadRecharges(status, query);
   }, [status]);
 
+  useEffect(() => {
+    if (!pendingAction) {
+      setDecisionReason("");
+    }
+  }, [pendingAction]);
+
   const processRecharge = async () => {
     if (!pendingAction) return;
     setProcessing("decision");
     const res = await fetch(`/api/admin/recharges/${pendingAction.recharge.id}/approve`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ approve: pendingAction.approve }),
+      body: JSON.stringify({ approve: pendingAction.approve, reason: decisionReason.trim() }),
     });
     if (!res.ok) {
       showToast({ type: "error", message: "Unable to process recharge." });
@@ -69,16 +78,17 @@ export default function RechargesClient() {
     setRecharges((current) =>
       status === "pending"
         ? current.filter((item) => item.id !== pendingAction.recharge.id)
-        : current.map((item) => item.id === pendingAction.recharge.id ? { ...item, status: nextStatus, processedAt: new Date().toISOString() } : item)
+        : current.map((item) => item.id === pendingAction.recharge.id ? { ...item, status: nextStatus, processedAt: new Date().toISOString(), decisionReason: decisionReason.trim() || null } : item)
     );
     if (detailsRecharge?.id === pendingAction.recharge.id) {
-      setDetailsRecharge((current) => current ? { ...current, status: nextStatus, processedAt: new Date().toISOString() } : current);
+      setDetailsRecharge((current) => current ? { ...current, status: nextStatus, processedAt: new Date().toISOString(), decisionReason: decisionReason.trim() || null } : current);
     }
     showToast({
       type: "success",
       message: pendingAction.approve ? "Recharge approved and user notified." : "Recharge rejected and user notified.",
     });
     setPendingAction(null);
+    setDecisionReason("");
     setProcessing(false);
   };
 
@@ -203,6 +213,7 @@ export default function RechargesClient() {
                     <span className="text-xs text-white/50">${recharge.amount} via {recharge.method}</span>
                   </div>
                   {recharge.transactionId ? <p className="mt-0.5 text-xs text-white/30">Txn: {recharge.transactionId}</p> : null}
+                  {recharge.requestReason ? <p className="mt-1 line-clamp-2 text-xs text-white/45">Review note: {recharge.requestReason}</p> : null}
                 </div>
               </button>
 
@@ -293,6 +304,14 @@ export default function RechargesClient() {
                 <p className="text-xs uppercase tracking-wide text-white/35">Transaction ID</p>
                 <p className="mt-2 break-all text-sm text-white">{detailsRecharge.transactionId || "No transaction ID provided"}</p>
               </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:col-span-2">
+                <p className="text-xs uppercase tracking-wide text-white/35">User Review Note</p>
+                <p className="mt-2 text-sm text-white">{detailsRecharge.requestReason || "No review note provided"}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:col-span-2">
+                <p className="text-xs uppercase tracking-wide text-white/35">Decision Reason</p>
+                <p className="mt-2 text-sm text-white">{detailsRecharge.decisionReason || "No decision reason recorded yet"}</p>
+              </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <p className="text-xs uppercase tracking-wide text-white/35">Created</p>
                 <p className="mt-2 text-sm text-white">{new Date(detailsRecharge.createdAt).toLocaleString()}</p>
@@ -347,7 +366,18 @@ export default function RechargesClient() {
         }
         confirmLabel={pendingAction?.approve ? "Approve recharge" : "Reject recharge"}
         intent={pendingAction?.approve ? "success" : "danger"}
-      />
+      >
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">Reason</label>
+          <textarea
+            value={decisionReason}
+            onChange={(e) => setDecisionReason(e.target.value)}
+            rows={3}
+            placeholder={pendingAction?.approve ? "Optional approval reason" : "Why is this request being rejected?"}
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/50"
+          />
+        </div>
+      </AdminConfirmModal>
 
       <AdminConfirmModal
         open={Boolean(deleteTarget)}
